@@ -1,0 +1,349 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   WAYFINDER — Design tokens
+   Single source of truth for colour, type, spacing, radius, elevation, motion.
+   ========================================================================== */
+
+@theme {
+  /* --- Ink: deep midnight navy (primary text + structural UI) ------------- */
+  --color-ink-950: #060b14;
+  --color-ink-900: #0b1220;
+  --color-ink-800: #131f36;
+  --color-ink-700: #1e2e4f;
+  --color-ink-600: #2b3f68;
+  --color-ink-500: #445780;
+  --color-ink-400: #55647b;
+  --color-ink-300: #7c8aa5;
+  --color-ink-200: #c4cddd;
+  --color-ink-100: #e1e7f0;
+  --color-ink-50: #f1f4f9;
+
+  /* --- Paper: warm neutral surfaces -------------------------------------- */
+  --color-paper-0: #ffffff;
+  --color-paper-50: #fbfaf7;
+  --color-paper-100: #f5f3ee;
+  --color-paper-200: #ebe7de;
+  --color-paper-300: #ddd8cc;
+
+  /* --- Accent: distinctive signal teal (primary actions, verified info) --- */
+  --color-accent-50: #e6f4f3;
+  --color-accent-100: #c8e8e5;
+  --color-accent-200: #97d3cf;
+  --color-accent-300: #5fb8b3;
+  --color-accent-400: #2f9d97;
+  --color-accent-500: #12827c;
+  --color-accent-600: #0c6a66;
+  --color-accent-700: #0a5551;
+  --color-accent-800: #083f3c;
+
+  /* --- Warning: amber (attention, uncertainty, caution) ------------------ */
+  --color-warn-50: #fdf4e3;
+  --color-warn-100: #fae6c1;
+  --color-warn-200: #f3cd85;
+  --color-warn-300: #e8ae4a;
+  --color-warn-400: #d68f1e;
+  --color-warn-500: #b2730f;
+  --color-warn-600: #8d5a0a;
+  --color-warn-700: #6b4407;
+
+  /* --- Danger: reserved for genuinely urgent problems -------------------- */
+  --color-danger-50: #fdeceb;
+  --color-danger-100: #fad7d3;
+  --color-danger-200: #f2aca5;
+  --color-danger-300: #e37d72;
+  --color-danger-400: #cd5347;
+  --color-danger-500: #b3362a;
+  --color-danger-600: #8f2a20;
+  --color-danger-700: #6d1f18;
+
+  /* --- Success: confirmed positive states only --------------------------- */
+  --color-success-50: #e8f5ee;
+  --color-success-100: #c9e9d8;
+  --color-success-200: #94d1b3;
+  --color-success-300: #5cb489;
+  --color-success-400: #2f9765;
+  --color-success-500: #1c7b4f;
+  --color-success-600: #14603d;
+  --color-success-700: #0e482e;
+
+  /* --- Neutral border tokens (warm) -------------------------------------- */
+  --color-line-soft: #ece8df;
+  --color-line: #ded9cc;
+  --color-line-strong: #c6bfae;
+
+  /* --- Typography --------------------------------------------------------- */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-display: var(--font-display), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.625rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.125rem;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 2.625rem;
+  --text-4xl: 3rem;
+  --text-4xl--line-height: 3.25rem;
+  --text-5xl: 3.75rem;
+  --text-5xl--line-height: 3.9rem;
+
+  /* --- Radius ------------------------------------------------------------- */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+
+  /* --- Elevation: subtle, layered depth (no heavy drop shadows) ---------- */
+  --shadow-xs: 0 1px 1px rgb(11 18 32 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(11 18 32 / 0.05), 0 1px 1px rgb(11 18 32 / 0.03);
+  --shadow-md: 0 2px 4px -1px rgb(11 18 32 / 0.06),
+    0 4px 12px -2px rgb(11 18 32 / 0.06);
+  --shadow-lg: 0 4px 8px -2px rgb(11 18 32 / 0.07),
+    0 12px 28px -6px rgb(11 18 32 / 0.09);
+  --shadow-xl: 0 8px 16px -4px rgb(11 18 32 / 0.08),
+    0 24px 48px -12px rgb(11 18 32 / 0.12);
+
+  /* --- Motion ------------------------------------------------------------- */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --animate-rise: rise 0.42s var(--ease-out-soft) both;
+  --animate-fade: fade 0.3s var(--ease-out-soft) both;
+  --animate-slide-down: slide-down 0.24s var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-soft: pulse-soft 2.4s var(--ease-in-out-soft) infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ==========================================================================
+   Base layer
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-line-soft);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+    text-underline-offset: 0.2em;
+  }
+
+  body {
+    background-color: var(--color-paper-50);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-ink-900);
+    text-wrap: balance;
+    letter-spacing: -0.018em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-600);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-100);
+    color: var(--color-ink-900);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Operational data — flight numbers, codes, times — must scan instantly. */
+@utility ident {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+@utility measure {
+  max-width: 68ch;
+}
+
+@utility measure-tight {
+  max-width: 52ch;
+}
+
+@utility shell {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 82rem;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .shell {
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .shell {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* Screen-reader-only, but focusable when needed (skip links). */
+@utility sr-only-focusable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only-focusable:focus {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-ink-900);
+  color: var(--color-paper-0);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Subtle grid backdrop behind the hero — supports the layout, not decoration. */
+@utility grid-backdrop {
+  background-image:
+    linear-gradient(to right, rgb(11 18 32 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(11 18 32 / 0.045) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+}
+
+@utility skeleton {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-paper-100) 0%,
+    var(--color-paper-200) 50%,
+    var(--color-paper-100) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Long-form official guidance blocks. */
+@utility prose-guidance {
+  font-size: var(--text-base);
+  line-height: 1.7;
+  color: var(--color-ink-700);
+}
