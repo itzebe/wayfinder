@@ -25,9 +25,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function connect(wsUrl) {
   const socket = new WebSocket(wsUrl);
   const pending = new Map();
+  const events = [];
   let nextId = 0;
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
+    if (message.method) events.push(message);
     const entry = pending.get(message.id);
     if (entry) {
       pending.delete(message.id);
@@ -44,7 +46,7 @@ function connect(wsUrl) {
       pending.set(id, { resolve });
       socket.send(JSON.stringify({ id, method, params }));
     });
-  return { ready, send, close: () => socket.close() };
+  return { ready, send, events, close: () => socket.close() };
 }
 
 async function newPage(width, height) {
@@ -61,6 +63,7 @@ async function newPage(width, height) {
   });
   await client.send("Page.enable");
   await client.send("Runtime.enable");
+  await client.send("Network.enable");
   return { client, target };
 }
 
@@ -174,22 +177,17 @@ try {
   // can answer "Iceland". Building the situation first would spend a round trip
   // (0.3-1.2s in production) to learn what we knew. Measured, not assumed: a POST
   // to /api/assist before the prompt is the delay this guard exists to catch.
-  await evaluate(
-    client,
-    `(() => {
-      window.__wfPosts = [];
-      const original = window.fetch;
-      window.__wfRestore = () => { window.fetch = original; };
-      window.fetch = function (input, init) {
-        const url = typeof input === "string" ? input : input.url;
-        if ((init?.method || "GET").toUpperCase() === "POST" && url.includes("/api/assist")) {
-          window.__wfPosts.push(url);
-        }
-        return original.call(window, input, init);
-      };
-      return true;
-    })()`,
-  );
+  //
+  // Counted from CDP `Network` events, not from a patched `window.fetch`. A
+  // patched counter is destroyed by the navigation it is meant to observe, so it
+  // reads zero whether or not a request was made — a guard that cannot fail.
+  const postsBefore = client.events.filter(
+    (event) =>
+      event.method === "Network.requestWillBeSent" &&
+      event.params.request.method === "POST" &&
+      event.params.request.url.includes("/api/assist"),
+  ).length;
+
   await client.send("Page.navigate", {
     url: `${BASE}/assist?category=weather&location=Nepal&locale=en`,
   });
@@ -197,14 +195,13 @@ try {
     client,
     `[...document.querySelectorAll('button')].some(b => /check this place/i.test(b.textContent || ""))`,
   );
-  const postsBeforePrompt = await evaluate(
-    client,
-    `(() => {
-      const count = window.__wfPosts ? window.__wfPosts.length : 0;
-      window.__wfRestore?.();
-      return count;
-    })()`,
-  );
+  const postsBeforePrompt =
+    client.events.filter(
+      (event) =>
+        event.method === "Network.requestWillBeSent" &&
+        event.params.request.method === "POST" &&
+        event.params.request.url.includes("/api/assist"),
+    ).length - postsBefore;
   console.log("POSTs before the prompt appeared:", postsBeforePrompt);
   check(
     postsBeforePrompt === 0,
@@ -214,11 +211,36 @@ try {
   // --- A country a nationwide source answers must still show its page ------
   // DWD covers all of Germany, so "Germany" alone is answerable. Preempting it
   // with a place prompt would hide the real page.
+  //
+  // This doubles as the positive control for the counter above: Germany's page
+  // is built from a real engine query, so it must show at least one POST. Without
+  // that control a counter stuck at zero would make the shortcut look perfect.
+  const postsBeforeGermany = client.events.filter(
+    (event) =>
+      event.method === "Network.requestWillBeSent" &&
+      event.params.request.method === "POST" &&
+      event.params.request.url.includes("/api/assist"),
+  ).length;
+
   await client.send("Page.navigate", {
     url: `${BASE}/assist?category=weather&location=Germany&locale=en`,
   });
   await waitFor(client, `Boolean(document.querySelector("h1"))`, 25000);
   await sleep(1500);
+
+  const germanyPosts =
+    client.events.filter(
+      (event) =>
+        event.method === "Network.requestWillBeSent" &&
+        event.params.request.method === "POST" &&
+        event.params.request.url.includes("/api/assist"),
+    ).length - postsBeforeGermany;
+  console.log("POSTs for Germany (the counter's positive control):", germanyPosts);
+  check(
+    germanyPosts > 0,
+    "the POST counter saw nothing even for a country that needs the engine, so the zero-POST guard proves nothing",
+  );
+
   const germany = await evaluate(
     client,
     `(() => {
