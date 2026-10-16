@@ -54,9 +54,13 @@ function writeJson(key: string, value: unknown): void {
 
 export interface AssistDraft {
   category: AssistanceCategory | null;
-  countryCode: string;
+  /**
+   * The location as the traveller typed it, e.g. "Lagos, Nigeria". Free text is
+   * the primary input: requiring a pre-digested country code was the original
+   * dead-end bug, and most people simply do not know their ISO code.
+   */
+  location: string;
   region: string;
-  city: string;
   network: string;
   from: string;
   to: string;
@@ -65,9 +69,8 @@ export interface AssistDraft {
 
 export const EMPTY_ASSIST_DRAFT: AssistDraft = {
   category: null,
-  countryCode: "",
+  location: "",
   region: "",
-  city: "",
   network: "",
   from: "",
   to: "",
@@ -76,9 +79,8 @@ export const EMPTY_ASSIST_DRAFT: AssistDraft = {
 
 export interface AssistRequest {
   category: AssistanceCategory;
-  countryCode?: string;
+  location?: string;
   region?: string;
-  city?: string;
   network?: string;
   from?: string;
   to?: string;
@@ -135,6 +137,14 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
   const [seenChangeIds, setSeenChangeIds] = useState<string[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
+  /**
+   * Monotonic id for the active request. Every retrieval captures the value at
+   * the moment it starts and refuses to apply its result if a newer request has
+   * since begun. This is what stops a slow answer to "Lagos" from landing on top
+   * of a fast answer to "London", and what stops a manual refresh from
+   * overwriting a rebuild that started after it.
+   */
+  const requestSeq = useRef(0);
 
   // --- Restore ------------------------------------------------------------
   useEffect(() => {
@@ -178,9 +188,15 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
       const controller = new AbortController();
       abortRef.current = controller;
 
+      const seq = ++requestSeq.current;
+
       setStatus("loading");
       setError(null);
       setFieldErrors({});
+      // Starting a new request must not leave the previous situation on screen:
+      // a failed London search showing Lagos facts is exactly the contamination
+      // this guards against.
+      setAssistance(null);
 
       try {
         const response = await fetch("/api/assist", {
@@ -195,6 +211,10 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
           error?: string;
           fields?: Record<string, string>;
         };
+
+        // A newer request has started; this response is obsolete and must not
+        // touch state.
+        if (seq !== requestSeq.current) return false;
 
         if (!response.ok || !payload.assistance) {
           setFieldErrors(payload.fields ?? {});
@@ -218,6 +238,7 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
         return true;
       } catch (caught) {
         if (caught instanceof Error && caught.name === "AbortError") return false;
+        if (seq !== requestSeq.current) return false;
         setError(t("error.unreachable"));
         setStatus("error");
         return false;
@@ -229,6 +250,7 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
   // --- Refresh ------------------------------------------------------------
   const refreshNow = useCallback(async () => {
     if (!request) return;
+    const seq = ++requestSeq.current;
     setRefreshing(true);
     try {
       const response = await fetch("/api/assist", {
@@ -242,6 +264,8 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
         error?: string;
       };
 
+      if (seq !== requestSeq.current) return;
+
       if (!response.ok || !payload.assistance) {
         // Keep the last good page and surface the failure as a banner rather
         // than replacing real data with an error screen.
@@ -253,14 +277,18 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
       setError(null);
       writeJson(KEYS.assistance, payload.assistance);
     } catch {
+      if (seq !== requestSeq.current) return;
       setError(t("error.refreshFailed"));
     } finally {
-      setRefreshing(false);
+      if (seq === requestSeq.current) setRefreshing(false);
     }
   }, [request, t]);
 
   const startOver = useCallback(() => {
     abortRef.current?.abort();
+    // Invalidate anything in flight so a late response cannot repopulate the
+    // screen after the traveller has deliberately cleared it.
+    requestSeq.current += 1;
     setAssistance(null);
     setRequest(null);
     setStatus("idle");

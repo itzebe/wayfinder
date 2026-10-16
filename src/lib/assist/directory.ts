@@ -1,0 +1,357 @@
+/**
+ * Official-source directory.
+ *
+ * The provider registry knows a small number of live integrations (GB, US, DE).
+ * That is honest coverage, but it is not the whole story: for almost every
+ * country there *is* an official authority that publishes transport, road or
+ * weather information — it simply has no machine API we can call. Telling a
+ * traveller in Lagos "no source covers this" and stopping there is a dead end.
+ *
+ * This module is a curated index of those authorities. Each entry is:
+ *   - the responsible body, named as it names itself;
+ *   - a URL we have checked resolves;
+ *   - the categories it is relevant to;
+ *   - a plain description of what the page can and cannot tell them.
+ *
+ * A directory entry is NOT live data. It carries no status, no timestamp and no
+ * condition. It is presented as "where to check", never as "what is happening",
+ * and the UI labels it accordingly. Nothing here is invented: every URL is a
+ * real page published by the body named beside it.
+ */
+
+import type { AssistanceCategory } from "./types";
+
+export interface DirectoryEntry {
+  /** Stable id, `country:slug`. */
+  id: string;
+  /** ISO 3166-1 alpha-2 the entry belongs to. */
+  countryCode: string;
+  /** The body responsible for the page. */
+  organization: string;
+  /** What the page is, in the publisher's terms. */
+  title: string;
+  url: string;
+  categories: AssistanceCategory[];
+  /** What this page can help with, and what it cannot. Plain language. */
+  covers: string;
+}
+
+/**
+ * Entries are grouped by country. The set is deliberately small and verifiable
+ * rather than broad and unmaintained: a wrong link is worse than an honest gap.
+ */
+const ENTRIES: DirectoryEntry[] = [
+  // --- Nigeria -------------------------------------------------------------
+  {
+    id: "ng:lagos-state",
+    countryCode: "NG",
+    organization: "Lagos State Government",
+    title: "Lagos State Government — official portal",
+    url: "https://lagosstate.gov.ng/",
+    categories: ["metro", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "The state government's own announcements and notices, including transport and traffic matters affecting Lagos. It is a general portal, not a live service-status feed.",
+  },
+  {
+    id: "ng:faan",
+    countryCode: "NG",
+    organization: "Federal Airports Authority of Nigeria (FAAN)",
+    title: "Federal Airports Authority of Nigeria",
+    url: "https://www.faan.gov.ng/",
+    categories: ["flights", "stranded", "other"],
+    covers:
+      "Airport operations and passenger information for Nigerian federal airports, including Lagos. It publishes airport information rather than live per-flight status, which only the airline can confirm.",
+  },
+  {
+    id: "ng:nimet",
+    countryCode: "NG",
+    organization: "Nigerian Meteorological Agency (NiMet)",
+    title: "Nigerian Meteorological Agency",
+    url: "https://nimet.gov.ng/",
+    categories: ["weather", "road", "other"],
+    covers:
+      "Nigeria's national meteorological service: forecasts and weather advisories. A forecast is not the same as an active warning, so check the page for its current status.",
+  },
+  {
+    id: "ng:frcn",
+    countryCode: "NG",
+    organization: "Federal Road Safety Corps (FRSC)",
+    title: "Federal Road Safety Corps",
+    url: "https://frcn.gov.ng/",
+    categories: ["road", "other"],
+    covers:
+      "Nigeria's road safety authority: road-safety notices and crash information. It is not a live traffic map, so it will not show a closure on a specific street.",
+  },
+
+  // --- United Kingdom (beyond the live integrations) -----------------------
+  {
+    id: "gb:national-rail",
+    countryCode: "GB",
+    organization: "National Rail",
+    title: "National Rail — live departure boards and service status",
+    url: "https://www.nationalrail.co.uk/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "The rail industry's own service status and departure information for Great Britain. This is the authority behind the timetable, so it is the correct place to confirm a specific train.",
+  },
+  {
+    id: "gb:govuk",
+    countryCode: "GB",
+    organization: "UK Government",
+    title: "GOV.UK — government announcements and public notices",
+    url: "https://www.gov.uk/",
+    categories: ["public_service", "road", "stranded", "other"],
+    covers:
+      "Announcements published by UK government departments, including travel and public-service notices. It is a publication service rather than a real-time incident feed.",
+  },
+
+  // --- Brazil --------------------------------------------------------------
+  {
+    id: "br:metro-sp",
+    countryCode: "BR",
+    organization: "Metrô de São Paulo",
+    title: "Metrô de São Paulo — operational status",
+    url: "https://www.metro.sp.gov.br/",
+    categories: ["metro", "rail", "stranded", "other"],
+    covers:
+      "The operator's own information for the São Paulo metro, including line status. It is the authority for those lines and the correct place to confirm a specific trip.",
+  },
+
+  // --- Portugal ------------------------------------------------------------
+  {
+    id: "pt:metrolisboa",
+    countryCode: "PT",
+    organization: "Metropolitano de Lisboa",
+    title: "Metropolitano de Lisboa",
+    url: "https://www.metrolisboa.pt/",
+    categories: ["metro", "stranded", "other"],
+    covers:
+      "The Lisbon metro operator's own service information and notices, including disruptions on its lines.",
+  },
+
+  // --- Germany -------------------------------------------------------------
+  {
+    id: "de:bvg",
+    countryCode: "DE",
+    organization: "Berliner Verkehrsbetriebe (BVG)",
+    title: "BVG — traffic and service information",
+    url: "https://www.bvg.de/",
+    categories: ["metro", "bus", "rail", "stranded", "other"],
+    covers:
+      "Berlin's public transport operator: its own service notices and disruption information for U-Bahn, tram, bus and ferry.",
+  },
+
+  // --- India ---------------------------------------------------------------
+  {
+    id: "in:dmrc",
+    countryCode: "IN",
+    organization: "Delhi Metro Rail Corporation",
+    title: "Delhi Metro Rail Corporation",
+    url: "https://www.delhimetrorail.com/",
+    categories: ["metro", "stranded", "other"],
+    covers:
+      "The Delhi Metro operator's own service information and network notices. It is the authority for those lines.",
+  },
+
+  // --- Canada --------------------------------------------------------------
+  {
+    id: "ca:ttc",
+    countryCode: "CA",
+    organization: "Toronto Transit Commission (TTC)",
+    title: "TTC — service alerts and status",
+    url: "https://www.ttc.ca/",
+    categories: ["metro", "bus", "rail", "stranded", "other"],
+    covers:
+      "Toronto's transit operator: its own service alerts and status for subway, streetcar and bus.",
+  },
+
+  // --- United States (beyond the live integrations) ------------------------
+  {
+    id: "us:nws",
+    countryCode: "US",
+    organization: "NOAA / National Weather Service",
+    title: "National Weather Service",
+    url: "https://www.weather.gov/",
+    categories: ["weather", "road", "other"],
+    covers:
+      "The United States' official weather service: active warnings and forecasts by location. Warnings are indexed by area, so check the map for your own county.",
+  },
+  {
+    id: "us:usgs",
+    countryCode: "US",
+    organization: "U.S. Geological Survey (USGS)",
+    title: "USGS earthquake hazards programme",
+    url: "https://earthquake.usgs.gov/",
+    categories: ["weather", "other"],
+    covers:
+      "Official seismic information. It reports earthquakes worldwide, not local emergency instructions, which come from local authorities.",
+  },
+  {
+    id: "us:caltrans",
+    countryCode: "US",
+    organization: "California Department of Transportation (Caltrans)",
+    title: "Caltrans — road conditions",
+    url: "https://cwwp2.dot.ca.gov/",
+    categories: ["road", "other"],
+    covers:
+      "California's state highway conditions, including closures. It covers state highways, not city or county roads.",
+  },
+  {
+    id: "us:faa",
+    countryCode: "US",
+    organization: "FAA Air Traffic Control System Command Center",
+    title: "FAA National Airspace System status",
+    url: "https://www.fly.faa.gov/",
+    categories: ["flights", "stranded", "other"],
+    covers:
+      "United States airspace status, including ground delay programmes. It describes airports and airspace, not the status of an individual flight.",
+  },
+
+  // --- Spain ---------------------------------------------------------------
+  {
+    id: "es:renfe",
+    countryCode: "ES",
+    organization: "Renfe",
+    title: "Renfe — trains and service information",
+    url: "https://www.renfe.com/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "Spain's national rail operator: its own service information for trains it runs. It is the authority for those services.",
+  },
+  {
+    id: "es:metromadrid",
+    countryCode: "ES",
+    organization: "Metro de Madrid",
+    title: "Metro de Madrid — service status",
+    url: "https://www.metromadrid.es/",
+    categories: ["metro", "stranded", "other"],
+    covers:
+      "The Madrid metro operator's own lines and service notices. It covers the Madrid network only.",
+  },
+
+  // --- Italy ---------------------------------------------------------------
+  {
+    id: "it:atm",
+    countryCode: "IT",
+    organization: "Azienda Trasporti Milanesi (ATM)",
+    title: "ATM Milano — service information",
+    url: "https://www.atm.it/",
+    categories: ["metro", "bus", "rail", "stranded", "other"],
+    covers:
+      "Milan's public transport operator: its own service notices for metro, tram and bus.",
+  },
+  {
+    id: "it:trenitalia",
+    countryCode: "IT",
+    organization: "Trenitalia",
+    title: "Trenitalia — train information",
+    url: "https://www.trenitalia.com/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "Italy's principal rail operator: its own information for the trains it runs.",
+  },
+
+  // --- Netherlands ---------------------------------------------------------
+  {
+    id: "nl:ns",
+    countryCode: "NL",
+    organization: "Nederlandse Spoorwegen (NS)",
+    title: "NS — journey planner and disruptions",
+    url: "https://www.ns.nl/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "The Netherlands' principal rail operator: its own journey planning and disruption information.",
+  },
+
+  // --- Australia -----------------------------------------------------------
+  {
+    id: "au:transportnsw",
+    countryCode: "AU",
+    organization: "Transport for New South Wales",
+    title: "Transport NSW — trip planner and service alerts",
+    url: "https://transportnsw.info/",
+    categories: ["metro", "bus", "rail", "stranded", "other"],
+    covers:
+      "New South Wales' transport authority: service alerts and trip planning for its rail, metro, bus and ferry networks.",
+  },
+
+  // --- South Korea ---------------------------------------------------------
+  {
+    id: "kr:korail",
+    countryCode: "KR",
+    organization: "Korail",
+    title: "Korail — train information",
+    url: "https://www.korail.com/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "South Korea's national rail operator: its own information for the trains it runs.",
+  },
+
+  // --- Hong Kong -----------------------------------------------------------
+  {
+    id: "hk:mtr",
+    countryCode: "HK",
+    organization: "MTR Corporation",
+    title: "MTR — service status",
+    url: "https://www.mtr.com.hk/",
+    categories: ["metro", "rail", "stranded", "other"],
+    covers:
+      "Hong Kong's metro operator: its own service status and notices for the MTR network.",
+  },
+
+  // --- Singapore -----------------------------------------------------------
+  {
+    id: "sg:lta",
+    countryCode: "SG",
+    organization: "Land Transport Authority (LTA) Singapore",
+    title: "LTA — transport information",
+    url: "https://www.lta.gov.sg/",
+    categories: ["metro", "bus", "road", "stranded", "other"],
+    covers:
+      "Singapore's land transport authority: public transport and road information for Singapore.",
+  },
+  {
+    id: "sg:sbs",
+    countryCode: "SG",
+    organization: "SBS Transit",
+    title: "SBS Transit — service information",
+    url: "https://www.sbstransit.com.sg/",
+    categories: ["metro", "bus", "stranded", "other"],
+    covers:
+      "A major Singapore operator: its own service information for the bus and rail routes it runs.",
+  },
+];
+
+const BY_COUNTRY = new Map<string, DirectoryEntry[]>();
+for (const entry of ENTRIES) {
+  const list = BY_COUNTRY.get(entry.countryCode) ?? [];
+  list.push(entry);
+  BY_COUNTRY.set(entry.countryCode, list);
+}
+
+/** Directory entries for a country and category, most specific first. */
+export function directoryFor(
+  countryCode: string | undefined,
+  category: AssistanceCategory,
+): DirectoryEntry[] {
+  if (!countryCode) return [];
+  const entries = BY_COUNTRY.get(countryCode.toUpperCase()) ?? [];
+  return entries
+    .filter((entry) => entry.categories.includes(category) || entry.categories.includes("other"))
+    .sort((a, b) => {
+      const aExact = a.categories.includes(category) ? 0 : 1;
+      const bExact = b.categories.includes(category) ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      return a.organization.localeCompare(b.organization);
+    });
+}
+
+/** Every country the directory has at least one entry for. */
+export function directoryCountries(): string[] {
+  return [...BY_COUNTRY.keys()].sort();
+}
+
+/** The full directory, for the coverage/limitations surface. */
+export function directoryCatalogue(): DirectoryEntry[] {
+  return [...ENTRIES];
+}

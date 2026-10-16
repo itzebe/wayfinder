@@ -791,6 +791,11 @@ const en: Messages = {
     "Choose a category, or describe what happened. We only show categories that have a working data source.",
   "assist.noAccount": "No account is needed, and we never ask for payment details.",
   "assist.location.title": "Where did this happen?",
+  "assist.location.field": "Where are you?",
+  "assist.location.fieldHelp":
+    "A country on its own is fine, or a place in any wording you use: for example \"Nigeria\", \"Lagos, Nigeria\" or \"Ikeja, Lagos, Nigeria\". We will work out the country for you.",
+  "assist.location.fieldPlaceholder": "Lagos, Nigeria",
+
   "assist.location.country": "Country code",
   "assist.location.countryHelp": "Two letters, for example GB, US or DE.",
   "assist.location.city": "City or area",
@@ -959,6 +964,21 @@ const en: Messages = {
     "The verified findings are: {findings}. Confirm the status of your own journey with the operator before you rely on it.",
   "assist.fallback.noSources":
     "No source that covers this selection could be reached, so nothing is verified. Use the official links below to check directly.",
+  "assist.fallback.noSourceSummary":
+    "You asked about {category}{place}. No live source covers this place, so nothing could be verified automatically.",
+  "assist.fallback.noSourceMeaning":
+    "We did not find a live data source for this place, so we have not reported a status either way — the situation here is unknown, not clear. The official pages listed below are the authorities responsible for this location; check them directly, and confirm anything that affects your own journey with the operator.",
+  "assist.uncertain.noLiveProvider":
+    "No live provider covers this place, so the situation is unknown rather than confirmed clear.",
+
+  // --- Official-page directory ------------------------------------------------
+  "assist.section.references": "Official pages to check",
+  "assist.references.intro":
+    "No live data source covers this place, so we could not retrieve a status automatically. These are the official bodies responsible for this location — open them to check directly.",
+  "assist.references.official": "Official",
+  "assist.references.open": "Open official page",
+  "assist.references.none":
+    "We do not have an official page on file for this place. Contact the operator or the responsible local authority directly.",
 
   "validation.countryCodeFormat": "Use a two-letter country code, for example GB or US.",
   "validation.assistLocationRequired":
@@ -993,6 +1013,12 @@ const en: Messages = {
   "coverage.refresh": "Refresh",
 
   // --- Support hub + generic flow ---------------------------------------------
+  "support.saved.title": "You have a saved situation",
+  "support.saved.body":
+    "You previously asked about {place}. You can reopen it, or clear it and start a new request.",
+  "support.saved.open": "Reopen saved situation",
+  "support.saved.new": "Start a new request",
+
   "support.flight.title": "Flight disruption",
   "support.flight.body":
     "Use the dedicated flight flow for cancellations, delays, missed connections and gate changes.",
@@ -1024,6 +1050,8 @@ const en: Messages = {
   "assist.value.unknown": "Not reported",
   "assist.conditions.note":
     "These are the conditions the sources reported, in their own words, with their own severity.",
+  "assist.conditions.unknown":
+    "No status was retrieved for this place, so we cannot say whether anything is disrupted. Check the official pages below.",
   "assist.conditions.openSource": "Open the source",
   "assist.conditions.showAll": "Show all {count} reported conditions",
   "assist.conditions.showFewer": "Show fewer conditions",
@@ -1791,6 +1819,11 @@ const es: Messages = {
     "Elige una categoría o describe lo que ha pasado. Solo mostramos categorías que tienen una fuente de datos que funciona.",
   "assist.noAccount": "No hace falta cuenta y nunca pedimos datos de pago.",
   "assist.location.title": "¿Dónde ha ocurrido?",
+  "assist.location.field": "¿Dónde estás?",
+  "assist.location.fieldHelp":
+    "Un país por sí solo sirve, o un lugar con las palabras que uses: por ejemplo \"Nigeria\", \"Lagos, Nigeria\" o \"Ikeja, Lagos, Nigeria\". Nosotros deducimos el país.",
+  "assist.location.fieldPlaceholder": "Lagos, Nigeria",
+
   "assist.location.country": "Código de país",
   "assist.location.countryHelp": "Dos letras, por ejemplo GB, US o DE.",
   "assist.location.city": "Ciudad o zona",
@@ -1959,6 +1992,21 @@ const es: Messages = {
     "Los hallazgos verificados son: {findings}. Confirma el estado de tu propio trayecto con el operador antes de fiarte de él.",
   "assist.fallback.noSources":
     "No se pudo contactar con ninguna fuente que cubra esta selección, así que no hay nada verificado. Usa los enlaces oficiales de abajo para comprobarlo directamente.",
+  "assist.fallback.noSourceSummary":
+    "Has preguntado por {category}{place}. Ninguna fuente en directo cubre este lugar, así que no se pudo verificar nada automáticamente.",
+  "assist.fallback.noSourceMeaning":
+    "No encontramos ninguna fuente de datos en directo para este lugar, así que no hemos informado de ningún estado: la situación aquí es desconocida, no despejada. Las páginas oficiales de abajo son las autoridades responsables de esta ubicación; consúltalas directamente y confirma con el operador todo lo que afecte a tu propio trayecto.",
+  "assist.uncertain.noLiveProvider":
+    "Ningún proveedor en directo cubre este lugar, así que la situación es desconocida en lugar de estar confirmada como despejada.",
+
+  // --- Directorio de páginas oficiales ---------------------------------------
+  "assist.section.references": "Páginas oficiales que consultar",
+  "assist.references.intro":
+    "Ninguna fuente de datos en directo cubre este lugar, así que no pudimos obtener un estado automáticamente. Estos son los organismos oficiales responsables de esta ubicación: ábrelos para comprobarlo directamente.",
+  "assist.references.official": "Oficial",
+  "assist.references.open": "Abrir página oficial",
+  "assist.references.none":
+    "No tenemos ninguna página oficial registrada para este lugar. Contacta directamente con el operador o con la autoridad local responsable.",
 
   "validation.countryCodeFormat": "Usa un código de país de dos letras, por ejemplo GB o US.",
   "validation.assistLocationRequired":
@@ -1993,6 +2041,12 @@ const es: Messages = {
   "coverage.refresh": "Actualizar",
 
   // --- Centro de ayuda + flujo genérico ---------------------------------------
+  "support.saved.title": "Tienes una situación guardada",
+  "support.saved.body":
+    "Antes preguntaste por {place}. Puedes volver a abrirla, o borrarla y empezar una consulta nueva.",
+  "support.saved.open": "Reabrir situación guardada",
+  "support.saved.new": "Empezar una consulta nueva",
+
   "support.flight.title": "Incidencia de vuelo",
   "support.flight.body":
     "Usa el flujo de vuelo específico para cancelaciones, retrasos, conexiones perdidas y cambios de puerta.",
@@ -2025,6 +2079,8 @@ const es: Messages = {
   "assist.value.unknown": "Sin datos",
   "assist.conditions.note":
     "Estas son las condiciones que comunicaron las fuentes, con sus propias palabras y su propia gravedad.",
+  "assist.conditions.unknown":
+    "No se obtuvo ningún estado para este lugar, así que no podemos decir si hay alguna incidencia. Consulta las páginas oficiales de abajo.",
   "assist.conditions.openSource": "Abrir la fuente",
   "assist.conditions.showAll": "Mostrar las {count} condiciones comunicadas",
   "assist.conditions.showFewer": "Mostrar menos condiciones",
@@ -2129,6 +2185,9 @@ const fr: Messages = {
   "assist.summary.lastChecked": "Dernière vérification",
   "assist.fact.reportedProblem.label": "Vous nous avez dit",
   "assist.conditions.note": "Voici les conditions rapportées par les sources, dans leurs propres termes et avec leur propre gravité.",
+
+  "assist.conditions.unknown":
+    "Aucun état n'a été récupéré pour ce lieu : nous ne pouvons donc pas dire si quelque chose est perturbé. Consultez les pages officielles ci-dessous.",
   "assist.explanation.deterministic": "Cette explication a été assemblée à partir des données vérifiées des sources, sans modèle d'IA.",
   "assist.facts.note": "Chaque fait est étiqueté selon sa provenance.",
   "assist.section.timetable": "Horaires prévus",
@@ -2204,6 +2263,20 @@ const fr: Messages = {
   "assist.fallback.meaning": "Les constats vérifiés sont les suivants : {findings}. Confirmez l'état de votre propre voyage auprès de l'opérateur avant de vous y fier.",
   "assist.fallback.noConditions": "Les sources que nous avons interrogées ne signalent aucune perturbation en cours.",
   "assist.fallback.noSources": "Aucune source couvrant cette sélection n'a pu être jointe, donc rien n'est vérifié. Utilisez les liens officiels ci-dessous pour vérifier directement.",
+
+  "assist.fallback.noSourceSummary":
+    "Vous avez posé une question sur {category}{place}. Aucune source en direct ne couvre ce lieu, rien n'a donc pu être vérifié automatiquement.",
+  "assist.fallback.noSourceMeaning":
+    "Nous n'avons pas trouvé de source de données en direct pour ce lieu : nous n'avons donc annoncé aucun état, ni perturbation ni absence de perturbation. La situation ici est inconnue, et non confirmée comme normale. Les pages officielles ci-dessous sont les autorités responsables de ce lieu ; consultez-les directement et confirmez auprès de l'opérateur tout ce qui concerne votre propre trajet.",
+  "assist.uncertain.noLiveProvider":
+    "Aucun fournisseur en direct ne couvre ce lieu : la situation est inconnue plutôt que confirmée comme normale.",
+  "assist.section.references": "Pages officielles à consulter",
+  "assist.references.intro":
+    "Aucune source de données en direct ne couvre ce lieu, nous n'avons donc pas pu obtenir d'état automatiquement. Voici les organismes officiels responsables de ce lieu : ouvrez-les pour vérifier directement.",
+  "assist.references.official": "Officiel",
+  "assist.references.open": "Ouvrir la page officielle",
+  "assist.references.none":
+    "Nous n'avons aucune page officielle enregistrée pour ce lieu. Contactez directement l'opérateur ou l'autorité locale responsable.",
   "assist.gap.needsCredentials": "{provider} exige des identifiants qui ne sont pas configurés, il n'a donc pas été utilisé.",
   "assist.gap.noProvider": "Aucune source de données officielle ne couvre encore cette sélection, donc rien n'a pu être vérifié. Considérez tout détail ci-dessous comme non confirmé et vérifiez directement auprès de l'organisation responsable.",
   "assist.gap.providerDown": "{provider} n'a pas pu être joint, ses informations manquent donc ici.",
@@ -2269,6 +2342,16 @@ const fr: Messages = {
   "assist.coverage.note": "WAYFINDER dispose d'intégrations en direct pour un nombre limité de lieux. Si votre zone n'est pas couverte, vous serez prévenu clairement et recevrez la source officielle à consulter.",
   "assist.location.lead": "Indiquez le lieu où cela se passe. Tout ce qui suit le pays est facultatif ; plus de détail améliore seulement la réponse.",
   "assist.location.title": "Où cela s'est-il produit ?",
+  "assist.location.field": "Où êtes-vous ?",
+  "assist.location.fieldHelp":
+    "Un pays seul suffit, ou un lieu dans vos propres mots : par exemple \"Nigeria\", \"Lagos, Nigeria\" ou \"Ikeja, Lagos, Nigeria\". Nous déduisons le pays pour vous.",
+  "assist.location.fieldPlaceholder": "Lagos, Nigeria",
+  "support.saved.title": "Vous avez une situation enregistrée",
+  "support.saved.body":
+    "Vous avez déjà posé une question sur {place}. Vous pouvez la rouvrir, ou l'effacer et repartir d'une nouvelle demande.",
+  "support.saved.open": "Rouvrir la situation",
+  "support.saved.new": "Nouvelle demande",
+
   "assist.location.country": "Code du pays",
   "assist.location.countryHelp": "Deux lettres, par exemple GB, US ou DE.",
   "assist.location.city": "Ville ou zone",
@@ -2408,6 +2491,9 @@ const de: Messages = {
   "assist.summary.lastChecked": "Zuletzt geprüft",
   "assist.fact.reportedProblem.label": "Sie haben uns gesagt",
   "assist.conditions.note": "Dies sind die von den Quellen gemeldeten Zustände, in ihren eigenen Worten und mit ihrer eigenen Schwere.",
+
+  "assist.conditions.unknown":
+    "Für diesen Ort wurde kein Status abgerufen; wir können daher nicht sagen, ob etwas gestört ist. Prüfen Sie die offiziellen Seiten unten.",
   "assist.explanation.deterministic": "Diese Erklärung wurde aus den verifizierten Quelldaten zusammengestellt, ohne KI-Modell.",
   "assist.facts.note": "Jede Tatsache ist mit ihrer Herkunft gekennzeichnet.",
   "assist.section.timetable": "Geplante Zeiten",
@@ -2483,6 +2569,20 @@ const de: Messages = {
   "assist.fallback.meaning": "Die verifizierten Feststellungen sind: {findings}. Bestätigen Sie den Status Ihrer eigenen Reise beim Betreiber, bevor Sie sich darauf verlassen.",
   "assist.fallback.noConditions": "Die von uns abgefragten Quellen melden derzeit keine Störung.",
   "assist.fallback.noSources": "Keine Quelle, die diese Auswahl abdeckt, war erreichbar, es ist also nichts verifiziert. Nutzen Sie die offiziellen Links unten zur direkten Prüfung.",
+
+  "assist.fallback.noSourceSummary":
+    "Sie haben nach {category}{place} gefragt. Keine Live-Quelle deckt diesen Ort ab, es konnte also nichts automatisch verifiziert werden.",
+  "assist.fallback.noSourceMeaning":
+    "Wir haben für diesen Ort keine Live-Datenquelle gefunden und daher keinen Status gemeldet – weder Störung noch Störungsfreiheit. Die Lage hier ist unbekannt, nicht bestätigt ungestört. Die offiziellen Seiten unten gehören den für diesen Ort zuständigen Stellen; prüfen Sie sie direkt und bestätigen Sie alles, was Ihre eigene Reise betrifft, beim Betreiber.",
+  "assist.uncertain.noLiveProvider":
+    "Keine Live-Quelle deckt diesen Ort ab; die Lage ist unbekannt und nicht als ungestört bestätigt.",
+  "assist.section.references": "Offizielle Seiten zur Prüfung",
+  "assist.references.intro":
+    "Keine Live-Datenquelle deckt diesen Ort ab, daher konnte kein Status automatisch abgerufen werden. Dies sind die für diesen Ort zuständigen offiziellen Stellen – öffnen Sie sie zur direkten Prüfung.",
+  "assist.references.official": "Offiziell",
+  "assist.references.open": "Offizielle Seite öffnen",
+  "assist.references.none":
+    "Für diesen Ort ist keine offizielle Seite hinterlegt. Wenden Sie sich direkt an den Betreiber oder die zuständige lokale Behörde.",
   "assist.gap.needsCredentials": "{provider} benötigt Zugangsdaten, die nicht konfiguriert sind, und wurde daher nicht verwendet.",
   "assist.gap.noProvider": "Für diese Auswahl gibt es noch keine offizielle Datenquelle, es konnte also nichts verifiziert werden. Behandeln Sie alle Angaben unten als unbestätigt und prüfen Sie direkt bei der zuständigen Stelle.",
   "assist.gap.providerDown": "{provider} war nicht erreichbar, daher fehlen hier die Informationen.",
@@ -2548,6 +2648,16 @@ const de: Messages = {
   "assist.coverage.note": "WAYFINDER hat Live-Integrationen für eine begrenzte Zahl von Orten. Ist Ihr Gebiet nicht abgedeckt, wird Ihnen das klar gesagt und die offizielle Quelle genannt.",
   "assist.location.lead": "Nennen Sie den Ort, an dem es passiert. Alles nach dem Land ist optional; mehr Details verbessern nur die Antwort.",
   "assist.location.title": "Wo ist das passiert?",
+  "assist.location.field": "Wo sind Sie?",
+  "assist.location.fieldHelp":
+    "Ein Land allein genügt, oder ein Ort in Ihren eigenen Worten: zum Beispiel \"Nigeria\", \"Lagos, Nigeria\" oder \"Ikeja, Lagos, Nigeria\". Wir ermitteln das Land für Sie.",
+  "assist.location.fieldPlaceholder": "Lagos, Nigeria",
+  "support.saved.title": "Sie haben eine gespeicherte Situation",
+  "support.saved.body":
+    "Sie haben zuvor nach {place} gefragt. Sie können sie erneut öffnen oder löschen und eine neue Anfrage starten.",
+  "support.saved.open": "Gespeicherte Situation öffnen",
+  "support.saved.new": "Neue Anfrage starten",
+
   "assist.location.country": "Ländercode",
   "assist.location.countryHelp": "Zwei Buchstaben, zum Beispiel GB, US oder DE.",
   "assist.location.city": "Stadt oder Gebiet",
@@ -2687,6 +2797,9 @@ const pt: Messages = {
   "assist.summary.lastChecked": "Última verificação",
   "assist.fact.reportedProblem.label": "Você disse-nos",
   "assist.conditions.note": "Estas são as condições comunicadas pelas fontes, nas suas próprias palavras e com a sua própria gravidade.",
+
+  "assist.conditions.unknown":
+    "Não foi obtido qualquer estado para este local, por isso não podemos dizer se algo está perturbado. Consulte as páginas oficiais abaixo.",
   "assist.explanation.deterministic": "Esta explicação foi montada a partir dos dados verificados das fontes, sem modelo de IA.",
   "assist.facts.note": "Cada facto está etiquetado com a sua origem.",
   "assist.section.timetable": "Horários previstos",
@@ -2762,6 +2875,20 @@ const pt: Messages = {
   "assist.fallback.meaning": "Os factos verificados são: {findings}. Confirme o estado da sua própria viagem com o operador antes de confiar nisto.",
   "assist.fallback.noConditions": "As fontes que consultámos não comunicam qualquer perturbação atual.",
   "assist.fallback.noSources": "Não foi possível contactar nenhuma fonte que cubra esta seleção, por isso nada está verificado. Use as ligações oficiais abaixo para verificar diretamente.",
+
+  "assist.fallback.noSourceSummary":
+    "Perguntou sobre {category}{place}. Nenhuma fonte em direto cobre este local, por isso nada pôde ser verificado automaticamente.",
+  "assist.fallback.noSourceMeaning":
+    "Não encontrámos nenhuma fonte de dados em direto para este local, por isso não comunicámos qualquer estado — nem perturbação nem ausência dela. A situação aqui é desconhecida, e não confirmada como normal. As páginas oficiais abaixo são as autoridades responsáveis por este local; consulte-as diretamente e confirme com o operador tudo o que afete a sua própria viagem.",
+  "assist.uncertain.noLiveProvider":
+    "Nenhum fornecedor em direto cobre este local, por isso a situação é desconhecida em vez de confirmada como normal.",
+  "assist.section.references": "Páginas oficiais a consultar",
+  "assist.references.intro":
+    "Nenhuma fonte de dados em direto cobre este local, por isso não foi possível obter um estado automaticamente. Estas são as entidades oficiais responsáveis por este local — abra-as para verificar diretamente.",
+  "assist.references.official": "Oficial",
+  "assist.references.open": "Abrir página oficial",
+  "assist.references.none":
+    "Não temos nenhuma página oficial registada para este local. Contacte diretamente o operador ou a autoridade local responsável.",
   "assist.gap.needsCredentials": "{provider} exige credenciais que não estão configuradas, por isso não foi usado.",
   "assist.gap.noProvider": "Ainda não existe uma fonte de dados oficial que cubra esta seleção, por isso nada pôde ser verificado. Trate qualquer detalhe abaixo como não confirmado e verifique diretamente com a organização responsável.",
   "assist.gap.providerDown": "Não foi possível contactar {provider}, por isso falta aqui a sua informação.",
@@ -2827,6 +2954,16 @@ const pt: Messages = {
   "assist.coverage.note": "A WAYFINDER tem integrações em direto para um conjunto limitado de locais. Se a sua zona não estiver coberta, ser-lhe-á dito com clareza e indicada a fonte oficial a consultar.",
   "assist.location.lead": "Indique o local onde isto está a acontecer. Tudo depois do país é opcional e mais detalhe só melhora a resposta.",
   "assist.location.title": "Onde é que isto aconteceu?",
+  "assist.location.field": "Onde está?",
+  "assist.location.fieldHelp":
+    "Um país por si só serve, ou um local nas suas próprias palavras: por exemplo \"Nigéria\", \"Lagos, Nigéria\" ou \"Ikeja, Lagos, Nigéria\". Nós deduzimos o país por si.",
+  "assist.location.fieldPlaceholder": "Lagos, Nigéria",
+  "support.saved.title": "Tem uma situação guardada",
+  "support.saved.body":
+    "Perguntou anteriormente sobre {place}. Pode reabri-la, ou apagá-la e iniciar um novo pedido.",
+  "support.saved.open": "Reabrir situação guardada",
+  "support.saved.new": "Iniciar novo pedido",
+
   "assist.location.country": "Código do país",
   "assist.location.countryHelp": "Duas letras, por exemplo GB, US ou DE.",
   "assist.location.city": "Cidade ou zona",
@@ -2966,6 +3103,9 @@ const ar: Messages = {
   "assist.summary.lastChecked": "آخر تحقق",
   "assist.fact.reportedProblem.label": "أخبرتنا أنت",
   "assist.conditions.note": "هذه هي الأوضاع التي أبلغت عنها المصادر، بكلماتها وبشدة الخطر التي تحددها.",
+
+  "assist.conditions.unknown":
+    "لم يتم الحصول على أي حالة لهذا الموقع، لذا لا يمكننا تحديد ما إذا كان هناك أي اضطراب. راجع الصفحات الرسمية أدناه.",
   "assist.explanation.deterministic": "تم تجميع هذا الشرح من بيانات المصادر الموثّقة، دون نموذج ذكاء اصطناعي.",
   "assist.facts.note": "كل معلومة موسومة بمصدرها.",
   "assist.section.timetable": "الأوقات المجدولة",
@@ -3041,6 +3181,20 @@ const ar: Messages = {
   "assist.fallback.meaning": "النتائج الموثّقة هي: {findings}. تحقق من حالة رحلتك أنت مع المشغّل قبل الاعتماد على ذلك.",
   "assist.fallback.noConditions": "المصادر التي استعلمناها لا تُبلغ عن أي اضطراب حالي.",
   "assist.fallback.noSources": "تعذّر الوصول إلى أي مصدر يغطي هذا الاختيار، لذا لم يُوثَّق شيء. استخدم الروابط الرسمية أدناه للتحقق مباشرة.",
+
+  "assist.fallback.noSourceSummary":
+    "سألت عن {category}{place}. لا يغطي أي مصدر مباشر هذا الموقع، لذا لم يُمكن التحقق من أي شيء تلقائيًا.",
+  "assist.fallback.noSourceMeaning":
+    "لم نجد أي مصدر بيانات مباشر لهذا الموقع، لذلك لم نُبلّغ عن أي حالة — لا اضطراب ولا انتظام. الوضع هنا مجهول وليس مؤكدًا بأنه طبيعي. الصفحات الرسمية أدناه هي الجهات المسؤولة عن هذا الموقع؛ راجعها مباشرة، وأكّد مع المشغّل كل ما يتعلق برحلتك أنت.",
+  "assist.uncertain.noLiveProvider":
+    "لا يغطي أي مزوّد مباشر هذا الموقع، لذا الوضع مجهول وليس مؤكدًا بأنه طبيعي.",
+  "assist.section.references": "صفحات رسمية للتحقق",
+  "assist.references.intro":
+    "لا يغطي أي مصدر بيانات مباشر هذا الموقع، لذا لم نتمكن من الحصول على حالة تلقائيًا. هذه هي الجهات الرسمية المسؤولة عن هذا الموقع — افتحها للتحقق مباشرة.",
+  "assist.references.official": "رسمي",
+  "assist.references.open": "فتح الصفحة الرسمية",
+  "assist.references.none":
+    "ليس لدينا صفحة رسمية مسجّلة لهذا الموقع. تواصل مباشرة مع المشغّل أو الجهة المحلية المسؤولة.",
   "assist.gap.needsCredentials": "{provider} يتطلب بيانات اعتماد غير مهيّأة، لذلك لم يُستخدم.",
   "assist.gap.noProvider": "لا يوجد بعد مصدر بيانات رسمي يغطي هذا الاختيار، لذا لم يُمكن التحقق من شيء. اعتبر أي تفصيل أدناه غير مؤكد وتحقق مباشرة من الجهة المسؤولة.",
   "assist.gap.providerDown": "تعذّر الوصول إلى {provider}، لذلك تفتقد معلوماته هنا.",
@@ -3106,6 +3260,16 @@ const ar: Messages = {
   "assist.coverage.note": "لدى WAYFINDER تكاملات مباشرة لعدد محدود من الأماكن. إذا لم تكن منطقتك مغطاة، سيُقال لك ذلك بوضوح وسيُعطى لك المصدر الرسمي للتحقق.",
   "assist.location.lead": "أخبرنا بالمكان الذي يحدث فيه هذا. كل ما يلي البلد اختياري، والمزيد من التفاصيل يحسّن الإجابة فقط.",
   "assist.location.title": "أين حدث هذا؟",
+  "assist.location.field": "أين أنت؟",
+  "assist.location.fieldHelp":
+    "يكفي أن تكتب البلد وحده، أو مكانًا بكلماتك: مثلاً \"نيجيريا\" أو \"لاغوس، نيجيريا\" أو \"إيكيجا، لاغوس، نيجيريا\". سنحدد البلد نيابةً عنك.",
+  "assist.location.fieldPlaceholder": "لاغوس، نيجيريا",
+  "support.saved.title": "لديك حالة محفوظة",
+  "support.saved.body":
+    "سبق أن سألت عن {place}. يمكنك إعادة فتحها، أو حذفها وبدء طلب جديد.",
+  "support.saved.open": "إعادة فتح الحالة المحفوظة",
+  "support.saved.new": "بدء طلب جديد",
+
   "assist.location.country": "رمز البلد",
   "assist.location.countryHelp": "حرفان، مثل GB أو US أو DE.",
   "assist.location.city": "المدينة أو المنطقة",
@@ -3243,6 +3407,9 @@ const zh: Messages = {
   "assist.summary.lastChecked": "最后核查",
   "assist.fact.reportedProblem.label": "您告诉我们的",
   "assist.conditions.note": "以下是各来源以其自身措辞和自身严重程度报告的现况。",
+
+  "assist.conditions.unknown":
+    "未能获取该地点的状态，因此无法说明是否有中断。请查阅下方的官方页面。",
   "assist.explanation.deterministic": "本说明由已核验的来源数据汇编而成，未使用 AI 模型。",
   "assist.facts.note": "每项事实都标注了其来源。",
   "assist.section.timetable": "计划时间",
@@ -3318,6 +3485,19 @@ const zh: Messages = {
   "assist.fallback.meaning": "已核验的结论为：{findings}。请先向运营方确认您自身行程的状态，再据此行动。",
   "assist.fallback.noConditions": "我们查询的来源未报告当前中断。",
   "assist.fallback.noSources": "无法联系到覆盖此选择的任何来源，因此没有任何内容经过核验。请使用下方的官方链接直接核实。",
+
+  "assist.fallback.noSourceSummary":
+    "你询问了 {category}{place}。没有实时来源覆盖该地点，因此无法自动核验任何内容。",
+  "assist.fallback.noSourceMeaning":
+    "我们未找到该地点的实时数据来源，因此没有报告任何状态——既不是中断，也不是正常。此处情况未知，而非确认正常。下方的官方页面是负责该地点的机构；请直接查阅，并就与你自身行程相关的任何事项向运营方核实。",
+  "assist.uncertain.noLiveProvider": "没有实时提供方覆盖该地点，因此情况未知，而非确认正常。",
+  "assist.section.references": "可供查阅的官方页面",
+  "assist.references.intro":
+    "没有实时数据来源覆盖该地点，因此无法自动获取状态。以下是负责该地点的官方机构——请打开直接核实。",
+  "assist.references.official": "官方",
+  "assist.references.open": "打开官方页面",
+  "assist.references.none":
+    "我们没有该地点的官方页面记录。请直接联系运营方或负责的当地主管机构。",
   "assist.gap.needsCredentials": "{provider} 需要未配置的凭据，因此未使用。",
   "assist.gap.noProvider": "目前还没有官方数据来源覆盖此选择，因此无法核验任何内容。请将下方所有细节视为未确认，并直接向负责机构核实。",
   "assist.gap.providerDown": "无法联系到 {provider}，因此此处缺少其信息。",
@@ -3383,6 +3563,15 @@ const zh: Messages = {
   "assist.coverage.note": "WAYFINDER 的实时集成仅覆盖有限地区。如果您的地区不在覆盖范围内，我们会明确告知，并提供应查阅的官方来源。",
   "assist.location.lead": "请告诉我们事情发生的地点。国家之后的内容均为可选，更多细节只会让答案更准确。",
   "assist.location.title": "事情发生在哪里？",
+  "assist.location.field": "你在哪里？",
+  "assist.location.fieldHelp":
+    "只填国家也可以，或按你的说法填写地点：例如“尼日利亚”“拉各斯，尼日利亚”或“伊凯贾，拉各斯，尼日利亚”。我们会替你判断国家。",
+  "assist.location.fieldPlaceholder": "拉各斯，尼日利亚",
+  "support.saved.title": "你有一个已保存的情况",
+  "support.saved.body": "你此前查询过 {place}。你可以重新打开，或清除后开始新的请求。",
+  "support.saved.open": "重新打开已保存的情况",
+  "support.saved.new": "开始新请求",
+
   "assist.location.country": "国家代码",
   "assist.location.countryHelp": "两个字母，例如 GB、US 或 DE。",
   "assist.location.city": "城市或地区",
@@ -3522,6 +3711,9 @@ const ja: Messages = {
   "assist.summary.lastChecked": "最終確認",
   "assist.fact.reportedProblem.label": "あなたの申告",
   "assist.conditions.note": "これは情報源が報告した状況を、そのままの言葉と独自の重大度で示したものです。",
+
+  "assist.conditions.unknown":
+    "この場所の状態を取得できなかったため、障害があるかどうかは分かりません。下の公式ページを確認してください。",
   "assist.explanation.deterministic": "この説明は、検証済みの情報源データからAIモデルを使わずに構成しました。",
   "assist.facts.note": "各事実には出典が表示されています。",
   "assist.section.timetable": "予定時刻",
@@ -3597,6 +3789,20 @@ const ja: Messages = {
   "assist.fallback.meaning": "検証済みの所見は次のとおりです：{findings}。依存する前に、ご自身の旅程の状況を事業者に確認してください。",
   "assist.fallback.noConditions": "照会した情報源は現在の障害を報告していません。",
   "assist.fallback.noSources": "この選択を対象とする情報源に到達できなかったため、何も検証されていません。下の公式リンクで直接確認してください。",
+
+  "assist.fallback.noSourceSummary":
+    "{category}{place}についてのご質問です。この場所を対象とするリアルタイム情報源がないため、自動では何も検証できませんでした。",
+  "assist.fallback.noSourceMeaning":
+    "この場所のリアルタイムデータソースが見つからなかったため、状態は報告していません。障害があるとも、正常だとも言えません。ここでの状況は不明であり、正常と確認されたものではありません。下の公式ページはこの場所を所管する機関です。直接確認し、ご自身の旅程に関わることは事業者に確認してください。",
+  "assist.uncertain.noLiveProvider":
+    "この場所を対象とするリアルタイム提供元がないため、状況は不明であり、正常と確認されたものではありません。",
+  "assist.section.references": "確認できる公式ページ",
+  "assist.references.intro":
+    "この場所を対象とするリアルタイムデータソースがないため、状態を自動で取得できませんでした。以下はこの場所を所管する公式機関です。開いて直接確認してください。",
+  "assist.references.official": "公式",
+  "assist.references.open": "公式ページを開く",
+  "assist.references.none":
+    "この場所について登録された公式ページはありません。事業者または所管の地方機関に直接お問い合わせください。",
   "assist.gap.needsCredentials": "{provider} は未設定の認証情報を必要とするため、使用されませんでした。",
   "assist.gap.noProvider": "この選択を対象とする公式データソースはまだないため、何も検証できませんでした。以下の詳細はすべて未確認として扱い、責任機関に直接確認してください。",
   "assist.gap.providerDown": "{provider} に到達できなかったため、ここに情報がありません。",
@@ -3662,6 +3868,16 @@ const ja: Messages = {
   "assist.coverage.note": "WAYFINDER のリアルタイム連携は限られた地域のみです。お住まいの地域が対象外の場合は明確にお伝えし、代わりに確認すべき公式情報源を示します。",
   "assist.location.lead": "発生している場所を教えてください。国以降はすべて任意で、詳しく入力するほど回答の精度が上がります。",
   "assist.location.title": "どこで起きましたか？",
+  "assist.location.field": "現在地はどこですか？",
+  "assist.location.fieldHelp":
+    "国名だけでも、いつも使う言い方でも構いません。例：「ナイジェリア」「ラゴス、ナイジェリア」「イケジャ、ラゴス、ナイジェリア」。国はこちらで判断します。",
+  "assist.location.fieldPlaceholder": "ラゴス、ナイジェリア",
+  "support.saved.title": "保存された状況があります",
+  "support.saved.body":
+    "以前に{place}についてお尋ねになりました。再度開くか、消去して新しいリクエストを開始できます。",
+  "support.saved.open": "保存された状況を開く",
+  "support.saved.new": "新しいリクエストを開始",
+
   "assist.location.country": "国コード",
   "assist.location.countryHelp": "2文字で入力してください。例：GB、US、DE。",
   "assist.location.city": "都市または地域",
@@ -3801,6 +4017,9 @@ const hi: Messages = {
   "assist.summary.lastChecked": "अंतिम जाँच",
   "assist.fact.reportedProblem.label": "आपने हमें बताया",
   "assist.conditions.note": "ये वही स्थितियाँ हैं जो स्रोतों ने अपने शब्दों में और अपनी गंभीरता के साथ बताई हैं।",
+
+  "assist.conditions.unknown":
+    "इस स्थान की कोई स्थिति प्राप्त नहीं हुई, इसलिए हम नहीं बता सकते कि कुछ बाधित है या नहीं। नीचे दिए आधिकारिक पृष्ठ देखें।",
   "assist.explanation.deterministic": "यह व्याख्या सत्यापित स्रोत डेटा से बनाई गई है, बिना किसी AI मॉडल के।",
   "assist.facts.note": "प्रत्येक तथ्य पर उसके स्रोत का लेबल लगा है।",
   "assist.section.timetable": "निर्धारित समय",
@@ -3876,6 +4095,20 @@ const hi: Messages = {
   "assist.fallback.meaning": "सत्यापित निष्कर्ष ये हैं: {findings}। इस पर निर्भर होने से पहले अपनी यात्रा की स्थिति ऑपरेटर से पुष्ट करें।",
   "assist.fallback.noConditions": "हमने जिन स्रोतों से पूछा, वे अभी कोई व्यवधान नहीं बता रहे।",
   "assist.fallback.noSources": "इस चयन को कवर करने वाले किसी स्रोत तक पहुँच नहीं हो सकी, इसलिए कुछ भी सत्यापित नहीं है। सीधे जाँच के लिए नीचे दिए आधिकारिक लिंक उपयोग करें।",
+
+  "assist.fallback.noSourceSummary":
+    "आपने {category}{place} के बारे में पूछा। इस स्थान को कोई लाइव स्रोत कवर नहीं करता, इसलिए कुछ भी स्वतः सत्यापित नहीं हो सका।",
+  "assist.fallback.noSourceMeaning":
+    "हमें इस स्थान के लिए कोई लाइव डेटा स्रोत नहीं मिला, इसलिए हमने कोई स्थिति नहीं बताई — न व्यवधान, न सामान्यता। यहाँ की स्थिति अज्ञात है, सामान्य के रूप में पुष्ट नहीं। नीचे दिए आधिकारिक पृष्ठ इस स्थान के लिए ज़िम्मेदार संस्थाएँ हैं; उन्हें सीधे देखें और अपनी यात्रा से जुड़ी हर बात ऑपरेटर से पुष्ट करें।",
+  "assist.uncertain.noLiveProvider":
+    "इस स्थान को कोई लाइव प्रदाता कवर नहीं करता, इसलिए स्थिति अज्ञात है, सामान्य के रूप में पुष्ट नहीं।",
+  "assist.section.references": "देखने योग्य आधिकारिक पृष्ठ",
+  "assist.references.intro":
+    "इस स्थान को कोई लाइव डेटा स्रोत कवर नहीं करता, इसलिए स्थिति स्वतः प्राप्त नहीं हो सकी। ये इस स्थान के लिए ज़िम्मेदार आधिकारिक संस्थाएँ हैं — सीधे जाँच के लिए इन्हें खोलें।",
+  "assist.references.official": "आधिकारिक",
+  "assist.references.open": "आधिकारिक पृष्ठ खोलें",
+  "assist.references.none":
+    "इस स्थान के लिए हमारे पास कोई आधिकारिक पृष्ठ दर्ज नहीं है। सीधे ऑपरेटर या ज़िम्मेदार स्थानीय प्राधिकरण से संपर्क करें।",
   "assist.gap.needsCredentials": "{provider} को ऐसे क्रेडेंशियल चाहिए जो कॉन्फ़िगर नहीं हैं, इसलिए इसका उपयोग नहीं हुआ।",
   "assist.gap.noProvider": "इस चयन को कवर करने वाला कोई आधिकारिक डेटा स्रोत अभी नहीं है, इसलिए कुछ भी सत्यापित नहीं हो सका। नीचे दिए किसी भी विवरण को अपुष्ट मानें और सीधे ज़िम्मेदार संस्था से पुष्ट करें।",
   "assist.gap.providerDown": "{provider} तक पहुँच नहीं हो सकी, इसलिए यहाँ उसकी जानकारी नहीं है।",
@@ -3941,6 +4174,16 @@ const hi: Messages = {
   "assist.coverage.note": "WAYFINDER के लाइव एकीकरण सीमित स्थानों के लिए हैं। यदि आपका क्षेत्र शामिल नहीं है, तो आपको स्पष्ट रूप से बताया जाएगा और जाँचने के लिए आधिकारिक स्रोत दिया जाएगा।",
   "assist.location.lead": "बताएं कि यह कहाँ हो रहा है। देश के बाद सब कुछ वैकल्पिक है, और अधिक विवरण से उत्तर बेहतर ही होता है।",
   "assist.location.title": "यह कहाँ हुआ?",
+  "assist.location.field": "आप कहाँ हैं?",
+  "assist.location.fieldHelp":
+    "अकेले देश का नाम भी ठीक है, या अपने शब्दों में कोई स्थान: जैसे \"नाइजीरिया\", \"लागोस, नाइजीरिया\" या \"इकेजा, लागोस, नाइजीरिया\"। देश हम तय कर लेंगे।",
+  "assist.location.fieldPlaceholder": "लागोस, नाइजीरिया",
+  "support.saved.title": "आपके पास एक सहेजी गई स्थिति है",
+  "support.saved.body":
+    "आपने पहले {place} के बारे में पूछा था। आप इसे दोबारा खोल सकते हैं, या हटाकर नया अनुरोध शुरू कर सकते हैं।",
+  "support.saved.open": "सहेजी गई स्थिति दोबारा खोलें",
+  "support.saved.new": "नया अनुरोध शुरू करें",
+
   "assist.location.country": "देश कोड",
   "assist.location.countryHelp": "दो अक्षर, जैसे GB, US या DE।",
   "assist.location.city": "शहर या क्षेत्र",

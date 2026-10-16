@@ -26,8 +26,8 @@ import type { AssistanceCategory } from "@/lib/assist/types";
  * or an accidental back navigation does not lose the traveller's answers.
  */
 
-/** Categories whose provider needs a region/state inside the country. */
-const NEEDS_REGION: AssistanceCategory[] = ["metro", "rail", "bus", "road", "weather", "public_service"];
+/** Categories where naming an origin and destination materially helps. */
+const USES_ORIGIN: AssistanceCategory[] = ["metro", "rail", "bus"];
 
 export function AssistFlow() {
   const { t, locale, setLocale } = useLocale();
@@ -80,21 +80,56 @@ export function AssistFlow() {
 
   const errors = { ...fieldErrors, ...localErrors };
 
-  const validateCountry = useCallback(
-    (value: string) => {
-      if (!value.trim()) {
-        setLocalErrors((current) => ({ ...current, countryCode: t("validation.required") }));
-        return false;
-      }
-      if (!/^[A-Za-z]{2}$/.test(value.trim())) {
-        setLocalErrors((current) => ({ ...current, countryCode: t("validation.countryCodeFormat") }));
-        return false;
-      }
-      setLocalErrors(({ countryCode: _removed, ...rest }) => rest);
-      return true;
-    },
-    [t],
-  );
+  const submit = useCallback(async () => {
+    if (!draft.category) {
+      setStep(1);
+      setLocalErrors({ category: t("validation.required") });
+      return;
+    }
+    if (draft.category === "flights") {
+      router.push("/help");
+      return;
+    }
+
+    const hasLocation = draft.location.trim().length > 0;
+    const hasDescription = draft.description.trim().length > 0;
+
+    // A location or a description is the minimum. The location is free text, so
+    // there is no country-code format to reject: "Lagos, Nigeria" is valid, and
+    // so is "Ikeja, Lagos, Nigeria". Refusing an unrecognised country here was
+    // the dead end for anywhere outside the live provider list.
+    if (!hasLocation && !hasDescription) {
+      setLocalErrors((current) => ({
+        ...current,
+        location: t("validation.assistLocationRequired"),
+      }));
+      document
+        .querySelector<HTMLElement>("[aria-invalid='true']")
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+
+    setLocalErrors({});
+
+    const request: AssistRequest = {
+      category: draft.category,
+      location: draft.location.trim() || undefined,
+      region: draft.region.trim() || undefined,
+      network: draft.network.trim() || undefined,
+      from: draft.from.trim() || undefined,
+      to: draft.to.trim() || undefined,
+      description: draft.description.trim() || undefined,
+      locale,
+    };
+
+    const ok = await buildAssistance(request);
+    if (ok) router.push("/assist");
+  }, [draft, locale, router, buildAssistance, t]);
+
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await submit();
+  };
 
   const chooseCategory = (category: AssistanceCategory) => {
     patchDraft({ category });
@@ -117,53 +152,6 @@ export function AssistFlow() {
     setStep(2);
   };
 
-  const onSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!draft.category) {
-      setStep(1);
-      setLocalErrors({ category: t("validation.required") });
-      return;
-    }
-    if (draft.category === "flights") {
-      router.push("/help");
-      return;
-    }
-
-    const countryOk = validateCountry(draft.countryCode);
-    const hasDescription = draft.description.trim().length > 0;
-    const hasCity = draft.city.trim().length > 0;
-    const needsLocation = draft.category !== "other" || hasCity;
-    if (draft.category !== "other" && !countryOk) {
-      document
-        .querySelector<HTMLElement>("[aria-invalid='true']")
-        ?.scrollIntoView({ block: "center", behavior: "smooth" });
-      return;
-    }
-    if (draft.category === "other" && !hasDescription && !hasCity) {
-      setLocalErrors((current) => ({
-        ...current,
-        description: t("validation.assistLocationRequired"),
-      }));
-      return;
-    }
-    void needsLocation;
-
-    const request: AssistRequest = {
-      category: draft.category,
-      countryCode: draft.countryCode.trim().toUpperCase() || undefined,
-      region: draft.region.trim() || undefined,
-      city: draft.city.trim() || undefined,
-      network: draft.network.trim() || undefined,
-      from: draft.from.trim() || undefined,
-      to: draft.to.trim() || undefined,
-      description: draft.description.trim() || undefined,
-      locale,
-    };
-
-    const ok = await buildAssistance(request);
-    if (ok) router.push("/assist");
-  };
-
   const localeOptions = useMemo(
     () =>
       LOCALES.map((entry) => ({
@@ -173,8 +161,7 @@ export function AssistFlow() {
     [],
   );
 
-  const regionNeeded = draft.category ? NEEDS_REGION.includes(draft.category) : false;
-  const usesOrigin = draft.category === "metro" || draft.category === "rail" || draft.category === "bus";
+  const usesOrigin = draft.category ? USES_ORIGIN.includes(draft.category) : false;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
@@ -236,48 +223,18 @@ export function AssistFlow() {
             </p>
 
             <div className="mt-5 space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <TextField
-                  id="countryCode"
-                  label={t("assist.location.country")}
-                  value={draft.countryCode}
-                  onChange={(value) => patchDraft({ countryCode: value.toUpperCase() })}
-                  onBlur={() => validateCountry(draft.countryCode)}
-                  help={t("assist.location.countryHelp")}
-                  error={errors.countryCode}
-                  placeholder="GB"
-                  maxLength={2}
-                  mono
-                  optionalLabel={t("details.optional")}
-                />
-                <TextField
-                  id="city"
-                  label={t("assist.location.city")}
-                  value={draft.city}
-                  onChange={(value) => patchDraft({ city: value })}
-                  help={t("assist.location.cityHelp")}
-                  error={errors.city}
-                  placeholder="London"
-                  optional
-                  optionalLabel={t("details.optional")}
-                  maxLength={80}
-                />
-              </div>
-
-              {regionNeeded ? (
-                <TextField
-                  id="region"
-                  label={t("assist.location.region")}
-                  value={draft.region}
-                  onChange={(value) => patchDraft({ region: value })}
-                  help={t("assist.location.regionHelp")}
-                  error={errors.region}
-                  placeholder="Berlin"
-                  optional
-                  optionalLabel={t("details.optional")}
-                  maxLength={80}
-                />
-              ) : null}
+              <TextField
+                id="location"
+                label={t("assist.location.field")}
+                value={draft.location}
+                onChange={(value) => patchDraft({ location: value })}
+                help={t("assist.location.fieldHelp")}
+                error={errors.location}
+                placeholder={t("assist.location.fieldPlaceholder")}
+                autoComplete="off"
+                maxLength={160}
+                optionalLabel={t("details.optional")}
+              />
 
               {usesOrigin ? (
                 <div className="grid gap-5 sm:grid-cols-2">

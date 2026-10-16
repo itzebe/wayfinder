@@ -12,7 +12,7 @@ npm run start        # serve the production build on :3000
 npm run typecheck    # tsc --noEmit  (must pass before any commit)
 npm run lint         # next lint
 npm run check:i18n   # verifies every referenced t() key resolves in all 9 locales
-npm run verify       # typecheck + check:i18n + unit tests (33 assertions)
+npm run verify       # typecheck + check:i18n + unit tests (45 assertions)
 npm run test:live    # hits every official provider and reports reachability
 npm run test:browser # drives the real flow + mobile menu + conditions disclosure in headless Chromium
 npm run test:responsive # asserts no horizontal overflow at the brief's 6 widths
@@ -43,6 +43,12 @@ These are enforced by the product's purpose, not style preference. Do not break 
 5. **Colour is never the only signal.** Pair status colours with an icon and text.
 6. **Secrets stay server-side.** AI credentials are read only in `src/lib/ai/llm.ts`.
 7. **Button-free lying.** Every interactive element must have a real outcome.
+8. **"Nothing checked" is not "nothing wrong".** When no source answered, the
+   page must say the situation is unknown — never that no disruption was
+   reported. The directory of official pages (`src/lib/assist/directory.ts`)
+   offers a way forward for places with no live provider; those entries are
+   official pages to check, not retrieved sources, and carry no retrieval
+   timestamp.
 
 ## Conventions
 
@@ -74,7 +80,12 @@ asserting on markup:
 - `/support` need cards are hidden radios wrapped in a `<label>` — click the
   label, not the input. Category values are `flights`, `metro`, `rail`, `bus`,
   `road`, `weather`, `stranded`, `public_service`, `other`.
-- Step 2 field ids are `countryCode`, `city`, `region`, `network`, `description`.
+- Step 2 field ids are `location`, `from`, `to`, `network`, `description`.
+  Step 2 asks for a single free-text **location** ("Lagos, Nigeria"); the
+  structured `countryCode`/`city`/`region` fields still exist in the schema for
+  existing callers but are no longer asked for in the flow. `resolveLocation`
+  (`src/lib/assist/location.ts`) turns the free text into country/city/region
+  before provider selection — never demand a country code again.
 - The in-page language select is `#assist-view-locale`; the header menu is a
   disclosure button with `aria-controls="mobile-menu"` (44px, Escape returns focus).
 - After `scrollIntoView`, wait a frame before reading `getBoundingClientRect` —

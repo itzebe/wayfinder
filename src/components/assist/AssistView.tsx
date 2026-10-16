@@ -159,12 +159,62 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
                 conditions={assistance.conditions}
                 sources={assistance.sources}
               />
-            ) : (
+            ) : assistance.respondingProviders.length > 0 ? (
               <Callout tone="success" compact>
                 {t("assist.fact.noCurrentConditions")}
               </Callout>
+            ) : (
+              // Nothing was retrieved, so "no disruption reported" would be a
+              // false reassurance. Say what is actually true: unknown.
+              <Callout tone="warning" compact>
+                {t("assist.conditions.unknown")}
+              </Callout>
             )}
           </SectionCard>
+
+          {assistance.references.length > 0 ? (
+            <SectionCard
+              id="references"
+              title={t("assist.section.references")}
+              description={t("assist.references.intro")}
+              icon={<Landmark className="size-5" />}
+              tone="accent"
+            >
+              <ul className="space-y-2.5">
+                {assistance.references.map((reference) => (
+                  <li
+                    key={reference.id}
+                    className="rounded-md border border-line-soft bg-paper-0 p-3.5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-ink-900">
+                          {reference.organization}
+                        </p>
+                        <p className="text-sm text-ink-700">{reference.title}</p>
+                      </div>
+                      {reference.official ? (
+                        <Badge tone="success">{t("assist.references.official")}</Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-1.5 text-xs leading-relaxed text-ink-600">
+                      {reference.covers}
+                    </p>
+                    <a
+                      href={reference.url}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
+                    >
+                      {t("assist.references.open")}
+                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                      <span className="sr-only">{t("a11y.opensNewTab")}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+          ) : null}
 
           <SectionCard
             id="meaning"

@@ -52,6 +52,13 @@ export const assistRequestSchema = z
     countryCode: optionalCountryCode,
     region: optionalText(80),
     city: optionalText(80),
+    /**
+     * A single free-text location, as a person would type it: "Lagos, Nigeria",
+     * "Ikeja, Lagos, Nigeria", "Tokyo, Japan". This is the field the flow now
+     * uses; the structured fields above remain supported so existing callers and
+     * the flight flow keep working.
+     */
+    location: optionalText(160),
     network: optionalText(120),
     from: optionalText(120),
     to: optionalText(120),
@@ -61,8 +68,11 @@ export const assistRequestSchema = z
   .refine(
     // A location or a description is required: without either there is nothing
     // to retrieve, and we would rather say so than return an empty page.
-    (value) => Boolean(value.countryCode || value.city || value.description || value.from),
-    { message: "validation.assistLocationRequired", path: ["city"] },
+    (value) =>
+      Boolean(
+        value.location || value.countryCode || value.city || value.description || value.from,
+      ),
+    { message: "validation.assistLocationRequired", path: ["location"] },
   );
 
 export type AssistRequest = z.infer<typeof assistRequestSchema>;

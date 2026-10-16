@@ -11,7 +11,7 @@ import { spawn } from "node:child_process";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const WIDTHS = [320, 360, 390, 768, 1024, 1440];
-const PATHS = ["/", "/support", "/assist?category=metro&countryCode=GB&city=London"];
+const PATHS = ["/", "/support", "/assist?category=metro&location=London%2C%20United%20Kingdom"];
 const PORT = 9333;
 
 const chrome = spawn(
@@ -122,8 +122,7 @@ async function audit(path, width) {
     await client.send("Runtime.evaluate", {
       expression: `localStorage.setItem("wayfinder.assistRequest.v1", JSON.stringify({
         category: ${JSON.stringify(params.get("category"))},
-        countryCode: ${JSON.stringify(params.get("countryCode"))},
-        city: ${JSON.stringify(params.get("city"))},
+        location: ${JSON.stringify(params.get("location"))},
         locale: "en",
       }))`,
     });

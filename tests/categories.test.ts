@@ -12,6 +12,7 @@ import { composeAssistance } from "@/lib/assist/engine";
 import { clearCache } from "@/lib/core/cache";
 import { selectProviders, rankProviders } from "@/lib/assist/registry";
 import { classifyDescription } from "@/lib/assist/categories";
+import { resolveLocation } from "@/lib/assist/location";
 import { assistRequestSchema } from "@/lib/assist/schema";
 import { sseFeed } from "./fixtures/gtfs";
 import {
@@ -528,6 +529,147 @@ test("classifier: each supported category is reachable from natural language", (
     const result = classifyDescription(text);
     assertEqual(result.category, expected, `"${text}" should classify as ${expected}`);
   }
+});
+
+// --- Location resolution ----------------------------------------------------
+
+test("location: 'Lagos, Nigeria' resolves to NG/Lagos", () => {
+  const resolved = resolveLocation("Lagos, Nigeria");
+  assertEqual(resolved.countryCode, "NG");
+  assertEqual(resolved.city, "Lagos");
+  assertEqual(resolved.countryUnrecognised, false);
+});
+
+test("location: 'Ikeja, Lagos, Nigeria' keeps the locality and the region", () => {
+  const resolved = resolveLocation("Ikeja, Lagos, Nigeria");
+  assertEqual(resolved.countryCode, "NG");
+  assertEqual(resolved.city, "Ikeja");
+  assertEqual(resolved.region, "Lagos");
+});
+
+test("location: casing, spacing and missing comma are all tolerated", () => {
+  for (const input of ["lagos nigeria", "LAGOS,NIGERIA", "  Lagos ,  Nigeria ", "Lagos Nigeria"]) {
+    const resolved = resolveLocation(input);
+    assertEqual(resolved.countryCode, "NG", `"${input}" should resolve to NG`);
+  }
+});
+
+test("location: diacritics do not defeat a country name", () => {
+  assertEqual(resolveLocation("São Paulo, Brasil").countryCode, "BR");
+  assertEqual(resolveLocation("Munchen, Deutschland").countryCode, "DE");
+});
+
+test("location: a country name used alone is accepted", () => {
+  const resolved = resolveLocation("Nigeria");
+  assertEqual(resolved.countryCode, "NG");
+  assertEqual(resolved.city, undefined);
+});
+
+test("location: an unrecognised country is flagged, not silently guessed", () => {
+  const resolved = resolveLocation("Somewhere, Freedonia");
+  assertEqual(resolved.countryUnrecognised, true);
+  assertEqual(resolved.countryCode, undefined);
+});
+
+// --- Lagos regression -------------------------------------------------------
+
+test("lagos: 'Lagos, Nigeria' is accepted and the pipeline runs", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.query.countryCode, "NG", "the country must be resolved from free text");
+  assertEqual(page.query.city, "Lagos");
+  assertEqual(page.category, "metro");
+});
+
+test("lagos: no dedicated provider does not mean a dead end", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.respondingProviders.length, 0, "no live provider covers Lagos");
+  assert(
+    page.references.length > 0,
+    "the official-page directory must offer a way forward",
+  );
+  assert(
+    page.references.some((r) => r.organization.includes("Lagos State Government")),
+    "the Lagos authority must be listed",
+  );
+});
+
+test("lagos: the explanation never claims a source reported no disruption", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.overallState, "unavailable");
+  const prose = `${page.explanation.summary} ${page.explanation.meaning}`.toLowerCase();
+  assert(
+    !prose.includes("no current disruption"),
+    "nothing was queried, so it must not say no disruption was reported",
+  );
+  assert(
+    prose.includes("unknown") || prose.includes("no live source"),
+    "it must state that the situation is unknown",
+  );
+});
+
+test("lagos: a directory reference is never presented as a retrieved source", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.sources.length, 0, "no live source was retrieved, so sources must be empty");
+  for (const reference of page.references) {
+    assert(
+      !("retrievedAt" in reference),
+      "a directory entry must not carry a retrieval timestamp",
+    );
+    assert(reference.official === true, "directory entries are official pages");
+  }
+});
+
+test("lagos: the search still runs beyond the city, and other places are unaffected", async () => {
+  const london = await composeAssistance({
+    category: "metro",
+    location: "London, United Kingdom",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(london.query.countryCode, "GB");
+  assert(
+    london.respondingProviders.includes("tfl-tube"),
+    "London must still reach its live provider",
+  );
+  assertEqual(london.references.length, 0, "London has a live source, so no directory needed");
+  assert(
+    !london.headline.includes("Lagos"),
+    "a London search must not inherit the previous location",
+  );
+});
+
+test("lagos: a directory-only page still yields actionable next steps", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assert(page.recommendations.length > 0, "the traveller must be given steps to take");
+  assert(
+    page.uncertain.some((line) => /unknown|no live/i.test(line)),
+    "the unknown status must be stated as uncertain",
+  );
 });
 
 run()

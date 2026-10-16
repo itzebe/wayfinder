@@ -186,6 +186,28 @@ export interface AssistSource extends SourceRef {
   relevance?: string;
 }
 
+/**
+ * A place the traveller can check themselves.
+ *
+ * This is deliberately NOT an `AssistSource`: a directory entry carries no
+ * status, no retrieval time and no condition, because nothing was retrieved from
+ * it. Presenting it in the source panel would imply we had consulted it. It is
+ * rendered in its own section, labelled as a directory of official pages rather
+ * than as evidence about the situation.
+ */
+export interface AssistReference {
+  id: string;
+  /** The body responsible for the page. */
+  organization: string;
+  /** What the page is, in the publisher's terms. */
+  title: string;
+  url: string;
+  /** What this page can and cannot tell them, in plain language. */
+  covers: string;
+  /** True when the publisher is the authority itself, not a third party. */
+  official: boolean;
+}
+
 export interface AssistRecommendation extends Recommendation {
   /** True when the step can only be confirmed by a human or a different source. */
   requiresConfirmation?: boolean;
@@ -222,6 +244,8 @@ export interface AssistancePage {
     network?: string;
     from?: string;
     to?: string;
+    /** The location exactly as the traveller typed it, for display and re-runs. */
+    location?: string;
   };
 
   /** Verified and self-reported facts, each labelled with its origin. */
@@ -230,6 +254,12 @@ export interface AssistancePage {
   timetable: TimetableEntry[];
   recommendations: AssistRecommendation[];
   sources: AssistSource[];
+  /**
+   * Official pages for places no live provider covers. Not evidence — places to
+   * check. Empty when a live provider answered, since then the source panel
+   * already carries the authority.
+   */
+  references: AssistReference[];
   rightsNotes: RightsNote[];
   timeline: TimelineEvent[];
   coverageGaps: CoverageGap[];

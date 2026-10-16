@@ -197,16 +197,16 @@ try {
   await sleep(700);
 
   // --- Step 2: location --------------------------------------------------
-  const onStep2 = await waitFor(client, `document.querySelector("input#countryCode")`).then(
+  // The location is a single free-text field now: asking for a pre-digested
+  // country code was the dead end for anywhere outside the live provider list.
+  const onStep2 = await waitFor(client, `document.querySelector("input#location")`).then(
     () => true,
     () => false,
   );
   check(onStep2, "did not reach the location step");
   if (!onStep2) throw new Error("Cannot continue without the location step");
 
-  await typeReal(client, `document.querySelector("input#countryCode")`, "GB");
-  await sleep(200);
-  await typeReal(client, `document.querySelector("input#city")`, "London");
+  await typeReal(client, `document.querySelector("input#location")`, "London, United Kingdom");
   await sleep(300);
 
   await clickReal(

@@ -22,6 +22,8 @@ import type { DataState, SourceRef, TimelineEvent } from "@/lib/core/types";
 import { callAi, isAiConfigured, AiUnavailableError } from "@/lib/ai/llm";
 import { rankProviders, selectProviders, type SkippedProvider } from "./registry";
 import { classifyDescription } from "./categories";
+import { resolveLocation } from "./location";
+import { directoryFor } from "./directory";
 import { selectRightsNotes } from "@/lib/situation/passengerRights";
 import type { Provider, ProviderContext } from "./provider";
 import { worstState } from "./provider";
@@ -29,6 +31,7 @@ import type {
   AssistanceCategory,
   AssistancePage,
   AssistRecommendation,
+  AssistReference,
   AssistSource,
   CoverageGap,
   ProviderReport,
@@ -54,6 +57,13 @@ export interface AssistInput {
   /** State, province or region, when the traveller gives one. */
   region?: string;
   city?: string;
+  /**
+   * The traveller's location as they typed it ("Lagos, Nigeria"). Resolved into
+   * `countryCode`/`city`/`region` before anything is queried, so a free-text
+   * place name is a first-class input rather than a form the traveller has to
+   * pre-digest into a country code.
+   */
+  location?: string;
   network?: string;
   from?: string;
   to?: string;
@@ -486,6 +496,20 @@ function fallbackExplanation(
     place: placePhrase,
   });
 
+  // The single most important honesty rule on this screen: never say a source
+  // reported nothing when no source was queried. "No disruption reported" and
+  // "nothing was checked" are different statements, and a traveller deciding
+  // whether to leave for the airport must not be told the reassuring one when
+  // it is the other that is true.
+  if (responded.length === 0) {
+    return {
+      summary: t("assist.fallback.noSourceSummary", { category: categoryName, place: placePhrase }),
+      meaning: t("assist.fallback.noSourceMeaning"),
+      aiGenerated: false,
+      unavailableReason: reason,
+    };
+  }
+
   const findings =
     conditions.length === 0
       ? t("assist.fallback.noConditions")
@@ -494,10 +518,7 @@ function fallbackExplanation(
           .map((c) => c.title)
           .join("; ");
 
-  const meaning =
-    responded.length === 0
-      ? t("assist.fallback.noSources")
-      : t("assist.fallback.meaning", { findings });
+  const meaning = t("assist.fallback.meaning", { findings });
 
   return {
     summary: `${lead} ${findings}`,
@@ -636,6 +657,15 @@ function buildHeadline(
 export async function composeAssistance(input: AssistInput): Promise<AssistancePage> {
   const { locale, t } = createTranslator(input.locale);
 
+  // Resolve the free-text location first: everything downstream — provider
+  // selection, coverage gaps, the directory — depends on knowing the country.
+  // Explicit structured fields win over the free-text field so a caller that
+  // already knows the country code is not second-guessed.
+  const resolved = resolveLocation(input.location);
+  const countryCode = input.countryCode ?? resolved.countryCode;
+  const city = input.city ?? resolved.city;
+  const region = input.region ?? resolved.region;
+
   // The open-ended category is classified from the traveller's words.
   let effectiveCategory = input.category;
   let classificationNote: string | undefined;
@@ -647,12 +677,18 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     }
   }
 
-  const classifiedInput: AssistInput = { ...input, category: effectiveCategory };
+  const classifiedInput: AssistInput = {
+    ...input,
+    category: effectiveCategory,
+    countryCode,
+    city,
+    region,
+  };
   const { usable, skipped } = selectProviders({
     category: effectiveCategory,
-    countryCode: input.countryCode,
-    region: input.region,
-    city: input.city,
+    countryCode,
+    region,
+    city,
     network: input.network,
     from: input.from,
     to: input.to,
@@ -669,8 +705,10 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
   const hasDisruption = conditions.some((c) => c.severity === "severe" || c.severity === "major");
+  const responded = reports.filter((report) => report.state !== "unavailable");
+
   const facts = buildFacts(
-    { countryCode: input.countryCode, city: input.city, network: input.network, from: input.from, to: input.to },
+    { countryCode, city, network: input.network, from: input.from, to: input.to },
     input.description,
     reports,
     t,
@@ -678,6 +716,11 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
   const recommendations = buildRecommendations(classifiedInput, reports, hasDisruption, t);
   const coverageGaps = buildGaps(skipped, reports, t);
   const sources = toAssistSources(reports, t);
+  // The directory only stands in for evidence when there is no evidence. Once a
+  // live provider has answered, the source panel already names the authority and
+  // a list of "places to check" would be noise.
+  const references =
+    responded.length === 0 ? toReferences(countryCode, effectiveCategory) : [];
   const rightsNotes =
     effectiveCategory === "flights" || effectiveCategory === "stranded"
       ? selectRightsNotes({}, t)
@@ -700,32 +743,56 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     updatedAt: nowIso(),
     description: input.description,
     query: {
-      countryCode: input.countryCode,
-      region: input.region,
-      city: input.city,
+      countryCode,
+      region,
+      city,
       network: input.network,
       from: input.from,
       to: input.to,
+      location: input.location,
     },
     facts,
     conditions,
     timetable: reports.flatMap((report) => report.timetable),
     recommendations,
     sources,
+    references,
     rightsNotes,
     timeline: buildTimeline(reports, t),
     coverageGaps,
     availableCategories: [],
-    respondingProviders: reports.filter((r) => r.state !== "unavailable").map((r) => r.providerId),
+    respondingProviders: responded.map((r) => r.providerId),
     explanation,
     overallState: deriveOverallState(reports),
     headline: buildHeadline(classifiedInput, conditions, reports, effectiveCategory, t),
     known: facts
       .filter((fact) => fact.origin === "verified")
       .map((fact) => `${fact.label}: ${fact.value}`),
-    uncertain: buildUncertain(reports, t, classificationNote, effectiveCategory, input.category),
+    uncertain: buildUncertain(
+      reports,
+      t,
+      classificationNote,
+      effectiveCategory,
+      input.category,
+      references.length > 0,
+    ),
     aiConfigured: explanation.aiGenerated,
   };
+}
+
+/** Turns directory entries into the traveller-facing reference list. */
+function toReferences(
+  countryCode: string | undefined,
+  category: AssistanceCategory,
+): AssistReference[] {
+  return directoryFor(countryCode, category).map((entry) => ({
+    id: entry.id,
+    organization: entry.organization,
+    title: entry.title,
+    url: entry.url,
+    covers: entry.covers,
+    official: true,
+  }));
 }
 
 function buildUncertain(
@@ -734,6 +801,7 @@ function buildUncertain(
   classificationNote: string | undefined,
   effectiveCategory: AssistanceCategory,
   requestedCategory: AssistanceCategory,
+  hasReferences: boolean,
 ): string[] {
   const uncertain: string[] = [t("assist.uncertain.operatorConfirm")];
 
@@ -749,6 +817,9 @@ function buildUncertain(
   }
   if (reports.some((r) => r.state === "stale")) {
     uncertain.push(t("assist.uncertain.stale"));
+  }
+  if (hasReferences) {
+    uncertain.push(t("assist.uncertain.noLiveProvider"));
   }
   uncertain.push(t("assist.uncertain.individualJourney"));
   return uncertain;
