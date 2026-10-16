@@ -1754,6 +1754,25 @@ test("coverage: an unconfigured discovery layer is reported as not configured", 
   assertEqual(page.discovery.leadCount, 0, "no leads without a key");
 });
 
+test("source panel: a model forecast is marked as a forecast, not an authority", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const forecast = page.sources.find((s) => s.id === "open-meteo");
+  const authority = page.sources.find((s) => s.id === "nws-alerts");
+  assertEqual(forecast?.forecast, true, "the Open-Meteo source carries the forecast flag");
+  // Every other source is a direct reading or declaration, so it must not be
+  // labelled a forecast — the flag is not a blanket warning banner.
+  assert(
+    page.sources.filter((s) => s.forecast).every((s) => s.id === "open-meteo"),
+    "only the model provider is marked as a forecast",
+  );
+  assert(authority === undefined || authority.forecast !== true, "an authority is never a forecast");
+});
+
 run()
   .then(() => report("Category suites (fixtures)"))
   .catch((error) => {

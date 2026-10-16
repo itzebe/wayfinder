@@ -304,6 +304,27 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
           ) : null}
 
           <SectionCard
+            id="uncertain"
+            title={t("assist.section.uncertain")}
+            description={t("assist.uncertain.note")}
+            icon={<ShieldAlert className="size-5" />}
+            tone="warn"
+          >
+            {assistance.uncertain.length > 0 ? (
+              <ul className="space-y-2 text-sm text-ink-700">
+                {assistance.uncertain.map((line, index) => (
+                  <li key={index} className="flex gap-2">
+                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-warn-400" aria-hidden="true" />
+                    <span className="leading-relaxed">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-ink-500">{t("assist.uncertain.none")}</p>
+            )}
+          </SectionCard>
+
+          <SectionCard
             id="steps"
             title={t("assist.section.steps")}
             description={t("assist.steps.note")}
@@ -443,26 +464,6 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
               </ol>
             ) : (
               <p className="text-sm text-ink-500">{t("assist.timeline.none")}</p>
-            )}
-          </SectionCard>
-
-          <SectionCard
-            id="uncertain"
-            title={t("assist.section.uncertain")}
-            icon={<ShieldAlert className="size-5" />}
-            tone="warn"
-          >
-            {assistance.uncertain.length > 0 ? (
-              <ul className="space-y-2 text-sm text-ink-700">
-                {assistance.uncertain.map((line, index) => (
-                  <li key={index} className="flex gap-2">
-                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-warn-400" aria-hidden="true" />
-                    <span className="leading-relaxed">{line}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-ink-500">{t("assist.uncertain.none")}</p>
             )}
           </SectionCard>
 

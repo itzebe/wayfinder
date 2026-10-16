@@ -68,6 +68,19 @@ These are enforced by the product's purpose, not style preference. Do not break 
 - Design tokens live in `src/app/globals.css` as CSS variables; use the Tailwind
   token classes (`text-ink-*`, `bg-paper-*`, `accent-*`, `warn-*`, `success-*`,
   `danger-*`, `line-*`). Do not hard-code hex values in components.
+- `toneForSeverity` in `src/components/ui/Badge.tsx` maps **two** vocabularies
+  and both must keep working: the flight assessment ladder
+  (`high | elevated | moderate | low | none`) and the generic condition
+  severities produced by the everyday providers
+  (`severe | major | minor | info | good_service`). Only the flight ladder once
+  mapped, so every generic condition rendered as neutral grey. When adding a
+  severity value anywhere, extend this switch or the badge will silently
+  understate a disruption.
+- A forecast is not a warning, and the UI says which it is. `AssistSource`
+  carries a `forecast` flag taken from
+  `ProviderCapabilities.forecast && !weatherWarnings`; the source panel shows a
+  "Forecast" badge and note for it. Never derive that label from the provider's
+  name, and never let a forecast source read as a declared hazard.
 - User-facing copy goes through `t("...")`. Catalogues live in
   `src/lib/i18n/messages.ts`. All nine locales currently resolve every referenced
   key; `fr/de/pt/ar/zh/ja/hi` are marked `partial` in `locales.ts` and fall back to

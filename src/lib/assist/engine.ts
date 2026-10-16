@@ -740,7 +740,20 @@ export function snapshotFor(reports: ProviderReport[]): PreviousAssistState {
   };
 }
 
-function toAssistSources(reports: ProviderReport[], t: ProviderContext["t"]): AssistSource[] {
+function toAssistSources(
+  reports: ProviderReport[],
+  providers: Provider[],
+  t: ProviderContext["t"],
+): AssistSource[] {
+  // A provider's `forecast` capability is the single source of truth for whether
+  // its reading may be shown as a warning. Carrying it onto the source lets the
+  // page label a model value as a forecast without re-deriving it from the name.
+  const forecastById = new Map(
+    providers.map((provider) => [
+      provider.metadata.id,
+      provider.metadata.capabilities.forecast && !provider.metadata.capabilities.weatherWarnings,
+    ]),
+  );
   return reports.map((report) => ({
     ...report.source,
     covers: report.source.note ?? t("assist.source.coversDefault"),
@@ -750,6 +763,7 @@ function toAssistSources(reports: ProviderReport[], t: ProviderContext["t"]): As
         : report.conditions.length > 0
           ? t("assist.source.foundConditions", { count: report.conditions.length })
           : t("assist.source.noConditions"),
+    forecast: forecastById.get(report.providerId) || undefined,
   }));
 }
 
@@ -1076,7 +1090,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     hasDirectory,
     t,
   );
-  const sources = toAssistSources(reports, t);
+  const sources = toAssistSources(reports, providers, t);
   // Discovery leads: pages a web-search provider surfaced that the curated
   // directory does not already name. They are kept separate from `sources`
   // because nothing was retrieved from them.
