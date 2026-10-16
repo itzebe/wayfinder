@@ -355,6 +355,26 @@ const ENTRIES: DirectoryEntry[] = [
 
   // --- France --------------------------------------------------------------
   {
+    id: "fr:idfm",
+    countryCode: "FR",
+    organization: "Île-de-France Mobilités",
+    title: "Île-de-France Mobilités — traffic information",
+    url: "https://www.iledefrance-mobilites.fr/",
+    categories: ["metro", "rail", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "The transport authority for the Paris region: its 'Infos trafic' section reports disruptions to the metro, RER, tram and bus networks. It is a general information page, not a live service-status feed.",
+  },
+  {
+    id: "fr:sncf",
+    countryCode: "FR",
+    organization: "SNCF",
+    title: "SNCF — trains and network information",
+    url: "https://www.sncf.com/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "France's national rail operator: mainline train information and service notices. Covers SNCF journeys, not urban metro or bus networks.",
+  },
+  {
     id: "fr:meteofrance",
     countryCode: "FR",
     organization: "Météo-France",
@@ -499,6 +519,216 @@ const ENTRIES: DirectoryEntry[] = [
     categories: ["road", "public_service", "other"],
     covers:
       "Colombia's national roads institute: information for the national road network, including closures and conditions.",
+  },
+
+  // --- Vietnam -------------------------------------------------------------
+  {
+    id: "vn:vr",
+    countryCode: "VN",
+    organization: "Vietnam Railways (VNR)",
+    title: "Vietnam Railways — official site",
+    url: "https://www.vr.com.vn/",
+    categories: ["rail", "metro", "stranded", "other"],
+    covers:
+      "The national rail operator's own notices and timetable information. It is not a live per-train status feed, so a specific train's running status should be confirmed directly.",
+  },
+  {
+    id: "vn:nchmf",
+    countryCode: "VN",
+    organization: "National Center for Hydro-Meteorological Forecasting (NCHMF)",
+    title: "National Center for Hydro-Meteorological Forecasting",
+    url: "https://www.nchmf.gov.vn/",
+    categories: ["weather", "road", "other"],
+    covers:
+      "Vietnam's national weather service: forecasts and storm advisories. A forecast is not an active warning, so check the page for its current status.",
+  },
+
+  // --- Thailand ------------------------------------------------------------
+  {
+    id: "th:dlt",
+    countryCode: "TH",
+    organization: "Department of Land Transport",
+    title: "Department of Land Transport — official site",
+    url: "https://www.dlt.go.th/",
+    categories: ["bus", "road", "public_service", "other"],
+    covers:
+      "Thailand's land-transport authority: operator and licensing notices affecting buses and road transport. It publishes authority information rather than a live service-status feed.",
+  },
+  {
+    id: "th:tmd",
+    countryCode: "TH",
+    organization: "Thai Meteorological Department (TMD)",
+    title: "Thai Meteorological Department",
+    url: "https://www.tmd.go.th/",
+    categories: ["weather", "road", "other"],
+    covers:
+      "Thailand's national meteorological service: forecasts and weather warnings. A forecast is not an active warning, so confirm the page's current status.",
+  },
+  {
+    id: "th:mot",
+    countryCode: "TH",
+    organization: "Ministry of Transport (Thailand)",
+    title: "Ministry of Transport — official portal",
+    url: "https://www.mot.go.th/",
+    categories: ["metro", "rail", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "Thailand's transport ministry: notices and announcements across rail, road and urban transport. It is a general portal, not a live service-status feed.",
+  },
+  {
+    id: "th:doh",
+    countryCode: "TH",
+    organization: "Department of Highways",
+    title: "Department of Highways — official site",
+    url: "https://www.doh.go.th/",
+    categories: ["road", "other"],
+    covers:
+      "Thailand's national highway authority: information for the national road network, including road conditions and closures.",
+  },
+
+  // --- Türkiye -------------------------------------------------------------
+  {
+    id: "tr:ibb",
+    countryCode: "TR",
+    organization: "İstanbul Büyükşehir Belediyesi (Istanbul Metropolitan Municipality)",
+    title: "Istanbul Metropolitan Municipality",
+    url: "https://www.ibb.istanbul/",
+    categories: ["metro", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "Istanbul's municipal authority: announcements affecting city transport and services. It is a general portal, not a live service-status feed.",
+  },
+  {
+    id: "tr:mgm",
+    countryCode: "TR",
+    organization: "Turkish State Meteorological Service (MGM)",
+    title: "Turkish State Meteorological Service",
+    url: "https://www.mgm.gov.tr/",
+    categories: ["weather", "road", "other"],
+    covers:
+      "Türkiye's national meteorological service: forecasts and weather warnings. A forecast is not an active warning, so confirm the page's current status.",
+  },
+  {
+    id: "tr:kgm",
+    countryCode: "TR",
+    organization: "General Directorate of Highways (KGM)",
+    title: "General Directorate of Highways",
+    url: "https://www.kgm.gov.tr/",
+    categories: ["road", "other"],
+    covers:
+      "Türkiye's national highways authority: information for the national road network, including road conditions and closures.",
+  },
+
+  // --- Poland --------------------------------------------------------------
+  {
+    id: "pl:imgw",
+    countryCode: "PL",
+    organization: "Institute of Meteorology and Water Management (IMGW-PIB)",
+    title: "Institute of Meteorology and Water Management",
+    url: "https://www.imgw.pl/",
+    categories: ["weather", "road", "public_service", "other"],
+    covers:
+      "Poland's national meteorological and hydrological service: forecasts and warnings. A forecast is not an active warning, so confirm the page's current status.",
+  },
+  {
+    id: "pl:infrastruktura",
+    countryCode: "PL",
+    organization: "Ministry of Infrastructure (Poland)",
+    title: "Ministry of Infrastructure — official portal",
+    url: "https://www.gov.pl/web/infrastruktura",
+    categories: ["metro", "rail", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "Poland's infrastructure ministry: notices and announcements across rail, road and urban transport. It is a general portal, not a live service-status feed.",
+  },
+  {
+    id: "pl:pkp",
+    countryCode: "PL",
+    organization: "PKP S.A. (Polskie Koleje Państwowe)",
+    title: "PKP — official site",
+    url: "https://www.pkp.pl/",
+    categories: ["rail", "metro", "stranded", "other"],
+    covers:
+      "Poland's national rail group: operator information and notices. A specific train's running status should be confirmed directly with the operator.",
+  },
+  {
+    id: "pl:gddkia",
+    countryCode: "PL",
+    organization: "General Directorate for National Roads and Motorways (GDDKiA)",
+    title: "General Directorate for National Roads and Motorways",
+    url: "https://www.gddkia.gov.pl/",
+    categories: ["road", "other"],
+    covers:
+      "Poland's national roads authority: information for the national road network, including road conditions and closures.",
+  },
+
+  // --- South Africa --------------------------------------------------------
+  {
+    id: "za:airports",
+    countryCode: "ZA",
+    organization: "Airports Company South Africa (ACSA)",
+    title: "Airports Company South Africa — official site",
+    url: "https://www.airports.co.za/",
+    categories: ["flights", "stranded", "other"],
+    covers:
+      "The operator of South Africa's major airports: airport information and passenger notices. It publishes airport information rather than live per-flight status, which only the airline can confirm.",
+  },
+  {
+    id: "za:gautrain",
+    countryCode: "ZA",
+    organization: "Gautrain",
+    title: "Gautrain — official site",
+    url: "https://www.gautrain.co.za/",
+    categories: ["rail", "metro", "stranded", "other"],
+    covers:
+      "The Gautrain rapid-rail operator: service information and notices for its routes. Confirm a specific service's status directly with the operator.",
+  },
+  {
+    id: "za:transnet",
+    countryCode: "ZA",
+    organization: "Transnet",
+    title: "Transnet — official site",
+    url: "https://www.transnet.net/",
+    categories: ["rail", "bus", "public_service", "other"],
+    covers:
+      "South Africa's state freight and port rail operator: notices affecting rail and port operations. It is not a live passenger service-status feed.",
+  },
+  {
+    id: "za:prasa",
+    countryCode: "ZA",
+    organization: "Passenger Rail Agency of South Africa (PRASA)",
+    title: "Passenger Rail Agency of South Africa",
+    url: "https://www.prasa.com/",
+    categories: ["rail", "metro", "stranded", "other"],
+    covers:
+      "South Africa's passenger rail operator: service information and notices for commuter rail. Confirm a specific service's status directly with the operator.",
+  },
+  {
+    id: "za:joburg",
+    countryCode: "ZA",
+    organization: "City of Johannesburg",
+    title: "City of Johannesburg — official site",
+    url: "https://www.joburg.org.za/",
+    categories: ["metro", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "The City of Johannesburg's official portal: municipal announcements affecting transport and services. It is not a live service-status feed.",
+  },
+  {
+    id: "za:capetown",
+    countryCode: "ZA",
+    organization: "City of Cape Town",
+    title: "City of Cape Town — official site",
+    url: "https://www.capetown.gov.za/",
+    categories: ["metro", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "The City of Cape Town's official portal: municipal announcements affecting transport and services. It is not a live service-status feed.",
+  },
+  {
+    id: "za:arrivealive",
+    countryCode: "ZA",
+    organization: "Arrive Alive (Road Traffic Management Corporation)",
+    title: "Arrive Alive — road safety information",
+    url: "https://www.arrivealive.co.za/",
+    categories: ["road", "other"],
+    covers:
+      "South Africa's road-safety information service: road-safety notices and advice. It is not a live traffic map, so it will not show a closure on a specific road.",
   },
 ];
 

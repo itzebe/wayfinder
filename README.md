@@ -12,8 +12,9 @@ current information, and know what to do next — often in a language they do no
 speak fluently.
 
 It is international: queries are answered by official operators and authorities
-in the United Kingdom, the United States and Germany, in nine interface
-languages.
+in the United Kingdom, the United States and Germany through live integrations,
+and for around thirty further countries WAYFINDER keeps a verified directory of
+the responsible official pages. Nine interface languages are supported.
 
 Built for the UI/UX and Web Design hackathon.
 
@@ -61,6 +62,30 @@ The aviation experience keeps its own dedicated sources — NOAA's Aviation Weat
 Center (METAR/TAF, worldwide), the FAA ATC System Command Center (US airspace
 only), and adsbdb/adsb.lol as clearly-labelled reference signals. No source we can
 reach publishes per-flight status, so WAYFINDER never displays one.
+
+### Curated directory and web-search discovery
+
+Live integrations cannot cover every place, so WAYFINDER has two further layers,
+both honest about what they are:
+
+1. **A curated official-source directory** (`src/lib/assist/directory.ts`) for
+   around thirty countries. Each entry names the responsible body (transport
+   operator, road authority, weather service, government publisher), links to a
+   page we have checked, and describes what that page can and cannot tell you. A
+   directory entry carries **no status, no timestamp and no condition** — it is
+   presented as "where to check", never as "what is happening", and the UI labels
+   it as such.
+
+2. **Web-search discovery** (`src/lib/assist/providers/discovery.ts`), optional
+   and off unless `WAYFINDER_GOOGLE_API_KEY` is set. It uses Gemini **grounding
+   with Google Search** and returns the pages Google actually found as
+   `groundingChunks`, which become clearly-labelled "found by search" leads. It
+   never contributes a condition or a status, is ranked below any live authority,
+   and is deduplicated against the curated directory so a page is never listed
+   twice.
+
+If neither layer can help, the page says so plainly and links to the responsible
+official page rather than filling the gap with invented detail.
 
 ## Data-freshness model
 
@@ -132,7 +157,10 @@ npm run dev        # http://localhost:3000
 ```
 
 Optional AI layer — copy `.env.example` to `.env.local` and set
-`WAYFINDER_AI_API_KEY`. Everything else works without it.
+`WAYFINDER_AI_API_KEY`. Optional web-search discovery is enabled by setting
+`WAYFINDER_GOOGLE_API_KEY`. Everything else works without either: with no keys,
+the product falls back to the deterministic source-grounded explanation and the
+curated official-source directory.
 
 ### Verification
 

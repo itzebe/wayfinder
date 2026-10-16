@@ -59,6 +59,10 @@ export interface HttpOptions {
   lastModified?: string;
   accept?: string;
   headers?: Record<string, string>;
+  /** HTTP method; defaults to GET. POST is used by JSON APIs like Gemini. */
+  method?: "GET" | "POST";
+  /** JSON request body, serialised and sent with `method: "POST"`. */
+  body?: unknown;
 }
 
 const USER_AGENT =
@@ -107,12 +111,15 @@ async function attempt<T>(url: string, options: HttpOptions): Promise<HttpResult
     "User-Agent": USER_AGENT,
     ...options.headers,
   };
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (options.etag) headers["If-None-Match"] = options.etag;
   if (options.lastModified) headers["If-Modified-Since"] = options.lastModified;
 
   try {
     const response = await (options.fetchImpl ?? fetch)(url, {
+      method: options.method ?? "GET",
       headers,
+      ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
       signal: controller.signal,
       redirect: "follow",
       cache: "no-store",

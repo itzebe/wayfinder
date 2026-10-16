@@ -37,6 +37,37 @@ const en: Messages = {
   "hero.trustNote":
     "No account needed. We never ask for passport, payment or password details.",
 
+  // --- Intent entry (the homepage's primary action) -----------------------
+  "intent.formLabel": "Describe your situation",
+  "intent.whatLabel": "What is happening?",
+  "intent.whatPlaceholder":
+    "e.g. the metro has stopped, my flight was cancelled, there is a flood warning",
+  "intent.whereLabel": "Where?",
+  "intent.wherePlaceholder": "e.g. Tokyo, Japan",
+  "intent.hint.empty": "Describe the problem, name the place, or both.",
+  "intent.hint.routed": "We would start with",
+  "intent.hint.unrouted":
+    "We do not recognise a category yet — you can still continue and describe it in the next step.",
+  "intent.submit": "Get help now",
+  "intent.orPick": "or pick a situation below",
+  "intent.savedFlight": "You have a saved flight situation.",
+  "intent.savedFlight.open": "Open it",
+
+  // --- Category shortcuts -------------------------------------------------
+  "shortcuts.title": "Supported situations",
+  "shortcuts.note":
+    "Every shortcut opens the flow with that situation already chosen. Availability of live sources depends on your location and is stated on the result page.",
+  "shortcuts.flights": "Flights",
+  "shortcuts.metro": "Metro and subway",
+  "shortcuts.rail": "Rail and trains",
+  "shortcuts.bus": "Buses",
+  "shortcuts.road": "Roads and traffic",
+  "shortcuts.weather": "Weather and emergencies",
+  "shortcuts.travel": "Travel disruptions",
+  "shortcuts.publicService": "Public services",
+  "shortcuts.other": "Something else",
+  "shortcuts.announcement": "Announcement translation",
+
   // --- Preview ------------------------------------------------------------
   "preview.label": "Product preview",
   "preview.scenarioLabel": "Example situation",
@@ -115,7 +146,7 @@ const en: Messages = {
   "situations.public.body":
     "Health, safety and civic notices that affect where you can go.",
   "situations.coverage.title": "Honest coverage, not a world map",
-  "situations.coverage.body": "Live integrations cover the United Kingdom, the United States and Germany today. Where a region has no source, WAYFINDER says so plainly and hands you the official page instead of guessing.",
+  "situations.coverage.body": "Live integrations cover the United Kingdom, the United States and Germany today. For around thirty more countries, WAYFINDER keeps a verified directory of official pages — the transport operator, road authority or weather service responsible for that place. Where no live source exists, it says so plainly and hands you those official pages instead of guessing.",
 
   // --- Assistance flow ----------------------------------------------------
   "flow.title": "Get help now",
@@ -179,6 +210,7 @@ const en: Messages = {
   "details.optional": "Optional",
 
   "validation.required": "This is needed to continue.",
+  "validation.textTooLong": "That is longer than we can use. Please shorten it.",
   "validation.flightNumberFormat":
     "Enter a flight number like BA123 — airline letters followed by up to four digits.",
   "validation.airportFormat": "Enter a three- or four-letter airport code, for example LHR.",
@@ -654,7 +686,7 @@ const en: Messages = {
   "limitations.ai.title": "The AI layer explains, it does not decide",
   "limitations.ai.body": "Identifiers, times, sources and recommended steps are composed from retrieved data. The AI layer contributes plain-language explanation and translation only, and if it is unavailable the deterministic explanation is used instead.",
   "limitations.scope.title": "Coverage is real, not universal",
-  "limitations.scope.body": "Everyday categories — metro, rail, buses, roads, severe weather, public notices and flights — have a working official source. Live integrations cover the United Kingdom, the United States and Germany today. Typing any place is accepted: if it resolves to a country with no live integration, the situation page says so plainly and hands you the responsible official page — for around twenty countries now, from Nigeria and Kenya to Japan, France, Brazil and the UAE — instead of guessing, rather than offering a button that leads nowhere.",
+  "limitations.scope.body": "Everyday categories — metro, rail, buses, roads, severe weather, public notices and flights — have a working official source. Live integrations cover the United Kingdom, the United States and Germany today. Typing any place is accepted: if it resolves to a country with no live integration, the situation page says so plainly and hands you the responsible official page — for around thirty countries now, from Nigeria and Kenya to Japan, France, Brazil and the UAE — instead of guessing, rather than offering a button that leads nowhere.",
   "limitations.sources.title": "Data sources",
   "limitations.sources.intro": "Every source below is public and requires no credential. Each has a documented limitation, and each is attributed on the situation page where its data is used. Where no live integration exists for a country, the page links the responsible authority through the official-source directory rather than leaving you with nothing — the directory is a list of pages to check, not a source of retrieved status.",
   "limitations.limitationLabel": "Limitation:",
@@ -1019,6 +1051,47 @@ const en: Messages = {
   "support.saved.open": "Reopen saved situation",
   "support.saved.new": "Start a new request",
 
+  "help.resume.title": "You already have a saved flight",
+  "help.resume.body":
+    "You asked about flight {flightNumber} earlier. Open the saved situation, or start a new request with the form below.",
+  "help.resume.open": "Open saved situation",
+  "help.resume.new": "Clear it and start again",
+
+  "assist.needDetail.title": "Which place is this about?",
+  "assist.needDetail.body":
+    "This link names the kind of situation but not where it is happening. Add a place and WAYFINDER will search the official sources that cover it.",
+
+  "assist.timeline.baseline": "First observation recorded for this situation",
+  "assist.timeline.baselineDetail":
+    "There is no earlier check to compare against, so nothing is reported as changed yet.",
+  "assist.timeline.disruptionAppeared": "A source is now reporting a disruption that was not listed before",
+  "assist.timeline.disruptionCleared": "A previously reported disruption is no longer listed",
+  "assist.timeline.sourceRecovered": "{source} answered again after a failed check",
+  "assist.timeline.severityChanged": "A source changed how serious its report is",
+  "assist.timeline.severityFrom": "was {from}",
+  "assist.timeline.noChange": "No change since the last check",
+  "assist.timeline.noChangeDetail":
+    "Every source that answered reported the same conditions as before.",
+  "assist.timeline.noObservation": "No current observation was recorded",
+  "assist.timeline.noObservationDetail":
+    "No source answered with current information this time, so nothing can be compared. This is not a statement that the situation is clear.",
+  "assist.timeline.changed": "Changed",
+
+  "assist.discovery.heading": "Pages found by web search",
+  "assist.discovery.note":
+    "Found by a web search for this situation. These pages have not been read or verified by WAYFINDER, so treat them as places to check, not as a confirmed status.",
+  "assist.discovery.coversOfficial":
+    "Found by web search and its domain looks like an official authority. WAYFINDER has not read it; open the page to confirm what it says.",
+  "assist.discovery.coversSecondary":
+    "Found by web search. It is not an official authority page, so verify anything important against the official source.",
+  "assist.discovery.notConfigured":
+    "Web-search discovery is not configured for this deployment, so only the curated official sources are listed.",
+  "assist.discovery.unreachable":
+    "Web-search discovery could not be reached, so only the curated official sources are listed.",
+  "assist.discovery.noResults":
+    "Web search returned no additional pages for this situation.",
+  "assist.discovery.badge": "Found by search",
+
   "support.flight.title": "Flight disruption",
   "support.flight.body":
     "Use the dedicated flight flow for cancellations, delays, missed connections and gate changes.",
@@ -1046,6 +1119,11 @@ const en: Messages = {
   "assist.summary.category": "Situation",
   "assist.summary.place": "Place",
   "assist.summary.lastChecked": "Last checked",
+  "assist.summary.countryMatch": "Country match",
+  "assist.summary.countryInferred": "Read from your place name — check it is right.",
+  "assist.disambiguate.title": "Which place do you mean?",
+  "assist.disambiguate.body": "“{place}” is a city name shared by more than one country. Choose the one you mean so we can look up the right authorities.",
+  "assist.disambiguate.other": "Enter a different place",
   "assist.value.notGiven": "Not given",
   "assist.value.unknown": "Not reported",
   "assist.conditions.note":
@@ -1109,6 +1187,35 @@ const es: Messages = {
   "hero.secondaryCta": "Ver cómo funciona",
   "hero.trustNote":
     "No hace falta cuenta. Nunca pedimos pasaporte, datos de pago ni contraseñas.",
+
+  "intent.formLabel": "Describe tu situación",
+  "intent.whatLabel": "¿Qué está pasando?",
+  "intent.whatPlaceholder":
+    "p. ej. el metro se ha parado, han cancelado mi vuelo, hay aviso de inundación",
+  "intent.whereLabel": "¿Dónde?",
+  "intent.wherePlaceholder": "p. ej. Tokio, Japón",
+  "intent.hint.empty": "Describe el problema, indica el lugar, o ambos.",
+  "intent.hint.routed": "Empezaríamos por",
+  "intent.hint.unrouted":
+    "Todavía no reconocemos una categoría; puedes continuar y describirlo en el paso siguiente.",
+  "intent.submit": "Obtener ayuda",
+  "intent.orPick": "o elige una situación abajo",
+  "intent.savedFlight": "Tienes una situación de vuelo guardada.",
+  "intent.savedFlight.open": "Abrirla",
+
+  "shortcuts.title": "Situaciones compatibles",
+  "shortcuts.note":
+    "Cada acceso directo abre el flujo con esa situación ya elegida. La disponibilidad de fuentes en directo depende de tu ubicación y se indica en la página de resultados.",
+  "shortcuts.flights": "Vuelos",
+  "shortcuts.metro": "Metro y suburbano",
+  "shortcuts.rail": "Ferrocarril y trenes",
+  "shortcuts.bus": "Autobuses",
+  "shortcuts.road": "Carreteras y tráfico",
+  "shortcuts.weather": "Meteorología y emergencias",
+  "shortcuts.travel": "Incidencias de viaje",
+  "shortcuts.publicService": "Servicios públicos",
+  "shortcuts.other": "Otra cosa",
+  "shortcuts.announcement": "Traducción de anuncios",
 
   "flow.selectSituation": "¿Qué está pasando?",
   "flow.back": "Atrás",
@@ -1306,7 +1413,7 @@ const es: Messages = {
   "situations.public.title": "Avisos de servicio público",
   "situations.public.body": "Avisos sanitarios, de seguridad y civiles que afectan a dónde puedes ir.",
   "situations.coverage.title": "Cobertura honesta, no un mapamundi",
-  "situations.coverage.body": "Hoy las integraciones en vivo cubren el Reino Unido, Estados Unidos y Alemania. Cuando una región no tiene fuente, WAYFINDER lo dice con claridad y te entrega la página oficial en lugar de adivinar.",
+  "situations.coverage.body": "Hoy las integraciones en vivo cubren el Reino Unido, Estados Unidos y Alemania. Para unos veinte países más, WAYFINDER mantiene un directorio verificado de páginas oficiales: el operador de transporte, la autoridad de carreteras o el servicio meteorológico responsable de ese lugar. Cuando no existe una fuente en vivo, lo dice con claridad y te entrega esas páginas oficiales en lugar de adivinar.",
   "flow.title": "Obtener ayuda",
   "flow.stepOf": "Paso {current} de {total}",
   "flow.selectSituationHelp": "Elige la opción más parecida. Podrás añadir detalles en la pantalla siguiente.",
@@ -1334,6 +1441,7 @@ const es: Messages = {
   "details.submitting": "Obteniendo datos oficiales…",
   "details.optional": "Opcional",
   "validation.required": "Esto es necesario para continuar.",
+  "validation.textTooLong": "Es más largo de lo que podemos usar. Acórtalo, por favor.",
   "validation.flightNumberFormat": "Introduce un número de vuelo como BA123: las letras de la aerolínea seguidas de hasta cuatro dígitos.",
   "validation.airportFormat": "Introduce un código de aeropuerto de tres o cuatro letras, por ejemplo LHR.",
   "situation.loading": "Obteniendo datos oficiales de tu vuelo…",
@@ -2047,6 +2155,48 @@ const es: Messages = {
   "support.saved.open": "Reabrir situación guardada",
   "support.saved.new": "Empezar una consulta nueva",
 
+  "help.resume.title": "Ya tienes un vuelo guardado",
+  "help.resume.body":
+    "Antes preguntaste por el vuelo {flightNumber}. Abre la situación guardada o empieza una consulta nueva con el formulario de abajo.",
+  "help.resume.open": "Abrir situación guardada",
+  "help.resume.new": "Borrarla y empezar de nuevo",
+
+  "assist.needDetail.title": "¿A qué lugar se refiere?",
+  "assist.needDetail.body":
+    "Este enlace indica el tipo de situación, pero no dónde ocurre. Añade un lugar y WAYFINDER buscará en las fuentes oficiales que lo cubren.",
+
+  "assist.timeline.baseline": "Primera observación registrada para esta situación",
+  "assist.timeline.baselineDetail":
+    "No hay una comprobación anterior con la que comparar, así que todavía no se indica ningún cambio.",
+  "assist.timeline.disruptionAppeared":
+    "Una fuente informa ahora de una incidencia que antes no aparecía",
+  "assist.timeline.disruptionCleared": "Una incidencia indicada antes ya no aparece",
+  "assist.timeline.sourceRecovered": "{source} volvió a responder tras una comprobación fallida",
+  "assist.timeline.severityChanged": "Una fuente cambió la gravedad de su informe",
+  "assist.timeline.severityFrom": "era {from}",
+  "assist.timeline.noChange": "Sin cambios desde la última comprobación",
+  "assist.timeline.noChangeDetail":
+    "Todas las fuentes que respondieron indican las mismas condiciones que antes.",
+  "assist.timeline.noObservation": "No se registró ninguna observación actual",
+  "assist.timeline.noObservationDetail":
+    "Ninguna fuente respondió con información actual esta vez, así que no hay nada que comparar. Esto no significa que la situación esté resuelta.",
+  "assist.timeline.changed": "Cambio",
+
+  "assist.discovery.heading": "Páginas encontradas por búsqueda web",
+  "assist.discovery.note":
+    "Encontradas mediante una búsqueda web para esta situación. WAYFINDER no ha leído ni verificado estas páginas, así que considéralas lugares que consultar, no un estado confirmado.",
+  "assist.discovery.coversOfficial":
+    "Encontrada por búsqueda web y su dominio parece de una autoridad oficial. WAYFINDER no la ha leído; abre la página para confirmar lo que dice.",
+  "assist.discovery.coversSecondary":
+    "Encontrada por búsqueda web. No es una página de una autoridad oficial, así que verifica lo importante con la fuente oficial.",
+  "assist.discovery.notConfigured":
+    "La búsqueda web no está configurada en esta instalación, así que solo se muestran las fuentes oficiales seleccionadas.",
+  "assist.discovery.unreachable":
+    "No se pudo contactar con la búsqueda web, así que solo se muestran las fuentes oficiales seleccionadas.",
+  "assist.discovery.noResults":
+    "La búsqueda web no devolvió páginas adicionales para esta situación.",
+  "assist.discovery.badge": "Encontrada por búsqueda",
+
   "support.flight.title": "Incidencia de vuelo",
   "support.flight.body":
     "Usa el flujo de vuelo específico para cancelaciones, retrasos, conexiones perdidas y cambios de puerta.",
@@ -2075,6 +2225,11 @@ const es: Messages = {
   "assist.summary.category": "Situación",
   "assist.summary.place": "Lugar",
   "assist.summary.lastChecked": "Última comprobación",
+  "assist.summary.countryMatch": "País detectado",
+  "assist.summary.countryInferred": "Deducido de tu lugar — confirma que sea correcto.",
+  "assist.disambiguate.title": "¿A qué lugar te refieres?",
+  "assist.disambiguate.body": "«{place}» es un nombre de ciudad compartido por varios países. Elige el que quieres para buscar las autoridades correctas.",
+  "assist.disambiguate.other": "Introducir otro lugar",
   "assist.value.notGiven": "No indicado",
   "assist.value.unknown": "Sin datos",
   "assist.conditions.note":
@@ -2183,6 +2338,11 @@ const fr: Messages = {
   "assist.summary.category": "Situation",
   "assist.summary.place": "Lieu",
   "assist.summary.lastChecked": "Dernière vérification",
+  "assist.summary.countryMatch": "Pays identifié",
+  "assist.summary.countryInferred": "Déduit de votre lieu — vérifiez qu'il est correct.",
+  "assist.disambiguate.title": "De quel lieu parlez-vous ?",
+  "assist.disambiguate.body": "« {place} » est un nom de ville partagé par plusieurs pays. Choisissez celui que vous voulez pour trouver les bonnes autorités.",
+  "assist.disambiguate.other": "Saisir un autre lieu",
   "assist.fact.reportedProblem.label": "Vous nous avez dit",
   "assist.conditions.note": "Voici les conditions rapportées par les sources, dans leurs propres termes et avec leur propre gravité.",
 
@@ -2401,8 +2561,9 @@ const fr: Messages = {
   "validation.assistLocationRequired": "Ajoutez un pays, une ville, un trajet ou une description pour qu'il y ait quelque chose à vérifier.",
   "validation.countryCodeFormat": "Utilisez un code pays à deux lettres, par exemple GB ou US.",
   "validation.required": "Nécessaire pour continuer.",
+  "validation.textTooLong": "C'est plus long que ce que nous pouvons utiliser. Veuillez le raccourcir.",
   "situations.coverage.title": "Une couverture honnête, pas un planisphère",
-  "situations.coverage.body": "Aujourd'hui, les intégrations en direct couvrent le Royaume-Uni, les États-Unis et l'Allemagne. Lorsqu'une région n'a pas de source, WAYFINDER le dit clairement et vous remet la page officielle au lieu de deviner.",
+  "situations.coverage.body": "Aujourd'hui, les intégrations en direct couvrent le Royaume-Uni, les États-Unis, l'Allemagne. Pour une vingtaine d'autres pays, WAYFINDER tient un répertoire vérifié de pages officielles — l'exploitant de transport, l'autorité routière ou le service météo compétent. Lorsqu'aucune source en direct n'existe, il le dit clairement et vous remet ces pages officielles au lieu de deviner.",
   "assist.category.flights.title": "Vols",
   "assist.category.flights.body": "Annulations, retards, correspondances et changements de porte.",
   "assist.category.metro.title": "Métro et trains urbains",
@@ -2489,6 +2650,11 @@ const de: Messages = {
   "assist.summary.category": "Situation",
   "assist.summary.place": "Ort",
   "assist.summary.lastChecked": "Zuletzt geprüft",
+  "assist.summary.countryMatch": "Land erkannt",
+  "assist.summary.countryInferred": "Aus Ihrem Ortsnamen abgeleitet — bitte prüfen.",
+  "assist.disambiguate.title": "Welcher Ort ist gemeint?",
+  "assist.disambiguate.body": "„{place}“ ist ein Ortsname, den mehrere Länder teilen. Wählen Sie den zutreffenden, damit wir die richtigen Behörden finden.",
+  "assist.disambiguate.other": "Anderen Ort eingeben",
   "assist.fact.reportedProblem.label": "Sie haben uns gesagt",
   "assist.conditions.note": "Dies sind die von den Quellen gemeldeten Zustände, in ihren eigenen Worten und mit ihrer eigenen Schwere.",
 
@@ -2707,8 +2873,9 @@ const de: Messages = {
   "validation.assistLocationRequired": "Geben Sie ein Land, eine Stadt, eine Strecke oder eine Beschreibung an, damit es etwas zu prüfen gibt.",
   "validation.countryCodeFormat": "Verwenden Sie einen zweistelligen Ländercode, zum Beispiel GB oder US.",
   "validation.required": "Wird zum Fortfahren benötigt.",
+  "validation.textTooLong": "Das ist länger, als wir verwenden können. Bitte kürzen Sie es.",
   "situations.coverage.title": "Ehrliche Abdeckung, keine Weltkarte",
-  "situations.coverage.body": "Live-Integrationen decken derzeit das Vereinigte Königreich, die Vereinigten Staaten und Deutschland ab. Wo eine Region keine Quelle hat, sagt WAYFINDER das klar und übergibt die offizielle Seite, statt zu raten.",
+  "situations.coverage.body": "Live-Integrationen decken derzeit das Vereinigte Königreich, die Vereinigten Staaten und Deutschland ab. Für rund zwanzig weitere Länder führt WAYFINDER ein geprüftes Verzeichnis offizieller Seiten — des zuständigen Verkehrsbetriebs, der Straßenbehörde oder des Wetterdienstes. Wo keine Live-Quelle existiert, sagt es das klar und übergibt diese offiziellen Seiten, statt zu raten.",
   "assist.category.flights.title": "Flüge",
   "assist.category.flights.body": "Stornierungen, Verspätungen, Anschlüsse und Gate-Änderungen.",
   "assist.category.metro.title": "U-Bahn und Stadtbahn",
@@ -2795,6 +2962,11 @@ const pt: Messages = {
   "assist.summary.category": "Situação",
   "assist.summary.place": "Local",
   "assist.summary.lastChecked": "Última verificação",
+  "assist.summary.countryMatch": "País identificado",
+  "assist.summary.countryInferred": "Deduzido do seu local — confirme se está correto.",
+  "assist.disambiguate.title": "Qual local você quer dizer?",
+  "assist.disambiguate.body": "“{place}” é um nome de cidade partilhado por mais de um país. Escolha o que pretende para encontrarmos as autoridades certas.",
+  "assist.disambiguate.other": "Indicar outro local",
   "assist.fact.reportedProblem.label": "Você disse-nos",
   "assist.conditions.note": "Estas são as condições comunicadas pelas fontes, nas suas próprias palavras e com a sua própria gravidade.",
 
@@ -3013,8 +3185,9 @@ const pt: Messages = {
   "validation.assistLocationRequired": "Adicione um país, cidade, trajeto ou descrição para haver algo a verificar.",
   "validation.countryCodeFormat": "Use um código de país com duas letras, por exemplo GB ou US.",
   "validation.required": "Necessário para continuar.",
+  "validation.textTooLong": "Isto é mais longo do que podemos usar. Encurte-o, por favor.",
   "situations.coverage.title": "Cobertura honesta, não um mapa-múndi",
-  "situations.coverage.body": "Hoje, as integrações em direto cobrem o Reino Unido, os Estados Unidos e a Alemanha. Quando uma região não tem fonte, a WAYFINDER di-lo com clareza e entrega-lhe a página oficial em vez de adivinhar.",
+  "situations.coverage.body": "Hoje, as integrações em direto cobrem o Reino Unido, os Estados Unidos e a Alemanha. Para cerca de vinte outros países, a WAYFINDER mantém um diretório verificado de páginas oficiais — o operador de transportes, a autoridade rodoviária ou o serviço meteorológico responsável. Quando não existe fonte em direto, di-lo com clareza e entrega essas páginas oficiais em vez de adivinhar.",
   "assist.category.flights.title": "Voos",
   "assist.category.flights.body": "Cancelamentos, atrasos, ligações e mudanças de porta.",
   "assist.category.metro.title": "Metro e suburbano",
@@ -3101,6 +3274,11 @@ const ar: Messages = {
   "assist.summary.category": "الحالة",
   "assist.summary.place": "المكان",
   "assist.summary.lastChecked": "آخر تحقق",
+  "assist.summary.countryMatch": "الدولة المطابقة",
+  "assist.summary.countryInferred": "مستخلصة من اسم المكان — تأكد من صحتها.",
+  "assist.disambiguate.title": "أي مكان تقصد؟",
+  "assist.disambiguate.body": "اسم «{place}» مدينة مشتركة بين أكثر من دولة. اختر المكان الذي تقصده لنبحث عن الجهات المختصة الصحيحة.",
+  "assist.disambiguate.other": "أدخل مكانًا آخر",
   "assist.fact.reportedProblem.label": "أخبرتنا أنت",
   "assist.conditions.note": "هذه هي الأوضاع التي أبلغت عنها المصادر، بكلماتها وبشدة الخطر التي تحددها.",
 
@@ -3319,8 +3497,9 @@ const ar: Messages = {
   "validation.assistLocationRequired": "أضف بلدًا أو مدينة أو مسارًا أو وصفًا حتى يكون هناك ما يمكن التحقق منه.",
   "validation.countryCodeFormat": "استخدم رمز بلد من حرفين، مثل GB أو US.",
   "validation.required": "مطلوب للمتابعة.",
+  "validation.textTooLong": "هذا أطول مما يمكننا استخدامه. يُرجى تقصيره.",
   "situations.coverage.title": "تغطية صادقة، لا خريطة عالمية",
-  "situations.coverage.body": "تغطي التكاملات المباشرة اليوم المملكة المتحدة والولايات المتحدة وألمانيا. وحين لا يتوفر مصدر لمنطقة ما، تقول WAYFINDER ذلك بوضوح وتُعطيك الصفحة الرسمية بدلًا من التخمين.",
+  "situations.coverage.body": "تغطي التكاملات المباشرة اليوم المملكة المتحدة والولايات المتحدة وألمانيا. ولنحو عشرين بلدًا آخر، تحتفظ WAYFINDER بدليل موثّق للصفحات الرسمية — مشغّل النقل أو هيئة الطرق أو خدمة الأرصاد المسؤولة عن ذلك المكان. وحين لا يتوفر مصدر مباشر، تقول ذلك بوضوح وتُعطيك هذه الصفحات الرسمية بدلًا من التخمين.",
   "assist.category.flights.title": "الرحلات الجوية",
   "assist.category.flights.body": "الإلغاء والتأخير والاتصالات وتغيير البوابات.",
   "assist.category.metro.title": "المترو والقطارات الحضرية",
@@ -3405,6 +3584,11 @@ const zh: Messages = {
   "assist.summary.category": "情况",
   "assist.summary.place": "地点",
   "assist.summary.lastChecked": "最后核查",
+  "assist.summary.countryMatch": "匹配的国家",
+  "assist.summary.countryInferred": "根据您输入的地点推断——请确认是否正确。",
+  "assist.disambiguate.title": "您指的是哪个地方？",
+  "assist.disambiguate.body": "“{place}”是多个国家共有的城市名称。请选择您所指的地方，以便我们查找正确的官方机构。",
+  "assist.disambiguate.other": "输入其他地点",
   "assist.fact.reportedProblem.label": "您告诉我们的",
   "assist.conditions.note": "以下是各来源以其自身措辞和自身严重程度报告的现况。",
 
@@ -3621,8 +3805,9 @@ const zh: Messages = {
   "validation.assistLocationRequired": "请添加国家、城市、路线或描述，以便有内容可供核查。",
   "validation.countryCodeFormat": "请使用两位字母的国家代码，例如 GB 或 US。",
   "validation.required": "继续操作所必需。",
+  "validation.textTooLong": "内容过长，无法使用。请缩短。",
   "situations.coverage.title": "诚实的覆盖范围，而非世界地图",
-  "situations.coverage.body": "目前实时集成覆盖英国、美国和德国。若某地区没有来源，WAYFINDER 会明确说明，并直接提供官方页面，而不是猜测。",
+  "situations.coverage.body": "目前实时集成覆盖英国、美国和德国。对于另外约二十个国家，WAYFINDER 维护一份经过核实的官方页面目录——负责该地的交通运营方、道路管理机构或气象部门。若某地区没有实时来源，它会明确说明，并直接提供这些官方页面，而不是猜测。",
   "assist.category.flights.title": "航班",
   "assist.category.flights.body": "取消、延误、转机与登机口变更。",
   "assist.category.metro.title": "地铁与城市轨道",
@@ -3709,6 +3894,11 @@ const ja: Messages = {
   "assist.summary.category": "状況",
   "assist.summary.place": "場所",
   "assist.summary.lastChecked": "最終確認",
+  "assist.summary.countryMatch": "一致する国",
+  "assist.summary.countryInferred": "入力された地名から推定しました。正しいか確認してください。",
+  "assist.disambiguate.title": "どちらの場所ですか？",
+  "assist.disambiguate.body": "「{place}」は複数の国に存在する都市名です。該当する場所を選ぶと、適切な機関を調べられます。",
+  "assist.disambiguate.other": "別の場所を入力",
   "assist.fact.reportedProblem.label": "あなたの申告",
   "assist.conditions.note": "これは情報源が報告した状況を、そのままの言葉と独自の重大度で示したものです。",
 
@@ -3927,8 +4117,9 @@ const ja: Messages = {
   "validation.assistLocationRequired": "国、都市、経路、または説明を追加してください。確認できる内容が必要です。",
   "validation.countryCodeFormat": "2文字の国コードを使用してください。例：GB、US。",
   "validation.required": "続行するために必要です。",
+  "validation.textTooLong": "長すぎて使用できません。短くしてください。",
   "situations.coverage.title": "正直な対応範囲。世界地図ではありません",
-  "situations.coverage.body": "現在、リアルタイム連携はイギリス、アメリカ合衆国、ドイツを対象としています。情報源がない地域では、WAYFINDER はそれを明言し、推測せずに公式ページをお渡しします。",
+  "situations.coverage.body": "現在、リアルタイム連携はイギリス、アメリカ合衆国、ドイツを対象としています。さらに約二十か国については、WAYFINDER が公式ページの検証済みディレクトリを保持しています——その地域を所管する交通事業者、道路当局、気象機関です。リアルタイムの情報源がない場合は、それを明言し、推測せずにこれらの公式ページをお渡しします。",
   "assist.category.flights.title": "航空便",
   "assist.category.flights.body": "欠航、遅延、乗り継ぎ、搭乗口の変更。",
   "assist.category.metro.title": "地下鉄と都市鉄道",
@@ -4015,6 +4206,11 @@ const hi: Messages = {
   "assist.summary.category": "स्थिति",
   "assist.summary.place": "स्थान",
   "assist.summary.lastChecked": "अंतिम जाँच",
+  "assist.summary.countryMatch": "मेल खाता देश",
+  "assist.summary.countryInferred": "आपके स्थान के नाम से अनुमानित — जाँच लें कि यह सही है।",
+  "assist.disambiguate.title": "आप कौन-सा स्थान चाहते हैं?",
+  "assist.disambiguate.body": "{place} ऐसा शहर नाम है जो एक से अधिक देशों में है। सही आधिकारिक स्रोत खोजने के लिए अपना स्थान चुनें।",
+  "assist.disambiguate.other": "कोई दूसरा स्थान दर्ज करें",
   "assist.fact.reportedProblem.label": "आपने हमें बताया",
   "assist.conditions.note": "ये वही स्थितियाँ हैं जो स्रोतों ने अपने शब्दों में और अपनी गंभीरता के साथ बताई हैं।",
 
@@ -4233,8 +4429,9 @@ const hi: Messages = {
   "validation.assistLocationRequired": "देश, शहर, मार्ग या विवरण जोड़ें ताकि जाँचने के लिए कुछ हो।",
   "validation.countryCodeFormat": "दो अक्षरों का देश कोड इस्तेमाल करें, जैसे GB या US।",
   "validation.required": "जारी रखने के लिए आवश्यक।",
+  "validation.textTooLong": "यह हमारे उपयोग के लिए बहुत लंबा है। कृपया इसे छोटा करें।",
   "situations.coverage.title": "ईमानदार कवरेज, विश्व मानचित्र नहीं",
-  "situations.coverage.body": "आज लाइव एकीकरण यूनाइटेड किंगडम, संयुक्त राज्य अमेरिका और जर्मनी को कवर करते हैं। जहाँ किसी क्षेत्र के लिए स्रोत नहीं है, WAYFINDER साफ़ बताता है और अनुमान लगाने के बजाय आधिकारिक पृष्ठ देता है।",
+  "situations.coverage.body": "आज लाइव एकीकरण यूनाइटेड किंगडम, संयुक्त राज्य अमेरिका और जर्मनी को कवर करते हैं। लगभग बीस अन्य देशों के लिए, WAYFINDER आधिकारिक पृष्ठों की एक सत्यापित निर्देशिका रखता है — उस स्थान के लिए ज़िम्मेदार परिवहन ऑपरेटर, सड़क प्राधिकरण या मौसम सेवा। जहाँ कोई लाइव स्रोत नहीं है, वह यह साफ़ बताता है और अनुमान लगाने के बजाय ये आधिकारिक पृष्ठ देता है।",
   "assist.category.flights.title": "उड़ानें",
   "assist.category.flights.body": "रद्दीकरण, देरी, कनेक्शन और गेट परिवर्तन।",
   "assist.category.metro.title": "मेट्रो और सिटी रेल",

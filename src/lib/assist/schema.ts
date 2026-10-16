@@ -30,7 +30,7 @@ const optionalText = (max: number) =>
   z
     .string()
     .trim()
-    .max(max)
+    .max(max, { message: "validation.textTooLong" })
     .optional()
     .or(z.literal(""))
     .transform((value) => (value === "" ? undefined : value));
@@ -64,6 +64,25 @@ export const assistRequestSchema = z
     to: optionalText(120),
     description: optionalText(2_000),
     locale: z.string().trim().min(2).max(10).default("en"),
+    /**
+     * The previous observation for this same situation, sent by the client so
+     * the engine can diff it and report only real changes. It carries no
+     * personal data — source data-states and condition fingerprints only — and
+     * is ignored when absent.
+     */
+    previous: z
+      .object({
+        // Snapshot format marker. Without this field the snapshot is treated as
+        // a baseline, so a snapshot written by an older deploy cannot fabricate
+        // change events. Must be preserved, not stripped.
+        format: z.number().int().min(1).max(100).optional(),
+        providerStates: z.record(z.string(), z.string().max(40)).default({}),
+        conditionKeys: z.array(z.string().max(400)).max(500).default([]),
+        conditionSeverities: z
+          .record(z.string(), z.string().max(20))
+          .optional(),
+      })
+      .optional(),
   })
   .refine(
     // A location or a description is required: without either there is nothing

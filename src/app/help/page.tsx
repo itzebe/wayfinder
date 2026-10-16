@@ -1,30 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { AssistanceFlow } from "@/components/flow/AssistanceFlow";
+import { FlightResumeNotice } from "@/components/flow/FlightResumeNotice";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useSituation } from "@/components/providers/SituationProvider";
 
 /**
- * Get help now.
+ * Get help now — the flight itinerary flow.
  *
- * If a situation is already saved in this browser, the traveller is sent straight
- * back to it rather than being asked to enter their flight again.
+ * A saved flight situation is offered back as a notice the traveller can act on,
+ * never as an automatic redirect. The previous `router.replace("/situation")`
+ * was a navigation trap: after a search, pressing Back landed here and bounced
+ * straight forward again, so the form could not be reached to start a new
+ * request.
  */
 export default function HelpPage() {
-  const router = useRouter();
   const { t } = useLocale();
   const { situation, status } = useSituation();
 
-  useEffect(() => {
-    if (situation && status === "ready") {
-      router.replace("/situation");
-    }
-  }, [situation, status, router]);
+  const hasSavedSituation = Boolean(situation) && status === "ready";
 
   return (
     <>
@@ -38,6 +36,9 @@ export default function HelpPage() {
             {t("help.subtitle")}
           </p>
         </div>
+
+        {hasSavedSituation ? <FlightResumeNotice /> : null}
+
         <AssistanceFlow />
       </main>
       <SiteFooter />

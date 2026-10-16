@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
   MapPin,
   RefreshCw,
   ScrollText,
+  Search,
   ShieldAlert,
   Sparkles,
   TriangleAlert,
@@ -30,7 +32,7 @@ import { useAssistance } from "@/components/providers/AssistanceProvider";
 import { formatAbsolute, formatClock, formatRelative } from "@/lib/format/datetime";
 import { getLocaleMeta } from "@/lib/i18n/locales";
 import type { DataState } from "@/lib/core/types";
-import type { AssistancePage, ServiceCondition, SituationFact } from "@/lib/assist/types";
+import type { AssistancePage, AssistReference, ServiceCondition, SituationFact } from "@/lib/assist/types";
 
 /**
  * The generic situation page — the signature screen for every non-flight case.
@@ -48,20 +50,38 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
   const { t, locale, setLocale } = useLocale();
   const { refreshing, refreshNow, error, startOver, unseenChangeCount, acknowledgeChanges } =
     useAssistance();
+  const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     headingRef.current?.focus();
   }, [assistance.id]);
 
+  // Clearing the stored situation is not enough on this page: a deep link still
+  // names a search in the address bar, so reconciliation would rebuild it. Leave
+  // for the flow, where the traveller can enter a different request.
+  const onStartOver = () => {
+    startOver();
+    router.push("/support");
+  };
+
   const categoryTitle = t(`assist.category.${assistance.category}.title`);
   const updatedLabel = formatRelative(assistance.updatedAt);
   const disruption = assistance.conditions.some((condition) =>
     ["severe", "major"].includes(condition.severity),
   );
+  // Discovery leads are separated from the curated directory everywhere they are
+  // shown, because a search result and a checked authority are different things.
+  const discovered = assistance.references.filter((reference) => reference.origin === "discovery");
 
   const onLanguageChange = (next: string) => {
     setLocale(next as typeof locale);
+    // The URL carries the locale for a shared link, and reconciliation treats it
+    // as authoritative. Without writing the new choice back, an in-page switch
+    // on a deep link would be immediately overruled by the old query string.
+    const params = new URLSearchParams(window.location.search);
+    params.set("locale", next);
+    router.replace(`/assist?${params.toString()}`, { scroll: false });
   };
 
   return (
@@ -101,7 +121,7 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
               />
               {t("situation.refresh")}
             </Button>
-            <Button variant="ghost" size="sm" onClick={startOver}>
+            <Button variant="ghost" size="sm" onClick={onStartOver}>
               {t("situation.startOver")}
             </Button>
           </div>
@@ -134,6 +154,11 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
                     <UnknownValue label={t("assist.value.notGiven")} />
                   )}
                 </DataRow>
+                {assistance.query.countryInferred ? (
+                  <DataRow label={t("assist.summary.countryMatch")}>
+                    <span className="text-ink-600">{t("assist.summary.countryInferred")}</span>
+                  </DataRow>
+                ) : null}
                 <DataRow label={t("assist.summary.lastChecked")} mono>
                   {formatAbsolute(assistance.updatedAt)}
                 </DataRow>
@@ -180,39 +205,40 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
               icon={<Landmark className="size-5" />}
               tone="accent"
             >
-              <ul className="space-y-2.5">
-                {assistance.references.map((reference) => (
-                  <li
-                    key={reference.id}
-                    className="rounded-md border border-line-soft bg-paper-0 p-3.5"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-ink-900">
-                          {reference.organization}
-                        </p>
-                        <p className="text-sm text-ink-700">{reference.title}</p>
-                      </div>
-                      {reference.official ? (
-                        <Badge tone="success">{t("assist.references.official")}</Badge>
-                      ) : null}
-                    </div>
-                    <p className="mt-1.5 text-xs leading-relaxed text-ink-600">
-                      {reference.covers}
-                    </p>
-                    <a
-                      href={reference.url}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
-                    >
-                      {t("assist.references.open")}
-                      <ExternalLink className="size-3.5" aria-hidden="true" />
-                      <span className="sr-only">{t("a11y.opensNewTab")}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              {assistance.references.some((r) => r.origin !== "discovery") ? (
+                <ul className="space-y-2.5">
+                  {assistance.references
+                    .filter((reference) => reference.origin !== "discovery")
+                    .map((reference) => (
+                      <ReferenceItem key={reference.id} reference={reference} />
+                    ))}
+                </ul>
+              ) : null}
+              {/* Discovered pages are a distinct class of result: a search found
+                  them, nobody read them. They are kept in their own labelled
+                  group so a lead can never be mistaken for a checked authority. */}
+              {discovered.length > 0 ? (
+                <div
+                  className={cn(
+                    "mt-5",
+                    assistance.references.some((r) => r.origin !== "discovery") &&
+                      "border-t border-line-soft pt-4",
+                  )}
+                >
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+                    <Search className="size-4 text-ink-400" aria-hidden="true" />
+                    {t("assist.discovery.heading")}
+                  </h3>
+                  <p className="measure mt-1.5 text-xs leading-relaxed text-ink-600">
+                    {t("assist.discovery.note")}
+                  </p>
+                  <ul className="mt-3 space-y-2.5">
+                    {discovered.map((reference) => (
+                      <ReferenceItem key={reference.id} reference={reference} discovered />
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </SectionCard>
           ) : null}
 
@@ -387,7 +413,7 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
             icon={<Clock className="size-5" />}
           >
             {assistance.timeline.length > 0 ? (
-              <ol className="space-y-3">
+              <ol className="space-y-3.5">
                 {assistance.timeline.map((event) => (
                   <li key={event.id} className="flex gap-3">
                     <span
@@ -398,10 +424,18 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <p className="ident text-xs text-ink-500">{formatClock(event.at)}</p>
-                      <p className="text-sm font-medium text-ink-800">{event.label}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="ident text-xs text-ink-500">{formatClock(event.at)}</p>
+                        {event.change ? (
+                          <span className="inline-flex items-center gap-1 rounded-sm border border-warn-200 bg-warn-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.04em] text-warn-700">
+                            <TriangleAlert className="size-3" aria-hidden="true" />
+                            {t("assist.timeline.changed")}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-sm font-medium text-ink-800">{event.label}</p>
                       {event.detail ? (
-                        <p className="text-xs text-ink-500">{event.detail}</p>
+                        <p className="text-xs leading-relaxed text-ink-500">{event.detail}</p>
                       ) : null}
                     </div>
                   </li>
@@ -561,6 +595,59 @@ function FactItem({ fact }: { fact: SituationFact }) {
           {fact.caveat}
         </p>
       ) : null}
+    </li>
+  );
+}
+
+/**
+ * One official or discovered page.
+ *
+ * The two classes look deliberately different. A directory entry is a curated
+ * authority page we can name; a discovered page is a lead a search surfaced, so
+ * it carries a "found by search" mark, shows its domain, and never borrows the
+ * "official" badge unless its domain really is an authority domain.
+ */
+function ReferenceItem({
+  reference,
+  discovered = false,
+}: {
+  reference: AssistReference;
+  discovered?: boolean;
+}) {
+  const { t } = useLocale();
+
+  return (
+    <li
+      className={cn(
+        "rounded-md border bg-paper-0 p-3.5",
+        discovered ? "border-dashed border-line" : "border-line-soft",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink-900">{reference.organization}</p>
+          <p className="text-sm text-ink-700">{reference.title}</p>
+          {discovered && reference.domain ? (
+            <p className="ident mt-0.5 text-xs text-ink-500">{reference.domain}</p>
+          ) : null}
+        </div>
+        {discovered ? (
+          <Badge tone="neutral">{t("assist.discovery.badge")}</Badge>
+        ) : reference.official ? (
+          <Badge tone="success">{t("assist.references.official")}</Badge>
+        ) : null}
+      </div>
+      <p className="mt-1.5 text-xs leading-relaxed text-ink-600">{reference.covers}</p>
+      <a
+        href={reference.url}
+        target="_blank"
+        rel="noreferrer noopener"
+        className="mt-2 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
+      >
+        {t("assist.references.open")}
+        <ExternalLink className="size-3.5" aria-hidden="true" />
+        <span className="sr-only">{t("a11y.opensNewTab")}</span>
+      </a>
     </li>
   );
 }

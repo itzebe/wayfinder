@@ -157,10 +157,14 @@ function buildTflProvider(config: {
 
     supports(query) {
       if (!config.categories.includes(query.category)) return false;
-      // TfL is London-only; require an explicit GB hint or a London city name.
-      if (query.countryCode && query.countryCode.toUpperCase() !== "GB") return false;
-      if (!query.countryCode && !isLondonCity(query.city)) return false;
-      return true;
+      const country = query.countryCode?.toUpperCase();
+      if (country && country !== "GB") return false;
+      // TfL serves Greater London only. When the traveller named a city, it must
+      // be London: "GB" alone would attach London's line status to Manchester or
+      // Birmingham, which TfL does not cover.
+      const city = query.city?.trim();
+      if (city) return isLondonCity(city);
+      return country === "GB";
     },
 
     async query(query, context) {
@@ -361,11 +365,17 @@ function buildGtfsProvider(config: GtfsConfig): Provider {
 
     supports(query) {
       if (!config.categories.includes(query.category)) return false;
-      if (query.countryCode) {
-        return config.countries.includes(query.countryCode.toUpperCase());
-      }
-      const city = (query.city ?? "").toLowerCase();
-      return config.cityHints.some((hint) => city.includes(hint));
+      const country = query.countryCode?.toUpperCase();
+      if (country && !config.countries.includes(country)) return false;
+      const city = query.city?.trim().toLowerCase();
+      // When the traveller named a city, require it to be this operator's own
+      // city. Returning true for the whole country attached New York's subway
+      // alerts to Los Angeles and Oakland, and BART's to New York — the country
+      // is far too broad a catchment for a single-city operator.
+      if (city) return config.cityHints.some((hint) => city.includes(hint));
+      // No city named: fall back to the country only when this provider is the
+      // one that serves it, so coverage is not silently narrowed to nothing.
+      return config.cityHints.length === 0 && Boolean(country);
     },
 
     async query(query, context) {

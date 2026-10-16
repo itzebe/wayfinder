@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { PlaneTakeoff } from "lucide-react";
 
@@ -17,10 +18,21 @@ import { useAssistance } from "@/components/providers/AssistanceProvider";
  * Back bounced straight forward again, so there was no way to return and edit.
  * The traveller now chooses whether to reopen the saved situation or start a new
  * request, and the flow is always reachable.
+ *
+ * `?category=` preselects a situation, so the homepage shortcuts land in the
+ * flow with the choice already made rather than on an undifferentiated form.
  */
 export default function SupportPage() {
+  return (
+    <Suspense fallback={null}>
+      <SupportPageInner />
+    </Suspense>
+  );
+}
+
+function SupportPageInner() {
   const { t } = useLocale();
-  const { assistance, status, startOver } = useAssistance();
+  const { assistance, status, startOver, draft } = useAssistance();
 
   const hasSavedSituation = Boolean(assistance) && status === "ready";
 

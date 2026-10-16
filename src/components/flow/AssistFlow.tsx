@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Lock, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import { CategoryPicker, CATEGORY_ORDER } from "@/components/flow/CategoryPicker
 import { FlowProgress } from "@/components/flow/SituationPicker";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useAssistance, type AssistRequest } from "@/components/providers/AssistanceProvider";
+import { assistHref } from "@/lib/assist/request-link";
 import { LOCALES } from "@/lib/i18n/locales";
 import type { AssistanceCategory } from "@/lib/assist/types";
 
@@ -34,6 +35,7 @@ export function AssistFlow() {
   const { draft, patchDraft, buildAssistance, status, error, fieldErrors, resetDraft } =
     useAssistance();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [step, setStep] = useState<1 | 2>(draft.category ? 2 : 1);
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
@@ -43,6 +45,19 @@ export function AssistFlow() {
 
   const total = 2;
   const submitting = status === "loading";
+
+  // A `?category=` from a homepage shortcut preselects the situation and opens
+  // the detail step, so the traveller is not asked to choose twice.
+  const paramCategory = searchParams.get("category");
+  const appliedParam = useRef(false);
+  useEffect(() => {
+    if (appliedParam.current || !paramCategory) return;
+    appliedParam.current = true;
+    if (paramCategory !== "flights" && CATEGORY_ORDER.includes(paramCategory as AssistanceCategory)) {
+      patchDraft({ category: paramCategory as AssistanceCategory });
+      setStep(2);
+    }
+  }, [paramCategory, patchDraft]);
 
   // Ask the catalogue which categories have a provider at all, so a category we
   // cannot serve anywhere is marked rather than offered and then refused.
@@ -114,7 +129,6 @@ export function AssistFlow() {
     const request: AssistRequest = {
       category: draft.category,
       location: draft.location.trim() || undefined,
-      region: draft.region.trim() || undefined,
       network: draft.network.trim() || undefined,
       from: draft.from.trim() || undefined,
       to: draft.to.trim() || undefined,
@@ -123,7 +137,10 @@ export function AssistFlow() {
     };
 
     const ok = await buildAssistance(request);
-    if (ok) router.push("/assist");
+    // Navigate to the canonical, shareable link for this search rather than a
+    // bare /assist: the query string is what makes the page reopenable and the
+    // situation it names unambiguous if the traveller presses Back.
+    if (ok) router.push(assistHref(request));
   }, [draft, locale, router, buildAssistance, t]);
 
   const onSubmit = async (event: React.FormEvent) => {

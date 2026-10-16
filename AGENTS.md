@@ -48,10 +48,10 @@ These are enforced by the product's purpose, not style preference. Do not break 
    reported. The directory of official pages (`src/lib/assist/directory.ts`)
    offers a way forward for places with no live provider; those entries are
    official pages to check, not retrieved sources, and carry no retrieval
-   timestamp. The directory spans roughly twenty countries; every URL in it was
+   timestamp. The directory spans roughly thirty countries; every URL in it was
    fetched and confirmed to resolve before being added, so do not add an entry
-   from memory — check it first, and leave a country out if nothing reachable
-   exists (South Africa's transport sites, for example, refuse every request).
+   from memory — check it first. If a host refuses every request from this
+   network, leave that country out rather than guessing a URL.
 
 ## Conventions
 
@@ -106,3 +106,37 @@ asserting on markup:
 - The landing preview (`ProductPreview`) defaults to the public-transport example
   and offers flights as a second scenario. Keep non-aviation first so the product
   reads as a general assistance platform, not a flight tracker.
+
+## Running the dev server and browser tests safely
+
+- Do **not** run `npm run build` while `npm run dev` is serving the same `.next`
+  directory. The production build overwrites `.next/server/*` and the dev server
+  then throws `Cannot find module './NNN.js'` on every route: pages still return
+  200, but hydration never completes, so the UI stays on the loading skeleton and
+  every browser test fails with confusing errors. Stop the dev server first, or
+  build in a separate checkout.
+- To recover an unusable dev server: `pkill -f "next dev"; pkill -f next-server;
+  rm -rf .next`, then restart. Deleting `.next` is safe; it is regenerated.
+- A dev server left over from an earlier session can hold port 3000 and serve
+  stale bundles (you see `EADDRINUSE` on restart). Confirm which PID owns port
+  3000 before concluding a change had no effect. A surprising browser-test
+  failure is more often a stale server than a code regression: reproduce against
+  a freshly started server before debugging the code.
+- Browser suites (`tests/mobile-nav.mjs`, `tests/locales.mjs`,
+  `tests/assist-flow.mjs`, `tests/conditions.mjs`) drive real Chromium over the
+  DevTools protocol. They need `/usr/bin/chromium` and a running server.
+
+## Directory and discovery coverage
+
+- `src/lib/assist/directory.ts` is the curated official-source index. Add an
+  entry only after `curl -sI -L` confirms the URL resolves; every `covers` line
+  must state what the page can and cannot tell the traveller. Entries carry no
+  status and no timestamp by design.
+- Web-search discovery (`src/lib/assist/providers/discovery.ts`) is optional
+  (`WAYFINDER_GOOGLE_API_KEY`) and uses Gemini grounding with Google Search. It
+  contributes **leads only** — never conditions, statuses or timestamps — ranks
+  below any live authority, and is deduplicated against the directory. Keep that
+  separation when extending it.
+- The older Google Custom Search JSON API is closed to new customers and is
+  scheduled for discontinuation on 1 January 2027; the Site Restricted JSON API
+  stopped serving traffic on 8 January 2025. Do not reintroduce either.

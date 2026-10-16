@@ -18,6 +18,9 @@ const PATHS = [
   // A place covered only by the official-source directory: it must stay
   // readable at every width even though no live provider answers for it.
   "/assist?category=weather&location=Tokyo%2C%20Japan",
+  // A name that is a real city in more than one country: the disambiguation
+  // prompt is a distinct surface and must not overflow on a phone.
+  "/assist?category=metro&location=San%20Jose",
 ];
 const PORT = 9333;
 

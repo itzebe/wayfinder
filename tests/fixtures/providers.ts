@@ -160,3 +160,45 @@ export const GTFS_ALERTS_JSON = {
     },
   ],
 };
+
+/**
+ * A grounded Gemini response, in the shape the real API returns: the model's
+ * prose plus `groundingMetadata.groundingChunks[].web.{uri,title,domain}`.
+ * Used to prove the discovery adapter reads those exact fields and treats the
+ * pages as leads, never as statuses.
+ */
+export const GEMINI_GROUNDED = {
+  candidates: [
+    {
+      content: {
+        role: "model",
+        parts: [
+          {
+            text: "The relevant authority pages for this area appear to be the transport authority and the national roads agency.",
+          },
+        ],
+      },
+      groundingMetadata: {
+        webSearchQueries: ["road closures Lagos Nigeria official", "Lagos traffic authority"],
+        groundingChunks: [
+          { web: { uri: "https://frcn.gov.ng/", title: "frcn.gov.ng", domain: "frcn.gov.ng" } },
+          {
+            web: {
+              uri: "https://lagosstate.gov.ng/traffic",
+              title: "Lagos State traffic updates",
+              domain: "lagosstate.gov.ng",
+            },
+          },
+          {
+            web: {
+              uri: "https://www.example-blog.test/lagos-traffic",
+              title: "A blog about Lagos traffic",
+              domain: "example-blog.test",
+            },
+          },
+        ],
+      },
+    },
+  ],
+};
+
