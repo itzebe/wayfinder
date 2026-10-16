@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     template: "%s · WAYFINDER",
   },
   description:
-    "WAYFINDER helps travellers understand flight disruptions, get reliable updates from official sources, and find their next step — in a language they understand.",
+    "WAYFINDER helps you understand unexpected situations — public-transport, road, severe-weather and flight disruptions — get reliable updates from official sources, and find your next step — in a language you understand.",
   applicationName: "WAYFINDER",
   robots: { index: true, follow: true },
   openGraph: {

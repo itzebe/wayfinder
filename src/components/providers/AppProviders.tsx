@@ -4,20 +4,23 @@ import { useEffect } from "react";
 
 import { LocaleProvider, useLocale, LOCALE_META } from "@/components/providers/LocaleProvider";
 import { SituationProvider } from "@/components/providers/SituationProvider";
+import { AssistanceProvider } from "@/components/providers/AssistanceProvider";
 
 /**
  * Client-side providers.
  *
- * Both are intentionally client-only: the traveller's language choice and their
- * situation snapshot live in their own browser, so nothing about their journey
- * is sent anywhere for storage.
+ * All are intentionally client-only: the traveller's language choice, their
+ * flight situation and their generic assistance situation live in their own
+ * browser, so nothing about their journey is sent anywhere for storage.
  */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <LocaleProvider>
       <SituationProvider>
-        <DocumentLanguage />
-        {children}
+        <AssistanceProvider>
+          <DocumentLanguage />
+          {children}
+        </AssistanceProvider>
       </SituationProvider>
     </LocaleProvider>
   );

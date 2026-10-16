@@ -49,6 +49,8 @@ export interface HttpResult<T> {
 
 export interface HttpOptions {
   timeoutMs?: number;
+  /** Injectable transport so adapters can be tested against fixtures. */
+  fetchImpl?: typeof fetch;
   retries?: number;
   signal?: AbortSignal;
   /** Sent as If-None-Match. */
@@ -109,7 +111,7 @@ async function attempt<T>(url: string, options: HttpOptions): Promise<HttpResult
   if (options.lastModified) headers["If-Modified-Since"] = options.lastModified;
 
   try {
-    const response = await fetch(url, {
+    const response = await (options.fetchImpl ?? fetch)(url, {
       headers,
       signal: controller.signal,
       redirect: "follow",
@@ -221,7 +223,7 @@ export async function fetchText(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(url, {
+      const response = await (options.fetchImpl ?? fetch)(url, {
         headers: {
           Accept: options.accept ?? "application/xml,text/xml,*/*",
           "User-Agent": USER_AGENT,

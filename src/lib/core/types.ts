@@ -21,7 +21,12 @@ export type SourceKind =
   | "live_tracking"
   | "flight_status"
   | "passenger_rights"
-  | "airline_reference";
+  | "airline_reference"
+  | "public_transport"
+  | "road_status"
+  | "weather_warning"
+  | "emergency_notice"
+  | "public_notice";
 
 export interface SourceRef {
   id: string;

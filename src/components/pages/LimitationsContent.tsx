@@ -4,13 +4,26 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 
 /** Source names and URLs are data, not copy — only the descriptions are localised. */
 const DATA_SOURCES = [
-  { key: "nws", url: "https://aviationweather.gov/" },
+  { key: "tfl", url: "https://api.tfl.gov.uk/" },
+  { key: "mta", url: "https://api.mta.info/" },
+  { key: "bart", url: "https://www.bart.gov/" },
+  { key: "dwd", url: "https://www.dwd.de/" },
+  { key: "caltrans", url: "https://cwwp2.dot.ca.gov/" },
+  { key: "govuk", url: "https://www.gov.uk/" },
+  { key: "nws", url: "https://api.weather.gov/" },
+  { key: "usgs", url: "https://earthquake.usgs.gov/" },
   { key: "faa", url: "https://www.fly.faa.gov/" },
-  { key: "adsbdb", url: "https://www.adsbdb.com/" },
-  { key: "adsblol", url: "https://api.adsb.lol/" },
 ];
 
-const SOURCE_KEYS = ["nws", "faa", "adsbdb", "adsblol", "scheduled", "assessment", "rights", "airspace", "ai", "scope"];
+const SOURCE_KEYS = [
+  "perEventStatus",
+  "scheduled",
+  "assessment",
+  "rights",
+  "coverage",
+  "ai",
+  "scope",
+];
 const CACHE_KEYS = ["cache", "poll", "stale", "history"];
 
 export function LimitationsContent() {

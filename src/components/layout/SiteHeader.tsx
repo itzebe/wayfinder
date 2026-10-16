@@ -113,12 +113,12 @@ export function SiteHeader() {
               <LanguageSelector />
             </div>
 
-            <Button href="/help" size="md" className="hidden sm:inline-flex">
+            <Button href="/support" size="md" className="hidden sm:inline-flex">
               {t("nav.getHelp")}
             </Button>
 
             {/* Mobile: the help action stays visible, the menu is secondary. */}
-            <Button href="/help" size="sm" className="sm:hidden">
+            <Button href="/support" size="sm" className="sm:hidden">
               {t("nav.getHelp")}
             </Button>
 

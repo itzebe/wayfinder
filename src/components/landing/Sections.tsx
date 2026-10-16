@@ -84,22 +84,22 @@ export function LiveAssistance() {
 
   const pillars = [
     {
-      icon: Plane,
-      title: t("live.route.title"),
-      body: t("live.route.body"),
-      source: "adsbdb",
-    },
-    {
-      icon: Database,
-      title: t("live.weather.title"),
-      body: t("live.weather.body"),
-      source: "NOAA Aviation Weather Center",
+      icon: TrainFront,
+      title: t("live.transit.title"),
+      body: t("live.transit.body"),
+      source: "Transport for London · MTA · BART",
     },
     {
       icon: TriangleAlert,
-      title: t("live.airspace.title"),
-      body: t("live.airspace.body"),
-      source: "FAA ATC System Command Center",
+      title: t("live.weather.title"),
+      body: t("live.weather.body"),
+      source: "NOAA / NWS · Deutscher Wetterdienst · USGS",
+    },
+    {
+      icon: TrafficCone,
+      title: t("live.roads.title"),
+      body: t("live.roads.body"),
+      source: "Caltrans · GOV.UK",
     },
   ];
 
@@ -193,18 +193,30 @@ export function SupportedSituations() {
 
   const available = [
     {
+      icon: TrainFront,
+      title: t("situations.transport.title"),
+      body: t("situations.transport.body"),
+    },
+    {
+      icon: TrafficCone,
+      title: t("situations.road.title"),
+      body: t("situations.road.body"),
+    },
+    {
+      icon: TriangleAlert,
+      title: t("situations.weather.title"),
+      body: t("situations.weather.body"),
+    },
+    {
+      icon: Megaphone,
+      title: t("situations.public.title"),
+      body: t("situations.public.body"),
+    },
+    {
       icon: Plane,
       title: t("situations.flight.title"),
       body: t("situations.flight.body"),
-      available: true,
     },
-  ];
-
-  const planned = [
-    { icon: TrainFront, title: t("situations.transport.title"), body: t("situations.transport.body") },
-    { icon: TriangleAlert, title: t("situations.weather.title"), body: t("situations.weather.body") },
-    { icon: TrafficCone, title: t("situations.road.title"), body: t("situations.road.body") },
-    { icon: Megaphone, title: t("situations.public.title"), body: t("situations.public.body") },
   ];
 
   return (
@@ -219,14 +231,18 @@ export function SupportedSituations() {
           </p>
         </div>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-10">
-          <ul className="space-y-4">
+        <div className="mt-10">
+          <p className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-ink-500">
+            <span className="size-1.5 rounded-full bg-success-500" aria-hidden="true" />
+            {t("situations.available")}
+          </p>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {available.map((item) => {
               const Icon = item.icon;
               return (
                 <li
                   key={item.title}
-                  className="rounded-lg border border-accent-200 bg-accent-50/50 p-5 shadow-sm"
+                  className="flex flex-col rounded-lg border border-accent-200 bg-accent-50/50 p-5 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex size-9 items-center justify-center rounded-md border border-accent-200 bg-paper-0">
@@ -235,40 +251,23 @@ export function SupportedSituations() {
                     <Badge tone="success">{t("situations.available")}</Badge>
                   </div>
                   <h3 className="mt-4 text-base font-semibold text-ink-900">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-600">{item.body}</p>
-                  <Button href="/help" size="sm" className="mt-4">
-                    {t("hero.primaryCta")}
-                    <ArrowRight className="size-3.5" aria-hidden="true" />
-                  </Button>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-600">{item.body}</p>
                 </li>
               );
             })}
           </ul>
 
-          <div>
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-ink-500">
-              {t("situations.planned")}
+          <div className="mt-8 rounded-lg border border-line-soft bg-paper-50 p-5">
+            <h3 className="text-sm font-semibold text-ink-900">{t("situations.coverage.title")}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-600">
+              {t("situations.coverage.body")}
             </p>
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {planned.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <li
-                    key={item.title}
-                    className="rounded-lg border border-line-soft border-dashed bg-paper-50 p-5"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex size-9 items-center justify-center rounded-md border border-line bg-paper-0">
-                        <Icon className="size-4.5 text-ink-400" aria-hidden="true" />
-                      </span>
-                      <Badge tone="neutral">{t("situations.planned")}</Badge>
-                    </div>
-                    <h3 className="mt-4 text-base font-semibold text-ink-700">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-ink-500">{item.body}</p>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mt-4">
+              <Button href="/support" size="sm">
+                {t("hero.primaryCta")}
+                <ArrowRight className="size-3.5" aria-hidden="true" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -304,7 +303,7 @@ export function ClosingCta() {
               {t("closing.body")}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Button href="/help" size="lg" className="w-full sm:w-auto">
+              <Button href="/support" size="lg" className="w-full sm:w-auto">
                 {t("hero.primaryCta")}
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>

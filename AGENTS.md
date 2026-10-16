@@ -11,12 +11,20 @@ npm run build        # production build
 npm run start        # serve the production build on :3000
 npm run typecheck    # tsc --noEmit  (must pass before any commit)
 npm run lint         # next lint
-npm run check:i18n   # verifies every referenced t() key resolves
+npm run check:i18n   # verifies every referenced t() key resolves in all 9 locales
+npm run verify       # typecheck + check:i18n + unit tests (33 assertions)
+npm run test:live    # hits every official provider and reports reachability
+npm run test:browser # drives the real flow + mobile menu + conditions disclosure in headless Chromium
+npm run test:responsive # asserts no horizontal overflow at the brief's 6 widths
 npm run verify:sources  # checks the official rights URLs are live and their quotes are still published
 ```
 
 `npm run lint` prompts interactively on first run; pass `--` flags or pre-seed the
 ESLint config if running headless.
+
+`test:browser` and `test:responsive` need `npm run start` running and
+`/usr/bin/chromium`. They drive the rendered page over the DevTools protocol —
+prefer extending them over asserting on markup.
 
 ## Non-negotiable product rules
 
@@ -42,18 +50,45 @@ These are enforced by the product's purpose, not style preference. Do not break 
   token classes (`text-ink-*`, `bg-paper-*`, `accent-*`, `warn-*`, `success-*`,
   `danger-*`, `line-*`). Do not hard-code hex values in components.
 - User-facing copy goes through `t("...")`. Catalogues live in
-  `src/lib/i18n/messages.ts` (`en` and `es` are full; others are partial and fall
-  back to English). When adding copy, add both `en` and `es` keys and run
-  `npm run check:i18n`.
+  `src/lib/i18n/messages.ts`. All nine locales currently resolve every referenced
+  key; `fr/de/pt/ar/zh/ja/hi` are marked `partial` in `locales.ts` and fall back to
+  English for keys they do not carry. When adding copy, run `npm run check:i18n`.
+- Operational identifiers (flight numbers, airport codes, line names, route
+  numbers, dates, times, gates, airline names, booking references) must pass
+  through as `t()` parameters — never interpolated into a translatable sentence.
 - Add components under `src/components/<area>/`. Pages are thin wrappers; the
   body lives in a `"use client"` component when it needs locale context.
-- Provider adapters go in `src/lib/providers/` and must normalise + validate
-  before returning; shared cache/HTTP helpers are in `src/lib/core/`.
+- Everyday-category provider adapters go in `src/lib/assist/providers/` and are
+  registered in `src/lib/assist/registry.ts`. Aviation adapters stay in
+  `src/lib/providers/`. Both must normalise + validate before returning; shared
+  cache/HTTP helpers are in `src/lib/core/`.
 
 ## Verifying UI changes
 
-Playwright (chromium) is available. Drive the real flow rather than asserting on
-markup: `/help` need cards are hidden radios with a `<label for="need-...">`
-wrapper — click the label, not the input. Localise by setting
-`localStorage.setItem('wayfinder.locale','es')` then reloading. Check horizontal
-overflow at 320/360/390/768/1024/1440px.
+Chromium is at `/usr/bin/chromium`; drive it through the DevTools protocol as
+`tests/assist-flow.mjs` does (spawn with `--remote-debugging-port`, connect a
+`WebSocket` to the target, `Emulation.setDeviceMetricsOverride`, then dispatch
+real `Input.dispatchMouseEvent` presses). Drive the real flow rather than
+asserting on markup:
+
+- `/support` need cards are hidden radios wrapped in a `<label>` — click the
+  label, not the input. Category values are `flights`, `metro`, `rail`, `bus`,
+  `road`, `weather`, `stranded`, `public_service`, `other`.
+- Step 2 field ids are `countryCode`, `city`, `region`, `network`, `description`.
+- The in-page language select is `#assist-view-locale`; the header menu is a
+  disclosure button with `aria-controls="mobile-menu"` (44px, Escape returns focus).
+- After `scrollIntoView`, wait a frame before reading `getBoundingClientRect` —
+  coordinates read in the same tick are stale and clicks land on the wrong element.
+- Localise by setting `localStorage.setItem('wayfinder.locale','ar')` then
+  reloading, or by driving the in-page select.
+- Changing language must rebuild the server-composed explanation, not just the
+  chrome: `src/app/assist/page.tsx` re-posts to `/api/assist` when the active
+  locale and `assistance.locale` differ. Do not reintroduce a provider-level
+  rebuild method; one owner keeps this predictable.
+- Check horizontal overflow at 320/360/390/768/1024/1440px with
+  `npm run test:responsive`. The audit seeds `wayfinder.assistRequest.v1` from
+  the path's query string so `/assist?category=...` renders the real situation
+  page rather than the empty state; keep that seeding if you change the audit.
+- The landing preview (`ProductPreview`) defaults to the public-transport example
+  and offers flights as a second scenario. Keep non-aviation first so the product
+  reads as a general assistance platform, not a flight tracker.

@@ -44,7 +44,7 @@ export function Hero() {
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button href="/help" size="lg" className="w-full sm:w-auto">
+            <Button href="/support" size="lg" className="w-full sm:w-auto">
               {t("hero.primaryCta")}
               <ArrowRight className="size-4" aria-hidden="true" />
             </Button>

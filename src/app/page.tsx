@@ -13,7 +13,7 @@ import {
 export const metadata: Metadata = {
   title: "WAYFINDER — when plans change, know what to do next",
   description:
-    "Understand flight disruptions, get reliable updates from official aviation sources, and find your next step — in a language you understand.",
+    "Understand public-transport, road, severe-weather and flight disruptions, get reliable updates from official sources, and find your next step — in a language you understand.",
 };
 
 export default function HomePage() {

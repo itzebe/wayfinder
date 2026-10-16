@@ -1,5 +1,6 @@
 {
   "name": "wayfinder",
+  "type": "module",
   "version": "1.0.0",
   "private": true,
   "description": "WAYFINDER \u2014 intelligent, multilingual real-time assistance for disrupted journeys.",
@@ -10,10 +11,16 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "verify:sources": "node scripts/verify-sources.mjs"
+    "verify:sources": "node scripts/verify-sources.mjs",
+    "test": "node --conditions=react-server --import tsx/esm tests/categories.test.ts",
+    "test:live": "node --conditions=react-server --import tsx/esm tests/live.ts",
+    "verify": "npm run typecheck && npm run check:i18n && npm test",
+    "test:browser": "node tests/mobile-nav.mjs && node tests/assist-flow.mjs && node tests/conditions.mjs && node tests/locales.mjs",
+    "test:responsive": "node tests/responsive.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "gtfs-realtime-bindings": "^2.2.0",
     "lucide-react": "^0.545.0",
     "next": "^15.5.4",
     "react": "^19.1.0",
@@ -28,6 +35,7 @@
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "tailwindcss": "^4.1.14",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.2"
   }
 }

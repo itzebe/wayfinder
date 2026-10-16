@@ -13,6 +13,7 @@ import {
   Plane,
   Radio,
   ShieldAlert,
+  TrainFront,
 } from "lucide-react";
 
 import { cn } from "@/lib/format/cn";
@@ -24,24 +25,62 @@ import type { Translate } from "@/lib/i18n/translator";
 /**
  * Interactive product preview.
  *
- * This is a faithful rendering of the real situation page, driven by a static
- * example itinerary. It is labelled as demonstration data in the interface, in
- * the accessible name of the region, and in every status badge — the preview
- * must never be mistaken for a real flight.
+ * This is a faithful rendering of the real situation page, driven by static
+ * example data. It is labelled as demonstration data in the interface, in the
+ * accessible name of the region, and in every status badge — the preview must
+ * never be mistaken for a real situation.
  *
- * It is interactive rather than a screenshot so the interaction design is
- * demonstrable: the tabs, the source expansion and the step list all work.
+ * Two scenarios are offered so the preview does not imply the product is only
+ * about aviation: public-transport disruption is shown first and is the
+ * default, with a flight disruption available alongside it.
  */
 
-/**
- * Demonstration data for the preview.
- *
- * Labelled as demonstration everywhere it appears. It is never presented as live
- * information, and no real provider is contacted to render this screen.
- */
+type ScenarioId = "transit" | "flight";
+
+function buildTransitDemo(t: Translate) {
+  return {
+    heading: t("preview.tx.heading"),
+    headline: t("preview.tx.headline"),
+    operator: t("preview.tx.operator"),
+    route: t("preview.tx.route"),
+    kind: t("preview.tx.kind"),
+    couldNotConfirm: t("preview.tx.couldNotConfirm"),
+    couldNotConfirmBody: t("preview.tx.couldNotConfirmBody"),
+    facts: [
+      { icon: "status" as const, label: t("preview.tx.factStatus"), value: t("preview.tx.factStatusValue"), state: "live" as const, age: t("preview.age2") },
+      { icon: "advisory" as const, label: t("preview.tx.factAdvisory"), value: t("preview.tx.factAdvisoryValue"), state: "cached" as const, age: t("preview.age4") },
+      { icon: "unpublished" as const, label: t("preview.tx.factPerTrain"), value: t("preview.tx.notPublished"), unavailable: true },
+    ],
+    steps: [
+      { title: t("preview.tx.step1.title"), why: t("preview.tx.step1.why") },
+      { title: t("preview.tx.step2.title"), why: t("preview.tx.step2.why") },
+      { title: t("preview.tx.step3.title"), why: t("preview.tx.step3.why") },
+    ],
+    sources: [
+      {
+        organization: "Transport for London (TfL)",
+        title: t("preview.tx.src1.title"),
+        tier: "Primary",
+        state: "live" as const,
+        detail: t("preview.tx.src1.detail"),
+      },
+      {
+        organization: "Transport for London (TfL)",
+        title: t("preview.tx.src2.title"),
+        tier: "Primary",
+        state: "cached" as const,
+        detail: t("preview.tx.src2.detail"),
+      },
+    ],
+    sourcesChecked: t("preview.tx.sourcesChecked"),
+    url: "wayfinder.app/situation/district-line",
+  };
+}
+
 function buildDemo(t: Translate) {
   return {
-    flightNumber: "BA123",
+    heading: "BA123",
+    headline: "",
     airline: "British Airways",
     origin: { iata: "LHR", name: "London Heathrow", time: "10:25", zone: "BST" },
     destination: { iata: "DOH", name: "Doha Hamad", time: "19:05", zone: "+03" },
@@ -77,6 +116,7 @@ function buildDemo(t: Translate) {
         detail: t("preview.src3.detail"),
       },
     ],
+    url: "wayfinder.app/situation/BA123",
   };
 }
 
@@ -84,8 +124,11 @@ type TabId = "status" | "steps" | "sources";
 
 export function ProductPreview() {
   const { t } = useLocale();
-  const demo = buildDemo(t);
+  const [scenario, setScenario] = useState<ScenarioId>("transit");
   const [tab, setTab] = useState<TabId>("status");
+
+  const transit = buildTransitDemo(t);
+  const flight = buildDemo(t);
 
   const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: "status", label: t("preview.tabStatus"), icon: Radio },
@@ -93,12 +136,48 @@ export function ProductPreview() {
     { id: "sources", label: t("preview.tabSources"), icon: Landmark },
   ];
 
+  const scenarios: { id: ScenarioId; label: string }[] = [
+    { id: "transit", label: t("preview.scenario.transit") },
+    { id: "flight", label: t("preview.scenario.flight") },
+  ];
+
+  const url = scenario === "transit" ? transit.url : flight.url;
+
   return (
     <div className="relative">
       {/* Demonstration-data banner: impossible to miss, sits above the frame. */}
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <Badge tone="warn">{t("preview.demoBadge")}</Badge>
         <p className="text-xs text-ink-500">{t("preview.demoNote")}</p>
+      </div>
+
+      {/* Scenario switcher: shows the product covers everyday situations, not
+          only flights, and keeps the preview honest about what it demonstrates. */}
+      <div
+        role="group"
+        aria-label={t("preview.scenarioLabel")}
+        className="mb-3 inline-flex rounded-lg border border-line bg-paper-100 p-1"
+      >
+        {scenarios.map((entry) => {
+          const selected = scenario === entry.id;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setScenario(entry.id)}
+              className={cn(
+                "min-h-9 rounded-md px-3 text-xs font-medium transition-colors duration-150",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
+                selected
+                  ? "bg-paper-0 text-ink-900 shadow-sm"
+                  : "text-ink-500 hover:text-ink-800",
+              )}
+            >
+              {entry.label}
+            </button>
+          );
+        })}
       </div>
 
       <div
@@ -113,9 +192,7 @@ export function ProductPreview() {
             <span className="size-2.5 rounded-full bg-line-strong" />
             <span className="size-2.5 rounded-full bg-line-strong" />
           </span>
-          <p className="ms-2 truncate text-xs text-ink-500">
-            wayfinder.app/situation/BA123
-          </p>
+          <p className="ms-2 truncate text-xs text-ink-500">{url}</p>
         </div>
 
         {/* Situation header */}
@@ -123,11 +200,19 @@ export function ProductPreview() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-accent-200 bg-accent-50">
-                <Plane className="size-5 text-accent-700" aria-hidden="true" />
+                {scenario === "transit" ? (
+                  <TrainFront className="size-5 text-accent-700" aria-hidden="true" />
+                ) : (
+                  <Plane className="size-5 text-accent-700" aria-hidden="true" />
+                )}
               </span>
               <div>
-                <p className="ident text-lg font-semibold text-ink-900">BA123</p>
-                <p className="text-xs text-ink-500">{demo.airline}</p>
+                <p className="ident text-lg font-semibold text-ink-900">
+                  {scenario === "transit" ? transit.heading : flight.heading}
+                </p>
+                <p className="text-xs text-ink-500">
+                  {scenario === "transit" ? transit.operator : flight.airline}
+                </p>
               </div>
             </div>
             <Badge tone="warn" icon={<ShieldAlert className="size-3.5" aria-hidden="true" />}>
@@ -135,32 +220,41 @@ export function ProductPreview() {
             </Badge>
           </div>
 
-          {/* Route strip — the highest-value information, made instantly scannable. */}
-          <div className="mt-4 flex items-center gap-3 rounded-md border border-line-soft bg-paper-50 px-3.5 py-3">
-            <div className="min-w-0">
-              <p className="ident text-xl font-semibold text-ink-900">{demo.origin.iata}</p>
-              <p className="truncate text-xs text-ink-500">{demo.origin.name}</p>
+          {scenario === "transit" ? (
+            <div className="mt-4 flex items-center gap-3 rounded-md border border-line-soft bg-paper-50 px-3.5 py-3">
+              <div className="min-w-0">
+                <p className="ident text-base font-semibold text-ink-900">{transit.route}</p>
+                <p className="truncate text-xs text-ink-500">{transit.kind}</p>
+              </div>
             </div>
-            <div className="flex flex-1 flex-col items-center px-1">
-              <span className="ident text-xs text-ink-400">
-                {demo.origin.time} {demo.origin.zone}
-              </span>
-              <span className="my-1 flex w-full items-center gap-1" aria-hidden="true">
-                <span className="size-1.5 rounded-full bg-accent-400" />
-                <span className="h-px flex-1 bg-line-strong" />
-                <ArrowRight className="size-3.5 text-ink-400" />
-              </span>
-              <span className="ident text-xs text-ink-400">
-                {demo.destination.time} {demo.destination.zone}
-              </span>
+          ) : (
+            /* Route strip — the highest-value information, made instantly scannable. */
+            <div className="mt-4 flex items-center gap-3 rounded-md border border-line-soft bg-paper-50 px-3.5 py-3">
+              <div className="min-w-0">
+                <p className="ident text-xl font-semibold text-ink-900">{flight.origin.iata}</p>
+                <p className="truncate text-xs text-ink-500">{flight.origin.name}</p>
+              </div>
+              <div className="flex flex-1 flex-col items-center px-1">
+                <span className="ident text-xs text-ink-400">
+                  {flight.origin.time} {flight.origin.zone}
+                </span>
+                <span className="my-1 flex w-full items-center gap-1" aria-hidden="true">
+                  <span className="size-1.5 rounded-full bg-accent-400" />
+                  <span className="h-px flex-1 bg-line-strong" />
+                  <ArrowRight className="size-3.5 text-ink-400" />
+                </span>
+                <span className="ident text-xs text-ink-400">
+                  {flight.destination.time} {flight.destination.zone}
+                </span>
+              </div>
+              <div className="min-w-0 text-end">
+                <p className="ident text-xl font-semibold text-ink-900">
+                  {flight.destination.iata}
+                </p>
+                <p className="truncate text-xs text-ink-500">{flight.destination.name}</p>
+              </div>
             </div>
-            <div className="min-w-0 text-end">
-              <p className="ident text-xl font-semibold text-ink-900">
-                {demo.destination.iata}
-              </p>
-              <p className="truncate text-xs text-ink-500">{demo.destination.name}</p>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -224,31 +318,58 @@ export function ProductPreview() {
                   {t("preview.couldNotConfirm")}
                 </p>
                 <p className="mt-1.5 text-sm text-ink-700">
-                  {t("preview.couldNotConfirmBody")}
+                  {scenario === "transit" ? transit.couldNotConfirmBody : t("preview.couldNotConfirmBody")}
                 </p>
               </div>
 
               <ul className="space-y-2.5">
-                <FactRow
-                  icon={CloudRain}
-                  label={t("preview.departureWeather")}
-                  value={demo.weather}
-                  state="live"
-                  age="3 min ago"
-                />
-                <FactRow
-                  icon={Building2}
-                  label={t("preview.airspaceRestriction")}
-                  value={demo.constraints}
-                  state="cached"
-                  age="2 min ago"
-                />
-                <FactRow
-                  icon={CalendarClock}
-                  label={t("preview.scheduledTimes")}
-                  value={t("preview.notPublished")}
-                  unavailable
-                />
+                {scenario === "transit" ? (
+                  <>
+                    <FactRow
+                      icon={Radio}
+                      label={transit.facts[0].label}
+                      value={transit.facts[0].value}
+                      state={transit.facts[0].state}
+                      age={transit.facts[0].age}
+                    />
+                    <FactRow
+                      icon={CloudRain}
+                      label={transit.facts[1].label}
+                      value={transit.facts[1].value}
+                      state={transit.facts[1].state}
+                      age={transit.facts[1].age}
+                    />
+                    <FactRow
+                      icon={CalendarClock}
+                      label={transit.facts[2].label}
+                      value={transit.facts[2].value}
+                      unavailable
+                    />
+                  </>
+                ) : (
+                  <>
+                    <FactRow
+                      icon={CloudRain}
+                      label={t("preview.departureWeather")}
+                      value={flight.weather}
+                      state="live"
+                      age={t("preview.age3")}
+                    />
+                    <FactRow
+                      icon={Building2}
+                      label={t("preview.airspaceRestriction")}
+                      value={flight.constraints}
+                      state="cached"
+                      age={t("preview.age2")}
+                    />
+                    <FactRow
+                      icon={CalendarClock}
+                      label={t("preview.scheduledTimes")}
+                      value={t("preview.notPublished")}
+                      unavailable
+                    />
+                  </>
+                )}
               </ul>
             </div>
           ) : null}
@@ -260,7 +381,7 @@ export function ProductPreview() {
               aria-labelledby="preview-tab-steps"
               className="space-y-2.5"
             >
-              {demo.steps.map((step, index) => (
+              {(scenario === "transit" ? transit.steps : flight.steps).map((step, index) => (
                 <li
                   key={step.title}
                   className="flex gap-3 rounded-md border border-line-soft bg-paper-0 px-3.5 py-3"
@@ -284,7 +405,7 @@ export function ProductPreview() {
               aria-labelledby="preview-tab-sources"
               className="space-y-2.5"
             >
-              {demo.sources.map((source) => (
+              {(scenario === "transit" ? transit.sources : flight.sources).map((source) => (
                 <li
                   key={source.title}
                   className="rounded-md border border-line-soft bg-paper-0 px-3.5 py-3"
@@ -316,7 +437,9 @@ export function ProductPreview() {
 
         <div className="flex items-center gap-2 border-t border-line-soft bg-paper-50 px-4 py-3">
           <CheckCircle2 className="size-3.5 text-success-600" aria-hidden="true" />
-          <p className="text-xs text-ink-500">{t("preview.sourcesChecked")}</p>
+          <p className="text-xs text-ink-500">
+            {scenario === "transit" ? transit.sourcesChecked : t("preview.sourcesChecked")}
+          </p>
         </div>
       </div>
     </div>

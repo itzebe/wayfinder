@@ -9,6 +9,21 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 import { useSituation } from "@/components/providers/SituationProvider";
 
 /**
+ * The official publishers behind the generic assistance categories. Kept as
+ * data so the list cannot drift from the providers that are actually wired up.
+ */
+const GENERIC_SOURCES = [
+  { label: "Transport for London (TfL)", url: "https://tfl.gov.uk/travel-information/" },
+  { label: "MTA New York City Transit", url: "https://www.mta.info/" },
+  { label: "BART — San Francisco Bay Area", url: "https://www.bart.gov/" },
+  { label: "Caltrans road conditions", url: "https://cwwp2.dot.ca.gov/" },
+  { label: "NOAA / National Weather Service", url: "https://www.weather.gov/" },
+  { label: "Deutscher Wetterdienst (DWD)", url: "https://www.dwd.de/" },
+  { label: "GOV.UK service notices", url: "https://www.gov.uk/" },
+  { label: "U.S. Geological Survey (USGS)", url: "https://earthquake.usgs.gov/" },
+];
+
+/**
  * Site footer.
  *
  * Carries the two things a trust-focused product owes its user: an explicit list
@@ -24,6 +39,7 @@ export function SiteFooter() {
     clearAllData();
     // Also drop any provider responses cached on the server for this deployment.
     void fetch("/api/situation", { method: "DELETE" }).catch(() => undefined);
+    void fetch("/api/assist", { method: "DELETE" }).catch(() => undefined);
     setCleared(true);
     window.setTimeout(() => setCleared(false), 6_000);
   };
@@ -46,46 +62,18 @@ export function SiteFooter() {
             {t("footer.sourcesTitle")}
           </h2>
           <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <a
-                href="https://aviationweather.gov/"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
-              >
-                NOAA / NWS Aviation Weather Center
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.fly.faa.gov/"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
-              >
-                FAA Air Traffic Control System Command Center
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.adsbdb.com/"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
-              >
-                adsbdb route reference
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://api.adsb.lol/"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
-              >
-                adsb.lol community ADS-B network
-              </a>
-            </li>
+            {GENERIC_SOURCES.map((source) => (
+              <li key={source.url}>
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
+                >
+                  {source.label}
+                </a>
+              </li>
+            ))}
           </ul>
           <p className="mt-3 flex items-start gap-1.5 text-xs text-ink-400">
             <Database className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
