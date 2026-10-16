@@ -59,6 +59,13 @@ export interface ProviderCapabilities {
   realtime: boolean;
   /** Severe weather warnings. */
   weatherWarnings: boolean;
+  /**
+   * A general forecast or current-conditions reading. This is NOT a warning: a
+   * forecast says what is expected, a warning says an authority has declared a
+   * hazard. A provider with `forecast: true` and `weatherWarnings: false` can
+   * describe the weather but must never be read as confirming a hazard exists.
+   */
+  forecast: boolean;
   /** Emergency or public-safety notices. */
   emergencyNotices: boolean;
   /** Road closures, incidents, official diversions. */

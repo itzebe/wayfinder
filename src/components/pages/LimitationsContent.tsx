@@ -11,6 +11,7 @@ const DATA_SOURCES = [
   { key: "caltrans", url: "https://cwwp2.dot.ca.gov/" },
   { key: "govuk", url: "https://www.gov.uk/" },
   { key: "nws", url: "https://api.weather.gov/" },
+  { key: "openmeteo", url: "https://open-meteo.com/" },
   { key: "usgs", url: "https://earthquake.usgs.gov/" },
   { key: "faa", url: "https://www.fly.faa.gov/" },
 ];

@@ -30,6 +30,10 @@ const CHECKS: Check[] = [
   { name: "NWS alerts (CA)", category: "weather", countryCode: "US", region: "CA", city: "Los Angeles" },
   { name: "DWD warnings (DE)", category: "weather", countryCode: "DE", city: "Fulda" },
   { name: "GOV.UK public information", category: "public_service", countryCode: "GB", city: "London" },
+  // The global, keyless forecast: proves the free source that replaces the paid
+  // web search is still reachable and still shaped the way the adapter expects.
+  { name: "Open-Meteo forecast (NG)", category: "weather", countryCode: "NG", city: "Lagos" },
+  { name: "Open-Meteo forecast (JP)", category: "weather", countryCode: "JP", city: "Tokyo" },
 ];
 
 async function main(): Promise<void> {

@@ -232,6 +232,7 @@ export const googleDiscoveryProvider: Provider = {
       schedule: false,
       realtime: false,
       weatherWarnings: false,
+      forecast: false,
       emergencyNotices: false,
       roadEvents: false,
       publicNotices: false,

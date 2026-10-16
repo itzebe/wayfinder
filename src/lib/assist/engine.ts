@@ -973,7 +973,15 @@ function buildHeadline(
   if (worst === "severe" || worst === "major") {
     return t("assist.headline.disruption", { category });
   }
-  if (conditions.length > 0) return t("assist.headline.minor", { category });
+  // Only a condition that actually flags something (a minor or worse disruption)
+  // earns "a change worth checking". A source that answered with nothing but
+  // informational readings — a forecast for a clear sky, an advisory, a
+  // scheduled timetable — has reported no disruption, and the headline must say
+  // that rather than implying one. The conditions themselves are still listed.
+  const flagged = conditions.some(
+    (c) => c.severity === "severe" || c.severity === "major" || c.severity === "minor",
+  );
+  if (flagged) return t("assist.headline.minor", { category });
   return t("assist.headline.clear", { category });
 }
 

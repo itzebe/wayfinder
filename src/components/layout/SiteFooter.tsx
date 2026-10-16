@@ -19,6 +19,7 @@ const GENERIC_SOURCES = [
   { label: "Caltrans road conditions", url: "https://cwwp2.dot.ca.gov/" },
   { label: "NOAA / National Weather Service", url: "https://www.weather.gov/" },
   { label: "Deutscher Wetterdienst (DWD)", url: "https://www.dwd.de/" },
+  { label: "Open-Meteo global forecast", url: "https://open-meteo.com/" },
   { label: "GOV.UK service notices", url: "https://www.gov.uk/" },
   { label: "U.S. Geological Survey (USGS)", url: "https://earthquake.usgs.gov/" },
 ];

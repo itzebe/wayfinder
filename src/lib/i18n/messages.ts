@@ -637,7 +637,7 @@ const en: Messages = {
   "live.roads.title": "Roads and public notices",
   "live.roads.body": "Lane and road closures from Caltrans, and civic notices from GOV.UK, each carrying the publishing authority and the time it was retrieved.",
   "live.weather.title": "Severe weather and seismic events",
-  "live.weather.body": "Active official warnings from NOAA / National Weather Service and Deutscher Wetterdienst, and recent seismic events from the USGS — with the issuing authority and the affected areas.",
+  "live.weather.body": "Active official warnings from NOAA / National Weather Service and Deutscher Wetterdienst, recent seismic events from the USGS, and a global forecast from Open-Meteo — with the issuing authority and the affected areas.",
   "live.airspace.title": "Airspace status",
   "live.airspace.body": "Ground delay and ground stop programmes, with the reason and average delay, for airports covered by the FAA.",
   // --- Chrome remainder ---
@@ -723,6 +723,11 @@ const en: Messages = {
   "limitations.src.usgs.name": "U.S. Geological Survey (USGS)",
   "limitations.src.usgs.what": "Recent seismic events from the USGS earthquake catalogue.",
   "limitations.src.usgs.limits": "Reports earthquakes from a global catalogue but with varying detection completeness by region. Magnitudes are revised after an event, so a figure can change.",
+  "limitations.src.openmeteo.name": "Open-Meteo",
+  "limitations.src.openmeteo.what":
+    "A worldwide forecast and the model's value for the current hour, aggregated from national weather services (NOAA GFS, DWD ICON, Météo-France, ECMWF and others).",
+  "limitations.src.openmeteo.limits":
+    "A forecast, not an observation and not a warning. The current reading is model output for the hour, not a station measurement, and only a national meteorological authority can declare a warning. Free for non-commercial use under CC BY 4.0; attribution is shown with the data.",
   "limitations.caching.title": "Updates and caching",
   "limitations.caching.cache": "Provider responses are cached briefly on the server and revalidated, so repeated checks do not overwhelm the upstream services.",
   "limitations.caching.poll": "Your situation page re-checks its sources every two minutes while it is open and the tab is visible. Background tabs are not polled.",
@@ -838,7 +843,7 @@ const en: Messages = {
   "assist.location.to": "Destination",
   "assist.location.submit": "Get my situation page",
   "assist.coverage.note":
-    "WAYFINDER has live integrations for a limited set of places. If your area is not covered, you will be told clearly and given the official source to check instead.",
+    "WAYFINDER has live integrations for a limited set of places, plus a worldwide weather forecast. If your area is not covered by a live feed, you will be told clearly and given the official source to check instead.",
   "assist.coverage.countries": "Countries with a live integration: {countries}.",
   "assist.coverage.none": "No live data provider covers this selection yet.",
 
@@ -966,10 +971,16 @@ const en: Messages = {
     "Official active alerts published by the National Weather Service for the selected state.",
   "assist.note.dwdScope": "Official weather warnings published by Deutscher Wetterdienst.",
   "assist.note.usgsScope": "Official significant-earthquake data, updated periodically.",
+  "assist.note.openMeteoScope":
+    "Global forecast and current-hour conditions from Open-Meteo (CC BY 4.0), a forecast rather than a station observation.",
   "assist.note.caltransScope":
     "Notices displayed on Caltrans changeable message signs in District 3, California.",
   "assist.note.govukScope": "Official UK government publications matching your search.",
   "assist.warn.providerUnreachable": "{provider} could not be reached.",
+  "assist.warn.providerRateLimited":
+    "{provider} is temporarily limiting requests, so its data may be older than usual.",
+  "assist.warn.placeUnresolved":
+    "We could not match the place you named to coordinates, so no forecast could be retrieved for it.",
   "assist.warn.providerStale": "{provider} could not be refreshed; the last known result is shown.",
   "assist.warn.providerUnreadable": "{provider} returned data we could not read.",
   "assist.warn.regionRequired":
@@ -1731,7 +1742,7 @@ const es: Messages = {
   "live.route.title": "Referencia de ruta y aerolínea",
   "live.route.body": "Los números de vuelo se resuelven a una ruta, una aerolínea y un indicativo OACI publicados, así que cada consulta posterior usa los identificadores de aeropuerto correctos.",
   "live.weather.title": "Meteorología adversa y sismos",
-  "live.weather.body": "Avisos oficiales activos de NOAA / National Weather Service y del Deutscher Wetterdienst, y sismos recientes del USGS, con la autoridad emisora y las zonas afectadas.",
+  "live.weather.body": "Avisos oficiales activos de NOAA / National Weather Service y del Deutscher Wetterdienst, sismos recientes del USGS y una previsión mundial de Open-Meteo, con la autoridad emisora y las zonas afectadas.",
   "live.transit.title": "Estado del transporte público",
   "live.transit.body": "Estado de líneas y servicios en directo de los propios operadores: líneas de metro, ferrocarril y autobús de Transport for London, alertas del metro de Nueva York (MTA) y avisos de servicio de BART, con la gravedad indicada por cada operador.",
   "live.roads.title": "Carreteras y avisos públicos",
@@ -1821,6 +1832,11 @@ const es: Messages = {
   "limitations.src.usgs.name": "U.S. Geological Survey (USGS)",
   "limitations.src.usgs.what": "Sismos recientes del catálogo de terremotos del USGS.",
   "limitations.src.usgs.limits": "Publica terremotos de un catálogo global, pero con una exhaustividad de detección variable según la región. Las magnitudes se revisan tras un evento, así que una cifra puede cambiar.",
+  "limitations.src.openmeteo.name": "Open-Meteo",
+  "limitations.src.openmeteo.what":
+    "Una previsión mundial y el valor del modelo para la hora actual, agregados de servicios meteorológicos nacionales (NOAA GFS, DWD ICON, Météo-France, ECMWF y otros).",
+  "limitations.src.openmeteo.limits":
+    "Es una previsión, no una observación ni un aviso. La lectura actual es la salida del modelo para la hora, no una medición de una estación, y solo una autoridad meteorológica nacional puede declarar un aviso. Gratuito para uso no comercial bajo CC BY 4.0; la atribución se muestra con los datos.",
   "limitations.caching.title": "Actualizaciones y caché",
   "limitations.caching.cache": "Las respuestas de los proveedores se almacenan brevemente en caché en el servidor y se revalidan, para que las comprobaciones repetidas no saturen los servicios externos.",
   "limitations.caching.poll": "Tu página de situación vuelve a consultar sus fuentes cada dos minutos mientras está abierta y la pestaña es visible. Las pestañas en segundo plano no se consultan.",
@@ -1963,7 +1979,7 @@ const es: Messages = {
   "assist.location.to": "Destino",
   "assist.location.submit": "Crear mi página de situación",
   "assist.coverage.note":
-    "WAYFINDER tiene integraciones en directo para un conjunto limitado de lugares. Si tu zona no está cubierta, se te indicará con claridad y se te dará la fuente oficial que puedes consultar.",
+    "WAYFINDER tiene integraciones en directo para un conjunto limitado de lugares, además de una previsión meteorológica mundial. Si tu zona no está cubierta por una fuente en directo, se te indicará con claridad y se te dará la fuente oficial que puedes consultar.",
   "assist.coverage.countries": "Países con integración en directo: {countries}.",
   "assist.coverage.none": "Todavía no hay ningún proveedor de datos en directo para esta selección.",
 
@@ -2091,10 +2107,16 @@ const es: Messages = {
     "Avisos activos oficiales publicados por el National Weather Service para el estado seleccionado.",
   "assist.note.dwdScope": "Avisos meteorológicos oficiales publicados por Deutscher Wetterdienst.",
   "assist.note.usgsScope": "Datos oficiales de terremotos significativos, actualizados periódicamente.",
+  "assist.note.openMeteoScope":
+    "Previsión global y condiciones de la hora actual de Open-Meteo (CC BY 4.0); es una previsión, no una observación de estación.",
   "assist.note.caltransScope":
     "Avisos mostrados en los paneles de mensajes variables de Caltrans en el Distrito 3, California.",
   "assist.note.govukScope": "Publicaciones oficiales del Gobierno del Reino Unido que coinciden con tu búsqueda.",
   "assist.warn.providerUnreachable": "No se pudo contactar con {provider}.",
+  "assist.warn.providerRateLimited":
+    "{provider} está limitando temporalmente las solicitudes, así que sus datos pueden ser más antiguos de lo habitual.",
+  "assist.warn.placeUnresolved":
+    "No pudimos asociar el lugar que indicaste con unas coordenadas, así que no se pudo obtener ninguna previsión.",
   "assist.warn.providerStale": "No se pudo actualizar {provider}; se muestra el último resultado conocido.",
   "assist.warn.providerUnreadable": "{provider} devolvió datos que no pudimos leer.",
   "assist.warn.regionRequired":
