@@ -72,8 +72,29 @@ export interface AssistInput {
   /** Optional free-text route between two places the traveller named. */
   latitude?: number;
   longitude?: number;
+  /**
+   * The page the traveller last saw for this same situation, if any.
+   *
+   * When it is present the engine can compare the new reports against it and
+   * record only what actually changed — a disruption appearing, lifting or
+   * being reclassified. Without it the timeline says honestly that there is no
+   * previous observation rather than inventing a history.
+   */
+  previous?: PreviousAssistState;
   /** Injected transport for deterministic tests; defaults to global fetch. */
   fetchImpl?: typeof fetch;
+}
+
+/**
+ * The minimum the engine needs from a previous page to detect a change: the
+ * per-provider data state and the conditions each source reported. Kept narrow
+ * so the client sends the smallest possible snapshot and nothing extra.
+ */
+export interface PreviousAssistState {
+  /** Provider id → the data state at the previous observation. */
+  providerStates: Record<string, string>;
+  /** Stable fingerprints of the conditions previously reported. */
+  conditionKeys: string[];
 }
 
 /** How long the whole provider fan-out is allowed to take. */
@@ -445,7 +466,11 @@ function buildRecommendations(
   return recommendations;
 }
 
-function buildTimeline(reports: ProviderReport[], t: ProviderContext["t"]): TimelineEvent[] {
+function buildTimeline(
+  reports: ProviderReport[],
+  t: ProviderContext["t"],
+  previous?: PreviousAssistState,
+): TimelineEvent[] {
   const events: TimelineEvent[] = [];
   const responded = reports.filter((r) => r.state !== "unavailable");
   const retrievedAt = responded[0]?.retrievedAt ?? nowIso();
@@ -462,7 +487,114 @@ function buildTimeline(reports: ProviderReport[], t: ProviderContext["t"]): Time
     ),
   });
 
+  if (previous) {
+    const changes = detectConditionChanges(previous, reports, retrievedAt, t);
+    events.push(...changes);
+    if (changes.length === 0) {
+      // A comparison happened and found nothing new. Saying "no change" is
+      // truthful here precisely because there *was* a previous observation.
+      events.push({
+        id: "no-change",
+        at: retrievedAt,
+        label: t("assist.timeline.noChange"),
+        detail: t("assist.timeline.noChangeDetail"),
+      });
+    }
+  } else if (responded.length > 0) {
+    // Be explicit that this is a first observation. "No changes detected" would
+    // imply an earlier one that agreed; this says there was nothing to compare.
+    events.push({
+      id: "baseline",
+      at: retrievedAt,
+      label: t("assist.timeline.baseline"),
+      detail: t("assist.timeline.baselineDetail"),
+    });
+  }
+
   return events.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
+/**
+ * Compares the current conditions with the previous observation and records only
+ * genuine differences: a disruption that appeared, one that cleared, or a change
+ * of severity. Fingerprints are provider-scoped and stable, so a condition that
+ * simply moved position in the feed is not reported as a change.
+ */
+function detectConditionChanges(
+  previous: PreviousAssistState,
+  reports: ProviderReport[],
+  at: string,
+  t: ProviderContext["t"],
+): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+  const currentByKey = new Map<string, ServiceCondition>();
+  for (const report of reports) {
+    for (const condition of report.conditions) {
+      currentByKey.set(conditionKey(condition), condition);
+    }
+  }
+  const previousKeys = new Set(previous.conditionKeys);
+
+  for (const [key, condition] of currentByKey) {
+    if (previousKeys.has(key)) continue;
+    events.push({
+      id: `appeared-${condition.id}`,
+      at,
+      label: t("assist.timeline.disruptionAppeared"),
+      detail: `${t(`assist.severity.${condition.severity}`)} — ${condition.title}`,
+      change: true,
+    });
+  }
+
+  for (const key of previousKeys) {
+    if (currentByKey.has(key)) continue;
+    events.push({
+      id: `cleared-${key}`,
+      at,
+      label: t("assist.timeline.disruptionCleared"),
+      change: true,
+    });
+  }
+
+  // A provider that had failed and now answers is worth recording: it means a
+  // gap in the last page has closed.
+  for (const report of reports) {
+    const was = previous.providerStates[report.providerId];
+    if (was === "unavailable" && report.state !== "unavailable") {
+      events.push({
+        id: `provider-recovered-${report.providerId}`,
+        at: report.retrievedAt ?? at,
+        label: t("assist.timeline.sourceRecovered", { source: report.source.organization }),
+        change: true,
+      });
+    }
+  }
+
+  return events;
+}
+
+/** A stable per-provider fingerprint of one condition, for change detection. */
+export function conditionKey(condition: ServiceCondition): string {
+  return [
+    condition.providerId,
+    condition.title,
+    condition.severity,
+    condition.from ?? "",
+    condition.to ?? "",
+  ].join("|");
+}
+
+/** The narrow snapshot the client sends back so the next page can diff it. */
+export function snapshotFor(reports: ProviderReport[]): PreviousAssistState {
+  return {
+    providerStates: Object.fromEntries(
+      reports.map((report) => [report.providerId, report.state]),
+    ),
+    conditionKeys: reports
+      .flatMap((report) => report.conditions)
+      .map(conditionKey)
+      .sort(),
+  };
 }
 
 function toAssistSources(reports: ProviderReport[], t: ProviderContext["t"]): AssistSource[] {
@@ -758,7 +890,8 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     sources,
     references,
     rightsNotes,
-    timeline: buildTimeline(reports, t),
+    timeline: buildTimeline(reports, t, input.previous),
+    snapshot: snapshotFor(reports),
     coverageGaps,
     availableCategories: [],
     respondingProviders: responded.map((r) => r.providerId),

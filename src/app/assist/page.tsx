@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
@@ -14,14 +14,24 @@ import { AssistSkeleton, AssistView } from "@/components/assist/AssistView";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useAssistance } from "@/components/providers/AssistanceProvider";
 import { isLocaleCode } from "@/lib/i18n/locales";
+import {
+  assistRequestFromParams,
+  isRunnableAssistRequest,
+  sameAssistRequest,
+} from "@/lib/assist/request-link";
 
 /**
  * The generic situation page.
  *
- * Reads the situation from the traveller's own browser storage. Switching
- * language rebuilds the page in the new language while operational identifiers
- * come back from the same sources verbatim, so a line name, route number or
- * place can never be altered by translation.
+ * The URL is the source of truth for *which* search is shown. A query string
+ * from a bookmark or a shared link is reconciled against the request kept in
+ * this browser: when they differ, the URL wins and a fresh search runs. That is
+ * what stops an earlier Lagos page from lingering after a Tokyo search, and what
+ * makes a shared `/assist?category=…` link open the situation it names.
+ *
+ * Switching language rebuilds the page in the new language while operational
+ * identifiers come back from the same sources verbatim, so a line name, route
+ * number or place can never be altered by translation.
  */
 function AssistPageInner() {
   const searchParams = useSearchParams();
@@ -29,6 +39,11 @@ function AssistPageInner() {
   const { assistance, status, request, buildAssistance, refreshNow, refreshing } = useAssistance();
 
   const requestedLocale = searchParams.get("locale");
+  const urlRequest = useMemo(
+    () => assistRequestFromParams(new URLSearchParams(searchParams.toString())),
+    [searchParams],
+  );
+
   const rebuilding = useRef(false);
 
   const targetLocale =
@@ -39,6 +54,24 @@ function AssistPageInner() {
       setLocale(requestedLocale);
     }
   }, [requestedLocale, locale, setLocale]);
+
+  // Reconcile the URL with what is stored. Runs when the query string changes —
+  // including a Back/Forward navigation — so the visible situation always
+  // matches the address bar.
+  useEffect(() => {
+    if (!urlRequest) return;
+    if (!isRunnableAssistRequest(urlRequest)) return;
+    if (sameAssistRequest(urlRequest, request)) return;
+    if (rebuilding.current) return;
+
+    rebuilding.current = true;
+    void buildAssistance({ ...urlRequest, locale: targetLocale }).finally(() => {
+      rebuilding.current = false;
+    });
+  }, [urlRequest, request, targetLocale, buildAssistance]);
+
+  const reconciled =
+    !urlRequest || !isRunnableAssistRequest(urlRequest) || sameAssistRequest(urlRequest, request);
 
   // Rebuild once per active language so the explanation follows whichever
   // language control the user touched — the header menu or the in-page select.
@@ -53,7 +86,12 @@ function AssistPageInner() {
     });
   }, [request, targetLocale, assistance?.locale, buildAssistance]);
 
-  const pending = status === "loading" || (Boolean(request) && assistance?.locale !== targetLocale);
+  const pending =
+    status === "loading" ||
+    !reconciled ||
+    (Boolean(request) && assistance?.locale !== targetLocale);
+  const needsMoreDetail =
+    Boolean(urlRequest) && !isRunnableAssistRequest(urlRequest) && !request;
 
   return (
     <>
@@ -80,11 +118,32 @@ function AssistPageInner() {
         </div>
 
         {!assistance && pending ? <AssistSkeleton /> : null}
-        {!assistance && !pending ? <EmptyAssistance /> : null}
+        {!assistance && !pending && needsMoreDetail ? <NeedMoreDetail /> : null}
+        {!assistance && !pending && !needsMoreDetail ? <EmptyAssistance /> : null}
         {assistance ? <AssistView assistance={assistance} /> : null}
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+/**
+ * A shared link named a category but no place. Offering the flow with the
+ * category already chosen is more useful than an empty result.
+ */
+function NeedMoreDetail() {
+  const { t } = useLocale();
+
+  return (
+    <Card className="mx-auto max-w-xl p-6 text-center">
+      <h1 className="text-xl font-semibold text-ink-900">{t("assist.needDetail.title")}</h1>
+      <p className="mt-2 text-sm leading-relaxed text-ink-600">{t("assist.needDetail.body")}</p>
+      <div className="mt-5 flex justify-center">
+        <Button href="/support" size="lg">
+          {t("nav.getHelp")}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

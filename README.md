@@ -12,8 +12,9 @@ current information, and know what to do next — often in a language they do no
 speak fluently.
 
 It is international: queries are answered by official operators and authorities
-in the United Kingdom, the United States and Germany, in nine interface
-languages.
+in the United Kingdom, the United States and Germany through live integrations,
+and for around twenty further countries WAYFINDER keeps a verified directory of
+the responsible official pages. Nine interface languages are supported.
 
 Built for the UI/UX and Web Design hackathon.
 

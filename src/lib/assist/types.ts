@@ -281,4 +281,14 @@ export interface AssistancePage {
   known: string[];
   uncertain: string[];
   aiConfigured: boolean;
+
+  /**
+   * A narrow, non-identifying snapshot of what each source reported. The client
+   * keeps only this and sends it back on the next visit so the engine can record
+   * genuine changes. It is deliberately not the whole page.
+   */
+  snapshot?: {
+    providerStates: Record<string, string>;
+    conditionKeys: string[];
+  };
 }

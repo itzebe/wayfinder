@@ -4,15 +4,18 @@ import { ArrowRight, Languages, ShieldCheck, Timer } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { ProductPreview } from "@/components/landing/ProductPreview";
+import { IntentEntry } from "@/components/landing/IntentEntry";
+import { CategoryShortcuts } from "@/components/landing/CategoryShortcuts";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { LOCALES } from "@/lib/i18n/locales";
 
 /**
  * Hero.
  *
- * Editorial headline on the left, a working product screen on the right. On
- * mobile the order is headline, primary action, then preview — so a traveller in
- * an airport never has to scroll past marketing to start.
+ * Editorial headline with the primary action directly beneath it: a traveller
+ * describes the problem and the place, and the search starts. The product
+ * preview sits alongside on desktop and moves below the action on mobile, so the
+ * order a phone user meets is headline → action → shortcuts → preview.
  */
 export function Hero() {
   const { t } = useLocale();
@@ -25,7 +28,7 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      <div className="shell relative grid grid-cols-[minmax(0,1fr)] gap-12 py-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-center lg:gap-14 lg:py-20 xl:py-24">
+      <div className="shell relative grid grid-cols-[minmax(0,1fr)] gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14 lg:py-16 xl:py-20">
         <div className="animate-[rise_0.5s_var(--ease-out-soft)_both]">
           <p className="inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-50 px-3 py-1.5 text-xs font-medium text-accent-800">
             <span className="relative flex size-1.5" aria-hidden="true">
@@ -35,35 +38,33 @@ export function Hero() {
             {t("hero.eyebrow")}
           </p>
 
-          <h1 className="mt-5 text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em] text-ink-900 sm:text-5xl lg:text-[3.4rem]">
+          <h1 className="mt-5 text-[2.125rem] font-semibold leading-[1.08] tracking-[-0.03em] text-ink-900 sm:text-5xl lg:text-[3.1rem]">
             {t("hero.headline")}
           </h1>
 
-          <p className="measure mt-5 text-base leading-relaxed text-ink-600 sm:text-lg">
+          <p className="measure mt-4 text-base leading-relaxed text-ink-600 sm:text-lg">
             {t("hero.support")}
           </p>
 
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button href="/support" size="lg" className="w-full sm:w-auto">
-              {t("hero.primaryCta")}
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Button>
-            <Button
-              href="#how-it-works"
-              variant="secondary"
-              size="lg"
-              className="w-full sm:w-auto"
-            >
+          <IntentEntry className="mt-6" />
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button href="#how-it-works" variant="ghost" size="sm">
               {t("hero.secondaryCta")}
+              <ArrowRight className="size-3.5" aria-hidden="true" />
             </Button>
+            <p className="flex items-start gap-2 text-xs text-ink-500">
+              <ShieldCheck
+                className="mt-0.5 size-3.5 shrink-0 text-success-600"
+                aria-hidden="true"
+              />
+              {t("hero.trustNote")}
+            </p>
           </div>
 
-          <p className="mt-4 flex items-start gap-2 text-xs text-ink-500">
-            <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success-600" aria-hidden="true" />
-            {t("hero.trustNote")}
-          </p>
+          <CategoryShortcuts className="mt-7" />
 
-          <ul className="mt-9 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-line-soft pt-7 sm:grid-cols-3">
+          <ul className="mt-7 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-line-soft pt-6 sm:grid-cols-3">
             <Stat
               icon={Timer}
               term={t("hero.stat1.term")}
@@ -82,7 +83,7 @@ export function Hero() {
           </ul>
         </div>
 
-        <div className="animate-[rise_0.6s_0.1s_var(--ease-out-soft)_both]">
+        <div className="animate-[rise_0.6s_0.1s_var(--ease-out-soft)_both] lg:sticky lg:top-24">
           <ProductPreview />
         </div>
       </div>

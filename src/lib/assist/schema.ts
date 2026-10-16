@@ -64,6 +64,18 @@ export const assistRequestSchema = z
     to: optionalText(120),
     description: optionalText(2_000),
     locale: z.string().trim().min(2).max(10).default("en"),
+    /**
+     * The previous observation for this same situation, sent by the client so
+     * the engine can diff it and report only real changes. It carries no
+     * personal data — source data-states and condition fingerprints only — and
+     * is ignored when absent.
+     */
+    previous: z
+      .object({
+        providerStates: z.record(z.string(), z.string().max(40)).default({}),
+        conditionKeys: z.array(z.string().max(400)).max(500).default([]),
+      })
+      .optional(),
   })
   .refine(
     // A location or a description is required: without either there is nothing

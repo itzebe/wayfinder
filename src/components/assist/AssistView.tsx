@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -48,11 +49,20 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
   const { t, locale, setLocale } = useLocale();
   const { refreshing, refreshNow, error, startOver, unseenChangeCount, acknowledgeChanges } =
     useAssistance();
+  const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     headingRef.current?.focus();
   }, [assistance.id]);
+
+  // Clearing the stored situation is not enough on this page: a deep link still
+  // names a search in the address bar, so reconciliation would rebuild it. Leave
+  // for the flow, where the traveller can enter a different request.
+  const onStartOver = () => {
+    startOver();
+    router.push("/support");
+  };
 
   const categoryTitle = t(`assist.category.${assistance.category}.title`);
   const updatedLabel = formatRelative(assistance.updatedAt);
@@ -62,6 +72,12 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
 
   const onLanguageChange = (next: string) => {
     setLocale(next as typeof locale);
+    // The URL carries the locale for a shared link, and reconciliation treats it
+    // as authoritative. Without writing the new choice back, an in-page switch
+    // on a deep link would be immediately overruled by the old query string.
+    const params = new URLSearchParams(window.location.search);
+    params.set("locale", next);
+    router.replace(`/assist?${params.toString()}`, { scroll: false });
   };
 
   return (
@@ -101,7 +117,7 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
               />
               {t("situation.refresh")}
             </Button>
-            <Button variant="ghost" size="sm" onClick={startOver}>
+            <Button variant="ghost" size="sm" onClick={onStartOver}>
               {t("situation.startOver")}
             </Button>
           </div>
@@ -387,7 +403,7 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
             icon={<Clock className="size-5" />}
           >
             {assistance.timeline.length > 0 ? (
-              <ol className="space-y-3">
+              <ol className="space-y-3.5">
                 {assistance.timeline.map((event) => (
                   <li key={event.id} className="flex gap-3">
                     <span
@@ -398,10 +414,18 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <p className="ident text-xs text-ink-500">{formatClock(event.at)}</p>
-                      <p className="text-sm font-medium text-ink-800">{event.label}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="ident text-xs text-ink-500">{formatClock(event.at)}</p>
+                        {event.change ? (
+                          <span className="inline-flex items-center gap-1 rounded-sm border border-warn-200 bg-warn-50 px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.04em] text-warn-700">
+                            <TriangleAlert className="size-3" aria-hidden="true" />
+                            {t("assist.timeline.changed")}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-sm font-medium text-ink-800">{event.label}</p>
                       {event.detail ? (
-                        <p className="text-xs text-ink-500">{event.detail}</p>
+                        <p className="text-xs leading-relaxed text-ink-500">{event.detail}</p>
                       ) : null}
                     </div>
                   </li>

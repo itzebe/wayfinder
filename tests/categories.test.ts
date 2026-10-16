@@ -699,6 +699,94 @@ test("directory: coverage now spans more than the live-provider countries", asyn
   assert(countries.size >= 10, `expected broad directory coverage, got ${countries.size}`);
 });
 
+test("timeline: a first observation is labelled as a baseline, not as 'no change'", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "London, United Kingdom",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const baseline = page.timeline.find((event) => event.id === "baseline");
+  assert(baseline, "a first run must record an explicit baseline event");
+  assertEqual(baseline?.change, undefined, "a baseline is not itself a change");
+  assert(
+    !page.timeline.some((event) => event.id === "no-change"),
+    "there was nothing to compare against, so 'no change' would be untrue",
+  );
+});
+
+test("timeline: a new disruption vs the previous snapshot is reported as a change", async () => {
+  const request = {
+    category: "metro" as const,
+    location: "London, United Kingdom",
+    locale: "en",
+  };
+
+  // First observation: the tube feed reports minor delays on one line.
+  const first = await composeAssistance({ ...request, fetchImpl: fixtureFetch(ALL_TABLE) });
+  assert(first.snapshot, "every page carries a snapshot for the next diff");
+  assert(
+    !first.timeline.some((event) => event.change),
+    "the first observation cannot contain detected changes",
+  );
+
+  // Second observation: the upstream response changed. The provider cache is
+  // keyed by URL, so it must be cleared to represent a genuinely new retrieval.
+  clearCache();
+  const disrupted = { ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION };
+  const second = await composeAssistance({
+    ...request,
+    previous: first.snapshot,
+    fetchImpl: fixtureFetch(disrupted),
+  });
+
+  const changes = second.timeline.filter((event) => event.change);
+  assert(changes.length > 0, "the newly reported disruption must surface as a change");
+  assert(
+    !second.timeline.some((event) => event.id === "no-change"),
+    "a real change must not also claim there was none",
+  );
+});
+
+test("timeline: an unchanged situation says so, because a comparison did happen", async () => {
+  const request = {
+    category: "metro" as const,
+    location: "London, United Kingdom",
+    locale: "en",
+  };
+  const first = await composeAssistance({ ...request, fetchImpl: fixtureFetch(ALL_TABLE) });
+  clearCache();
+  const second = await composeAssistance({
+    ...request,
+    previous: first.snapshot,
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assert(
+    second.timeline.some((event) => event.id === "no-change"),
+    "an unchanged second observation must state that nothing changed",
+  );
+  assert(
+    !second.timeline.some((event) => event.change),
+    "no change should be detected between identical observations",
+  );
+});
+
+test("timeline: the snapshot carries no personal data — states and fingerprints only", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Tokyo, Japan",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assert(page.snapshot, "a snapshot is present");
+  const serialized = JSON.stringify(page.snapshot);
+  assert(!serialized.includes("Tokyo"), "the snapshot must not embed the traveller's location");
+  assert(
+    Object.values(page.snapshot?.providerStates ?? {}).every((state) => typeof state === "string"),
+    "provider states are plain strings",
+  );
+});
+
 run()
   .then(() => report("Category suites (fixtures)"))
   .catch((error) => {

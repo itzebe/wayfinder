@@ -86,9 +86,33 @@ export interface AssistRequest {
   to?: string;
   description?: string;
   locale: string;
+  /** The last observation for this same situation, so the engine can diff it. */
+  previous?: {
+    providerStates: Record<string, string>;
+    conditionKeys: string[];
+  };
 }
 
 export type AssistStatus = "idle" | "loading" | "ready" | "error";
+
+/**
+ * Identifies the *situation* a request points at, ignoring language and the
+ * previous-snapshot field. Two requests with the same identity are the same
+ * situation rendered differently — a language switch, say — and their change
+ * history should follow.
+ */
+function assistRequestIdentity(request: AssistRequest): string {
+  return [
+    request.category,
+    request.location?.trim() ?? "",
+    request.region?.trim() ?? "",
+    request.network?.trim() ?? "",
+    request.from?.trim() ?? "",
+    request.to?.trim() ?? "",
+  ]
+    .join("\u0000")
+    .toLowerCase();
+}
 
 /** How often the page re-checks its sources while it is open and visible. */
 const AUTO_REFRESH_SECONDS = 120;
@@ -190,6 +214,16 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
 
       const seq = ++requestSeq.current;
 
+      // Rebuilding the same situation — a language change, for instance — should
+      // keep its change history: carry the last observation forward so the
+      // timeline still reports what changed since the first check rather than
+      // starting a fresh baseline.
+      const sameSituation =
+        request !== null && assistRequestIdentity(request) === assistRequestIdentity(next);
+      const withPrevious: AssistRequest = sameSituation
+        ? { ...next, previous: assistance?.snapshot ?? next.previous }
+        : next;
+
       setStatus("loading");
       setError(null);
       setFieldErrors({});
@@ -202,7 +236,7 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
         const response = await fetch("/api/assist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(next),
+          body: JSON.stringify(withPrevious),
           signal: controller.signal,
         });
 
@@ -244,7 +278,7 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
         return false;
       }
     },
-    [t],
+    [t, request, assistance?.snapshot],
   );
 
   // --- Refresh ------------------------------------------------------------
@@ -256,7 +290,12 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
       const response = await fetch("/api/assist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
+        // Send the last observation so the engine can report genuine changes
+        // rather than re-baselining on every refresh.
+        body: JSON.stringify({
+          ...request,
+          previous: assistance?.snapshot ?? undefined,
+        }),
       });
 
       const payload = (await response.json()) as {
@@ -282,7 +321,7 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
     } finally {
       if (seq === requestSeq.current) setRefreshing(false);
     }
-  }, [request, t]);
+  }, [request, assistance?.snapshot, t]);
 
   const startOver = useCallback(() => {
     abortRef.current?.abort();
