@@ -90,6 +90,7 @@ export interface AssistRequest {
   previous?: {
     providerStates: Record<string, string>;
     conditionKeys: string[];
+    conditionSeverities?: Record<string, string>;
   };
 }
 

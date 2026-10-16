@@ -146,7 +146,7 @@ const en: Messages = {
   "situations.public.body":
     "Health, safety and civic notices that affect where you can go.",
   "situations.coverage.title": "Honest coverage, not a world map",
-  "situations.coverage.body": "Live integrations cover the United Kingdom, the United States and Germany today. For around twenty more countries, WAYFINDER keeps a verified directory of official pages — the transport operator, road authority or weather service responsible for that place. Where no live source exists, it says so plainly and hands you those official pages instead of guessing.",
+  "situations.coverage.body": "Live integrations cover the United Kingdom, the United States and Germany today. For around thirty more countries, WAYFINDER keeps a verified directory of official pages — the transport operator, road authority or weather service responsible for that place. Where no live source exists, it says so plainly and hands you those official pages instead of guessing.",
 
   // --- Assistance flow ----------------------------------------------------
   "flow.title": "Get help now",
@@ -685,7 +685,7 @@ const en: Messages = {
   "limitations.ai.title": "The AI layer explains, it does not decide",
   "limitations.ai.body": "Identifiers, times, sources and recommended steps are composed from retrieved data. The AI layer contributes plain-language explanation and translation only, and if it is unavailable the deterministic explanation is used instead.",
   "limitations.scope.title": "Coverage is real, not universal",
-  "limitations.scope.body": "Everyday categories — metro, rail, buses, roads, severe weather, public notices and flights — have a working official source. Live integrations cover the United Kingdom, the United States and Germany today. Typing any place is accepted: if it resolves to a country with no live integration, the situation page says so plainly and hands you the responsible official page — for around twenty countries now, from Nigeria and Kenya to Japan, France, Brazil and the UAE — instead of guessing, rather than offering a button that leads nowhere.",
+  "limitations.scope.body": "Everyday categories — metro, rail, buses, roads, severe weather, public notices and flights — have a working official source. Live integrations cover the United Kingdom, the United States and Germany today. Typing any place is accepted: if it resolves to a country with no live integration, the situation page says so plainly and hands you the responsible official page — for around thirty countries now, from Nigeria and Kenya to Japan, France, Brazil and the UAE — instead of guessing, rather than offering a button that leads nowhere.",
   "limitations.sources.title": "Data sources",
   "limitations.sources.intro": "Every source below is public and requires no credential. Each has a documented limitation, and each is attributed on the situation page where its data is used. Where no live integration exists for a country, the page links the responsible authority through the official-source directory rather than leaving you with nothing — the directory is a list of pages to check, not a source of retrieved status.",
   "limitations.limitationLabel": "Limitation:",
@@ -1066,10 +1066,30 @@ const en: Messages = {
   "assist.timeline.disruptionAppeared": "A source is now reporting a disruption that was not listed before",
   "assist.timeline.disruptionCleared": "A previously reported disruption is no longer listed",
   "assist.timeline.sourceRecovered": "{source} answered again after a failed check",
+  "assist.timeline.severityChanged": "A source changed how serious its report is",
+  "assist.timeline.severityFrom": "was {from}",
   "assist.timeline.noChange": "No change since the last check",
   "assist.timeline.noChangeDetail":
     "Every source that answered reported the same conditions as before.",
+  "assist.timeline.noObservation": "No current observation was recorded",
+  "assist.timeline.noObservationDetail":
+    "No source answered with current information this time, so nothing can be compared. This is not a statement that the situation is clear.",
   "assist.timeline.changed": "Changed",
+
+  "assist.discovery.heading": "Pages found by web search",
+  "assist.discovery.note":
+    "Found by a web search for this situation. These pages have not been read or verified by WAYFINDER, so treat them as places to check, not as a confirmed status.",
+  "assist.discovery.coversOfficial":
+    "Found by web search and its domain looks like an official authority. WAYFINDER has not read it; open the page to confirm what it says.",
+  "assist.discovery.coversSecondary":
+    "Found by web search. It is not an official authority page, so verify anything important against the official source.",
+  "assist.discovery.notConfigured":
+    "Web-search discovery is not configured for this deployment, so only the curated official sources are listed.",
+  "assist.discovery.unreachable":
+    "Web-search discovery could not be reached, so only the curated official sources are listed.",
+  "assist.discovery.noResults":
+    "Web search returned no additional pages for this situation.",
+  "assist.discovery.badge": "Found by search",
 
   "support.flight.title": "Flight disruption",
   "support.flight.body":
@@ -2145,10 +2165,30 @@ const es: Messages = {
     "Una fuente informa ahora de una incidencia que antes no aparecía",
   "assist.timeline.disruptionCleared": "Una incidencia indicada antes ya no aparece",
   "assist.timeline.sourceRecovered": "{source} volvió a responder tras una comprobación fallida",
+  "assist.timeline.severityChanged": "Una fuente cambió la gravedad de su informe",
+  "assist.timeline.severityFrom": "era {from}",
   "assist.timeline.noChange": "Sin cambios desde la última comprobación",
   "assist.timeline.noChangeDetail":
     "Todas las fuentes que respondieron indican las mismas condiciones que antes.",
+  "assist.timeline.noObservation": "No se registró ninguna observación actual",
+  "assist.timeline.noObservationDetail":
+    "Ninguna fuente respondió con información actual esta vez, así que no hay nada que comparar. Esto no significa que la situación esté resuelta.",
   "assist.timeline.changed": "Cambio",
+
+  "assist.discovery.heading": "Páginas encontradas por búsqueda web",
+  "assist.discovery.note":
+    "Encontradas mediante una búsqueda web para esta situación. WAYFINDER no ha leído ni verificado estas páginas, así que considéralas lugares que consultar, no un estado confirmado.",
+  "assist.discovery.coversOfficial":
+    "Encontrada por búsqueda web y su dominio parece de una autoridad oficial. WAYFINDER no la ha leído; abre la página para confirmar lo que dice.",
+  "assist.discovery.coversSecondary":
+    "Encontrada por búsqueda web. No es una página de una autoridad oficial, así que verifica lo importante con la fuente oficial.",
+  "assist.discovery.notConfigured":
+    "La búsqueda web no está configurada en esta instalación, así que solo se muestran las fuentes oficiales seleccionadas.",
+  "assist.discovery.unreachable":
+    "No se pudo contactar con la búsqueda web, así que solo se muestran las fuentes oficiales seleccionadas.",
+  "assist.discovery.noResults":
+    "La búsqueda web no devolvió páginas adicionales para esta situación.",
+  "assist.discovery.badge": "Encontrada por búsqueda",
 
   "support.flight.title": "Incidencia de vuelo",
   "support.flight.body":

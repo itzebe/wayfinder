@@ -163,6 +163,40 @@ export interface ProviderReport {
   /** Non-fatal problems, already localised by the provider adapter. */
   warnings: string[];
   retrievedAt: string;
+  /**
+   * Pages a discovery provider found that may bear on the situation. These are
+   * NOT retrieved sources: nothing was fetched from them and no status was
+   * established, so they can never substantiate a live claim. They exist to give
+   * the traveller somewhere to look that the curated directory does not know.
+   */
+  findings?: SearchFinding[];
+}
+
+/**
+ * A page surfaced by a web-search discovery provider.
+ *
+ * `verification` is always `discovered` for these: a search result is a lead, not
+ * evidence. The distinction the UI must preserve is exactly this one — "a search
+ * found this page" is not "this page says the service is down".
+ */
+export interface SearchFinding {
+  id: string;
+  /** Publisher, as far as the search result states it (usually the domain). */
+  organization: string;
+  /** The page title as returned by the provider. */
+  title: string;
+  /** The URL as returned by the provider, preserved verbatim. */
+  url: string;
+  /** The domain the provider attributes the page to. */
+  domain: string;
+  /** When the search discovered this page. */
+  discoveredAt: string;
+  /** A one-line indication of why it was surfaced, when the provider gives one. */
+  reason?: string;
+  /** Always `discovered` — a lead to check, never a retrieved source. */
+  verification: "discovered";
+  /** True when the domain looks like a government or authority domain. */
+  likelyOfficial: boolean;
 }
 
 /** A single fact presented to the traveller, with its trust level attached. */
@@ -206,6 +240,16 @@ export interface AssistReference {
   covers: string;
   /** True when the publisher is the authority itself, not a third party. */
   official: boolean;
+  /**
+   * How this page came to be listed: from the curated official-source directory,
+   * or surfaced by a web-search discovery provider. The UI must keep the two
+   * visibly distinct — a discovered page is a lead, not a checked authority.
+   */
+  origin?: "directory" | "discovery";
+  /** The domain, for display, when it came from discovery. */
+  domain?: string;
+  /** When a discovery provider surfaced it. */
+  discoveredAt?: string;
 }
 
 export interface AssistRecommendation extends Recommendation {
@@ -290,5 +334,6 @@ export interface AssistancePage {
   snapshot?: {
     providerStates: Record<string, string>;
     conditionKeys: string[];
+    conditionSeverities?: Record<string, string>;
   };
 }

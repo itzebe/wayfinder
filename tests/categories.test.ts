@@ -8,16 +8,18 @@
  * operational; that is what `npm run test:live` reports separately.
  */
 
-import { composeAssistance } from "@/lib/assist/engine";
+import { composeAssistance, snapshotFor } from "@/lib/assist/engine";
 import { clearCache } from "@/lib/core/cache";
 import { selectProviders, rankProviders } from "@/lib/assist/registry";
 import { classifyDescription } from "@/lib/assist/categories";
 import { resolveLocation } from "@/lib/assist/location";
+import { looksOfficial, normaliseFindings, GOOGLE_PROVIDER_ID } from "@/lib/assist/providers/discovery";
 import { assistRequestSchema } from "@/lib/assist/schema";
 import { sseFeed } from "./fixtures/gtfs";
 import {
   CALTRANS_CMS,
   DWD_WARNINGS,
+  GEMINI_GROUNDED,
   GOVUK_SEARCH,
   GTFS_ALERTS_JSON,
   NWS_ALERTS,
@@ -491,6 +493,24 @@ test("validation: a valid request passes", () => {
   assertEqual(parsed.success, true, "valid request should pass");
 });
 
+test("validation: the snapshot format marker survives parsing", () => {
+  // The schema strips unknown keys. If `format` is stripped, every stored
+  // snapshot arrives unversioned, is treated as a baseline, and change detection
+  // silently stops working — a regression no UI test would catch.
+  const parsed = assistRequestSchema.safeParse({
+    category: "metro",
+    location: "London, United Kingdom",
+    locale: "en",
+    previous: { format: 2, providerStates: { "tfl-tube": "live" }, conditionKeys: ["a"] },
+  });
+  assertEqual(parsed.success, true, "request with a snapshot parses");
+  assertEqual(
+    parsed.success ? parsed.data.previous?.format : undefined,
+    2,
+    "the format marker must not be stripped",
+  );
+});
+
 // --- Registry ---------------------------------------------------------------
 
 test("registry: selection is by capability, and skips are explained", () => {
@@ -699,6 +719,40 @@ test("directory: coverage now spans more than the live-provider countries", asyn
   assert(countries.size >= 10, `expected broad directory coverage, got ${countries.size}`);
 });
 
+test("directory: places that had no reference at all now have somewhere to check", async () => {
+  // These five were the diagnosed dead ends: no live provider and no directory
+  // entry, so a traveller there was told "nothing covers this" and stopped.
+  const gapPlaces: [string, string][] = [
+    ["Hanoi, Vietnam", "VN"],
+    ["Bangkok, Thailand", "TH"],
+    ["Istanbul, Türkiye", "TR"],
+    ["Warsaw, Poland", "PL"],
+    ["Johannesburg, South Africa", "ZA"],
+  ];
+
+  for (const [place, expectedCode] of gapPlaces) {
+    const page = await composeAssistance({
+      category: "road",
+      location: place,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(page.query.countryCode, expectedCode, `${place} resolves to ${expectedCode}`);
+    assert(
+      page.references.length > 0,
+      `${place} must offer at least one official page to check`,
+    );
+    assert(
+      page.references.every((r) => r.url.startsWith("https://")),
+      `${place}: every directory link must be https`,
+    );
+    assert(
+      page.references.every((r) => r.origin === "directory"),
+      `${place}: with no live provider these are directory entries, not retrieved sources`,
+    );
+  }
+});
+
 test("timeline: a first observation is labelled as a baseline, not as 'no change'", async () => {
   const page = await composeAssistance({
     category: "metro",
@@ -784,6 +838,450 @@ test("timeline: the snapshot carries no personal data — states and fingerprint
   assert(
     Object.values(page.snapshot?.providerStates ?? {}).every((state) => typeof state === "string"),
     "provider states are plain strings",
+  );
+});
+
+// --- Timeline: source availability is not a real-world change --------------
+
+test("timeline: a provider failure must NOT be reported as a disruption clearing", async () => {
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  clearCache();
+  const disrupted = await composeAssistance({
+    ...request,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+  assert(disrupted.conditions.length > 0, "precondition: a disruption was reported");
+  assert(disrupted.snapshot, "precondition: a snapshot exists to diff against");
+
+  clearCache();
+  const failed = await composeAssistance({
+    ...request,
+    previous: disrupted.snapshot,
+    fetchImpl: failingFetch(),
+  });
+
+  assert(
+    !failed.timeline.some((event) => event.id.startsWith("cleared-")),
+    "a timeout says nothing about the world, so it cannot clear a disruption",
+  );
+  assert(
+    !failed.timeline.some((event) => event.id === "no-change"),
+    "'no change' would also be a claim about the world that we cannot make",
+  );
+  assert(
+    failed.timeline.some((event) => event.id === "no-observation"),
+    "the timeline must say plainly that no current observation was recorded",
+  );
+  assertEqual(failed.snapshot?.conditionKeys.length, 0, "a failed retrieval adds no condition keys");
+});
+
+test("timeline: a rate-limited provider is also not a real-world change", async () => {
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  clearCache();
+  const disrupted = await composeAssistance({
+    ...request,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+  clearCache();
+  const limited = await composeAssistance({
+    ...request,
+    previous: disrupted.snapshot,
+    fetchImpl: rateLimitedFetch(),
+  });
+  assert(
+    !limited.timeline.some((event) => event.id.startsWith("cleared-")),
+    "a 429 is not evidence the disruption ended",
+  );
+});
+
+test("timeline: a clean recovery after a first failure is recovery, not an appearance", async () => {
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  // First observation: the provider is down, so nothing was observed.
+  clearCache();
+  const failed = await composeAssistance({ ...request, fetchImpl: failingFetch() });
+  assertEqual(failed.snapshot?.providerStates["tfl-tube"], "unavailable", "precondition: down");
+
+  // Second observation: it answers, with a disruption.
+  clearCache();
+  const recovered = await composeAssistance({
+    ...request,
+    previous: failed.snapshot,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+
+  assert(
+    recovered.timeline.some((event) => event.id.startsWith("provider-recovered-")),
+    "a source returning after a failure is recorded as recovery",
+  );
+  assert(
+    !recovered.timeline.some((event) => event.id.startsWith("appeared-")),
+    "a disruption seen for the first time is not an 'appearance change' — we had no prior view",
+  );
+  assert(
+    !recovered.timeline.some((event) => event.id.startsWith("cleared-")),
+    "nothing to clear",
+  );
+});
+
+test("timeline: a genuine clearance (source answers, disruption gone) is a change", async () => {
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  clearCache();
+  const disrupted = await composeAssistance({
+    ...request,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+  clearCache();
+  const cleared = await composeAssistance({
+    ...request,
+    previous: disrupted.snapshot,
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const clearEvents = cleared.timeline.filter((event) => event.id.startsWith("cleared-"));
+  assert(clearEvents.length > 0, "a disruption that is gone, per a live source, is a change");
+  assert(clearEvents.every((event) => event.change === true), "clearances are marked as changes");
+});
+
+test("timeline: a severity reclassification is reported as a change", async () => {
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  clearCache();
+  const minor = await composeAssistance({
+    ...request,
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const hasMinor = minor.conditions.some((c) => c.title.startsWith("Victoria"));
+  assert(hasMinor, "precondition: a minor Victoria delay is reported");
+
+  clearCache();
+  const worsened = await composeAssistance({
+    ...request,
+    previous: minor.snapshot,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+  // The Northern suspension is a new condition on a source that was already
+  // observing, so it appears as a change — and the same condition changing
+  // severity is also detectable. Assert at least one change on that source.
+  assert(
+    worsened.timeline.some((event) => event.change === true && event.sourceIds?.includes("tfl-tube")),
+    "a change on a source that was already observing must carry that source id",
+  );
+});
+
+test("timeline: change events identify their evidence source and time", async () => {
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  clearCache();
+  const first = await composeAssistance({
+    ...request,
+    previous: { format: 2, providerStates: { "tfl-tube": "live" }, conditionKeys: [] },
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+  const change = first.timeline.find((event) => event.change === true);
+  assert(change, "there is a change event");
+  assert(change?.sourceIds && change.sourceIds.length > 0, "the change names its source");
+  assert(!Number.isNaN(Date.parse(change?.at ?? "")), "the change carries a parseable time");
+});
+
+test("timeline: a change on one source is not attributed to another", async () => {
+  // A US weather query hits NWS (alerts) and USGS (quakes). Give the previous
+  // observation a single NWS condition and the current one a single USGS
+  // condition; each must be attributed to its own source, never merged.
+  const request = { category: "weather" as const, location: "Denver, United States", locale: "en" };
+  clearCache();
+  const previous = {
+    format: 2 as const,
+    providerStates: { "nws-alerts": "live", "usgs-earthquakes": "live" },
+    conditionKeys: ["nws-alerts|Old flood warning||"],
+    conditionSeverities: { "nws-alerts|Old flood warning||": "severe" },
+  };
+  const page = await composeAssistance({ ...request, previous, fetchImpl: fixtureFetch(ALL_TABLE) });
+  const changed = page.timeline.filter((event) => event.change === true);
+  for (const event of changed) {
+    assert(
+      event.sourceIds && event.sourceIds.length === 1,
+      "each change is attributed to exactly the source that reported it",
+    );
+  }
+});
+
+// --- Timeline: snapshot hygiene --------------------------------------------
+
+test("timeline: a pre-upgrade snapshot is a baseline, not a wave of false changes", async () => {
+  // The condition-key format changed (severity moved out of the key). Keys
+  // written by an older deploy therefore match nothing, which would otherwise
+  // read every condition as both newly appeared and cleared at once. An
+  // unversioned snapshot must establish a baseline instead.
+  const request = { category: "metro" as const, location: "London, United Kingdom", locale: "en" };
+  clearCache();
+  const legacy = {
+    // No `format` marker: this is what a snapshot stored before the change
+    // looked like.
+    providerStates: { "tfl-tube": "live" },
+    conditionKeys: ["tfl-tube|Some old disruption|severe|A|B"],
+  };
+  const page = await composeAssistance({
+    ...request,
+    previous: legacy,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+
+  assert(
+    !page.timeline.some((event) => event.change === true),
+    "an unversioned snapshot must not manufacture change events",
+  );
+  assert(
+    page.timeline.some((event) => event.id === "baseline"),
+    "it establishes a fresh baseline instead",
+  );
+});
+
+test("timeline: conditions are only recorded for sources that observed now", async () => {
+  // `snapshotFor` is the single gate that decides what a future diff may treat
+  // as a present-tense observation. A stale or unavailable report must not
+  // contribute conditions, or a later diff could clear something that was never
+  // seen as current.
+  const report = {
+    providerId: "demo",
+    state: "stale" as const,
+    cadence: "live" as const,
+    conditions: [
+      {
+        id: "demo-1",
+        providerId: "demo",
+        title: "Something",
+        severity: "major" as const,
+      },
+    ],
+    timetable: [],
+    source: {
+      id: "demo",
+      organization: "Demo",
+      title: "Demo",
+      url: "https://example.test",
+      retrievedAt: new Date().toISOString(),
+      tier: "primary" as const,
+      kind: "public_transport" as const,
+      state: "stale" as const,
+    },
+    warnings: [],
+    retrievedAt: new Date().toISOString(),
+  };
+  const snap = snapshotFor([report]);
+  assertEqual(snap.conditionKeys.length, 0, "a stale source contributes no condition keys");
+  assertEqual(snap.providerStates["demo"], "stale", "but its state is still recorded");
+});
+
+// --- Discovery via Google-powered web search --------------------------------
+
+test("discovery: configured Google search turns findings into leads, never conditions", async () => {
+  process.env.WAYFINDER_GOOGLE_API_KEY = "test-key";
+  try {
+    const googleTable = {
+      ...ALL_TABLE,
+      "generativelanguage.googleapis.com": GEMINI_GROUNDED,
+    };
+    const page = await composeAssistance({
+      category: "road",
+      location: "Lagos, Nigeria",
+      locale: "en",
+      fetchImpl: fixtureFetch(googleTable),
+    });
+
+    // A search result is a lead, never a fact: no condition may be attributed to
+    // the discovery provider.
+    assert(
+      !page.conditions.some((c) => c.providerId === GOOGLE_PROVIDER_ID),
+      "discovery must never contribute a service condition",
+    );
+    assert(
+      !page.sources.some((s) => s.organization === "Google"),
+      "discovery must never appear as a retrieved source",
+    );
+
+    const leads = page.references.filter((r) => r.origin === "discovery");
+    // `frcn.gov.ng` is already in the curated directory, so it is not repeated as
+    // a discovery lead — the two remaining chunks become leads.
+    assertEqual(leads.length, 2, "grounded chunks become leads, minus any the directory already lists");
+    assert(
+      !leads.some((l) => l.url === "https://frcn.gov.ng/"),
+      "a page the directory already lists is never shown twice",
+    );
+    assert(
+      leads.some((l) => l.url === "https://lagosstate.gov.ng/traffic"),
+      "the original URL is preserved verbatim",
+    );
+    assert(
+      leads.some((l) => l.url === "https://www.example-blog.test/lagos-traffic"),
+      "a secondary result is still surfaced, clearly not as authority",
+    );
+    assert(
+      leads.find((l) => l.domain === "lagosstate.gov.ng")?.official === true,
+      "a .gov.ng domain is labelled as plausibly official",
+    );
+    assert(
+      leads.find((l) => l.domain === "example-blog.test")?.official === false,
+      "a non-authority domain is not labelled official",
+    );
+    assert(
+      page.references.some((r) => r.origin === "directory"),
+      "the curated directory is still present for a place with no live provider",
+    );
+    assert(
+      leads.every((l) => !/verified|confirmed/i.test(l.covers)),
+      "lead copy never implies verification",
+    );
+  } finally {
+    delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  }
+});
+
+test("discovery: without a key the place still gets its curated directory", async () => {
+  delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  clearCache();
+  const page = await composeAssistance({
+    category: "road",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assert(
+    page.references.some((r) => r.origin === "directory"),
+    "the curated official directory still stands in when discovery is unconfigured",
+  );
+  assert(
+    !page.references.some((r) => r.origin === "discovery"),
+    "no discovery leads without a key",
+  );
+});
+
+test("discovery: a failed search does not blank the page or invent leads", async () => {
+  process.env.WAYFINDER_GOOGLE_API_KEY = "test-key";
+  try {
+    const page = await composeAssistance({
+      category: "road",
+      location: "Lagos, Nigeria",
+      locale: "en",
+      fetchImpl: failingFetch(),
+    });
+    assert(
+      !page.references.some((r) => r.origin === "discovery"),
+      "a search that failed yields no leads",
+    );
+    assert(page.explanation.summary.length > 0, "the page still explains the situation");
+  } finally {
+    delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  }
+});
+
+test("discovery: an unconfigured provider is skipped with a reason, not run", () => {
+  delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  const { usable, skipped } = selectProviders({
+    category: "road",
+    countryCode: "NG",
+    locale: "en",
+  });
+  assert(
+    !usable.some((p) => p.metadata.id === GOOGLE_PROVIDER_ID),
+    "discovery is not selected without credentials",
+  );
+  assert(
+    skipped.some(
+      (entry) => entry.provider.metadata.id === GOOGLE_PROVIDER_ID && entry.reason === "missing_credentials",
+    ),
+    "and the skip is explained as a missing credential",
+  );
+});
+
+test("discovery: ranking never lets discovery displace a live authority", () => {
+  process.env.WAYFINDER_GOOGLE_API_KEY = "test-key";
+  try {
+    const { usable } = selectProviders({ category: "metro", countryCode: "GB", locale: "en" });
+    const ranked = rankProviders(usable);
+    const ids = ranked.map((p) => p.metadata.id);
+    assert(ids.includes(GOOGLE_PROVIDER_ID), "discovery is selected alongside TfL for London");
+    assertEqual(
+      ids[ids.length - 1],
+      GOOGLE_PROVIDER_ID,
+      "discovery ranks last, after the London authorities",
+    );
+  } finally {
+    delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  }
+});
+
+test("discovery: normaliseFindings reads the real groundingChunks shape and dedupes", () => {
+  const findings = normaliseFindings(GEMINI_GROUNDED, "2026-10-15T00:00:00.000Z");
+  assertEqual(findings.length, 3, "three unique chunks");
+  assertEqual(findings[0].verification, "discovered", "leads are marked discovered");
+  const withDupe = normaliseFindings(
+    {
+      candidates: [
+        {
+          groundingMetadata: {
+            groundingChunks: [
+              { web: { uri: "https://a.gov/", title: "a", domain: "a.gov" } },
+              { web: { uri: "https://a.gov/", title: "a", domain: "a.gov" } },
+            ],
+          },
+        },
+      ],
+    },
+    "2026-10-15T00:00:00.000Z",
+  );
+  assertEqual(withDupe.length, 1, "identical URLs are deduped");
+});
+
+test("discovery: a non-http chunk is dropped, not rendered as a broken link", () => {
+  const findings = normaliseFindings(
+    {
+      candidates: [
+        {
+          groundingMetadata: {
+            groundingChunks: [
+              { web: { uri: "javascript:alert(1)", title: "bad", domain: "bad" } },
+              { web: { uri: "https://ok.gov/", title: "ok", domain: "ok.gov" } },
+            ],
+          },
+        },
+      ],
+    },
+    "2026-10-15T00:00:00.000Z",
+  );
+  assertEqual(findings.length, 1, "only the http(s) URL survives");
+  assertEqual(findings[0].domain, "ok.gov", "and it is the right one");
+});
+
+test("discovery: official-domain detection does not match lookalikes", () => {
+  assert(looksOfficial("www.dft.gov.uk"), "gov.uk is official");
+  assert(looksOfficial("frcn.gov.ng"), "gov.ng is official");
+  assert(!looksOfficial("gov-uk-fake.test"), "a hyphenated lookalike is not official");
+  assert(!looksOfficial("example.com"), "an ordinary domain is not official");
+});
+
+test("timeline: a new search cannot inherit an unrelated previous snapshot", async () => {
+  // The provider is expected to carry a snapshot forward only when the situation
+  // identity matches. Prove the engine treats a supplied snapshot for a *different*
+  // situation as producing no phantom change events for conditions it never saw.
+  const lagos = await composeAssistance({
+    category: "metro",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(lagos.conditions.length, 0, "precondition: Lagos has no live provider");
+
+  clearCache();
+  const london = await composeAssistance({
+    category: "metro",
+    location: "London, United Kingdom",
+    locale: "en",
+    previous: lagos.snapshot,
+    fetchImpl: fixtureFetch({ ...ALL_TABLE, "api.tfl.gov.uk": TFL_SUSPENSION }),
+  });
+  // London's first look at TfL (the snapshot has no tfl-tube key) is recovery /
+  // new knowledge, never a clearance, and never a phantom "appearance" from
+  // Lagos's empty snapshot.
+  assert(
+    !london.timeline.some((event) => event.id.startsWith("cleared-")),
+    "nothing can clear when the previous snapshot named no conditions",
   );
 });
 

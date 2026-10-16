@@ -16,6 +16,7 @@ import { hasCredentials, type Provider, type ProviderSkipReason } from "./provid
 import { bartProvider, mtaSubwayProvider, tflBusProvider, tflRailProvider, tflTubeProvider } from "./providers/transit";
 import { dwdWarningsProvider, nwsAlertsProvider, usgsEarthquakeProvider } from "./providers/weather";
 import { caltransRoadProvider, govUkPublicNoticeProvider } from "./providers/road";
+import { googleDiscoveryProvider } from "./providers/discovery";
 import type { AssistanceQuery, ProviderMetadata } from "./types";
 
 /** Every registered provider. Order is not significant — selection is by capability. */
@@ -30,6 +31,10 @@ export const PROVIDERS: Provider[] = [
   usgsEarthquakeProvider,
   caltransRoadProvider,
   govUkPublicNoticeProvider,
+  // Discovery goes last: it is the provider that can help anywhere, so it must
+  // never displace a live authority that actually covers this place. It adds
+  // leads alongside them, and carries a place the directory does not know.
+  googleDiscoveryProvider,
 ];
 
 export interface SkippedProvider {

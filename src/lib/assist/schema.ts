@@ -72,8 +72,15 @@ export const assistRequestSchema = z
      */
     previous: z
       .object({
+        // Snapshot format marker. Without this field the snapshot is treated as
+        // a baseline, so a snapshot written by an older deploy cannot fabricate
+        // change events. Must be preserved, not stripped.
+        format: z.number().int().min(1).max(100).optional(),
         providerStates: z.record(z.string(), z.string().max(40)).default({}),
         conditionKeys: z.array(z.string().max(400)).max(500).default([]),
+        conditionSeverities: z
+          .record(z.string(), z.string().max(20))
+          .optional(),
       })
       .optional(),
   })

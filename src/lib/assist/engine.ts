@@ -21,6 +21,7 @@ import { nowIso } from "@/lib/core/time";
 import type { DataState, SourceRef, TimelineEvent } from "@/lib/core/types";
 import { callAi, isAiConfigured, AiUnavailableError } from "@/lib/ai/llm";
 import { rankProviders, selectProviders, type SkippedProvider } from "./registry";
+import { GOOGLE_PROVIDER_ID } from "./providers/discovery";
 import { classifyDescription } from "./categories";
 import { resolveLocation } from "./location";
 import { directoryFor } from "./directory";
@@ -35,6 +36,7 @@ import type {
   AssistSource,
   CoverageGap,
   ProviderReport,
+  SearchFinding,
   ServiceCondition,
   SituationFact,
 } from "./types";
@@ -87,15 +89,35 @@ export interface AssistInput {
 
 /**
  * The minimum the engine needs from a previous page to detect a change: the
- * per-provider data state and the conditions each source reported. Kept narrow
- * so the client sends the smallest possible snapshot and nothing extra.
+ * per-provider data state, and — per condition — a stable identity plus the
+ * severity that was reported for it. Kept narrow so the client sends the
+ * smallest possible snapshot and nothing personal.
+ *
+ * `conditionKeys` are *identities* (provider, title, window) with no severity,
+ * so a condition can be recognised across a severity change; `conditionSeverities`
+ * carries what was reported for each identity so a reclassification is visible.
+ * Older snapshots that predate the severity map are handled: severity changes are
+ * simply not claimed for them.
  */
 export interface PreviousAssistState {
+  /**
+   * Snapshot format marker. Absent on snapshots written before the condition key
+   * stopped embedding severity. Such a snapshot's keys can never match a current
+   * key, so it is ignored rather than diffed — otherwise every condition would
+   * falsely read as both "appeared" and "cleared" on the first comparison after
+   * an upgrade.
+   */
+  format?: typeof SNAPSHOT_FORMAT;
   /** Provider id → the data state at the previous observation. */
   providerStates: Record<string, string>;
-  /** Stable fingerprints of the conditions previously reported. */
+  /** Stable identities of the conditions previously reported. */
   conditionKeys: string[];
+  /** Condition identity → the severity reported for it, when known. */
+  conditionSeverities?: Record<string, string>;
 }
+
+/** Current snapshot format. Bump only with a migration for stored snapshots. */
+export const SNAPSHOT_FORMAT = 2 as number;
 
 /** How long the whole provider fan-out is allowed to take. */
 const GATHER_BUDGET_MS = 15_000;
@@ -466,41 +488,74 @@ function buildRecommendations(
   return recommendations;
 }
 
+/**
+ * The states in which a provider's conditions may be treated as a present-tense
+ * observation of the world. `unavailable` means nothing was retrieved; `stale`
+ * means the last good value is being served but is no longer current. In neither
+ * case may its conditions establish that a disruption has cleared.
+ */
+const OBSERVING_STATES: ReadonlySet<DataState> = new Set<DataState>(["live", "cached", "demo"]);
+
 function buildTimeline(
   reports: ProviderReport[],
   t: ProviderContext["t"],
   previous?: PreviousAssistState,
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
-  const responded = reports.filter((r) => r.state !== "unavailable");
-  const retrievedAt = responded[0]?.retrievedAt ?? nowIso();
+  const queried = reports.length > 0;
+  // Only sources that actually said something about *now* establish a
+  // present-tense observation. A failed or stale source did not.
+  const observing = reports.filter((r) => OBSERVING_STATES.has(r.state));
+  const retrievedAt = observing[0]?.retrievedAt ?? reports[0]?.retrievedAt ?? nowIso();
 
   events.push({
     id: "retrieved",
     at: retrievedAt,
     label: t("assist.timeline.sourcesChecked"),
+    // "Checked" counts every source we attempted, not only those that answered:
+    // a source that failed was still checked, and is disclosed in the coverage
+    // gaps rather than quietly dropped from the tally.
     detail: t(
-      responded.length === 1
+      queried && reports.length === 1
         ? "assist.timeline.sourcesQueried"
         : "assist.timeline.sourcesQueried.plural",
-      { count: responded.length },
+      { count: reports.length },
     ),
+    sourceIds: observing.map((r) => r.providerId),
   });
 
+  if (observing.length === 0) {
+    // Nothing current was retrieved. There is no observation to diff and no
+    // baseline to establish, so the timeline says exactly that.
+    if (queried) {
+      events.push({
+        id: "no-observation",
+        at: retrievedAt,
+        label: t("assist.timeline.noObservation"),
+        detail: t("assist.timeline.noObservationDetail"),
+      });
+    }
+    return events.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  }
+
   if (previous) {
-    const changes = detectConditionChanges(previous, reports, retrievedAt, t);
+    const comparable = previous.format === SNAPSHOT_FORMAT;
+    const changes = comparable ? detectConditionChanges(previous, reports, retrievedAt, t) : [];
     events.push(...changes);
     if (changes.length === 0) {
       // A comparison happened and found nothing new. Saying "no change" is
-      // truthful here precisely because there *was* a previous observation.
+      // truthful here precisely because there was a previous observation to
+      // compare against, and this one is current.
       events.push({
-        id: "no-change",
+        id: comparable ? "no-change" : "baseline",
         at: retrievedAt,
-        label: t("assist.timeline.noChange"),
-        detail: t("assist.timeline.noChangeDetail"),
+        label: t(comparable ? "assist.timeline.noChange" : "assist.timeline.baseline"),
+        detail: t(
+          comparable ? "assist.timeline.noChangeDetail" : "assist.timeline.baselineDetail",
+        ),
       });
     }
-  } else if (responded.length > 0) {
+  } else {
     // Be explicit that this is a first observation. "No changes detected" would
     // imply an earlier one that agreed; this says there was nothing to compare.
     events.push({
@@ -516,9 +571,17 @@ function buildTimeline(
 
 /**
  * Compares the current conditions with the previous observation and records only
- * genuine differences: a disruption that appeared, one that cleared, or a change
- * of severity. Fingerprints are provider-scoped and stable, so a condition that
- * simply moved position in the feed is not reported as a change.
+ * genuine differences: a disruption that appeared, one that cleared, or one
+ * whose severity changed. Identities are provider-scoped and stable, so a
+ * condition that simply moved position in the feed is not reported as a change.
+ *
+ * The honesty rules that matter here:
+ *   - only a source that answered for *now* (`live`/`cached`) can evidence a
+ *     clearance or an appearance. A source that timed out, was rate-limited or
+ *     served stale data tells us nothing about the world, so its previous
+ *     conditions are neither "cleared" nor treated as still present;
+ *   - a source that was unavailable before and answers now is *recovery*, which
+ *     is a change in what we know, not a change in the world.
  */
 function detectConditionChanges(
   previous: PreviousAssistState,
@@ -527,73 +590,124 @@ function detectConditionChanges(
   t: ProviderContext["t"],
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
+  const previousKeys = new Set(previous.conditionKeys);
+  const previousSeverities = previous.conditionSeverities ?? {};
+  // Whether the diff is trustworthy at all: at least one source observed now.
+  const hasCurrentObservation = reports.some((r) => OBSERVING_STATES.has(r.state));
+
   const currentByKey = new Map<string, ServiceCondition>();
+  /** Provider ids that actually observed now, for clearance comparisons. */
+  const currentlyObservedProviders = new Set<string>();
+  /** Providers that failed or went stale before and now observe again. */
+  const recoveredProviders = new Set<string>();
   for (const report of reports) {
+    if (!OBSERVING_STATES.has(report.state)) continue;
+    currentlyObservedProviders.add(report.providerId);
+    const was = previous.providerStates[report.providerId];
+    if (was !== undefined && !OBSERVING_STATES.has(was as DataState)) {
+      recoveredProviders.add(report.providerId);
+    }
     for (const condition of report.conditions) {
       currentByKey.set(conditionKey(condition), condition);
     }
   }
-  const previousKeys = new Set(previous.conditionKeys);
 
+  /**
+   * True when the source was already observing at the previous observation. Only
+   * then can a condition's presence or absence be a *change*; a source seen for
+   * the first time (or one recovering) is new knowledge, not a new event, and is
+   * reported as recovery instead.
+   */
+  const wasObserving = (providerId: string): boolean =>
+    OBSERVING_STATES.has(previous.providerStates[providerId] as DataState);
+
+  // Appearances and reclassifications.
   for (const [key, condition] of currentByKey) {
-    if (previousKeys.has(key)) continue;
-    events.push({
-      id: `appeared-${condition.id}`,
-      at,
-      label: t("assist.timeline.disruptionAppeared"),
-      detail: `${t(`assist.severity.${condition.severity}`)} — ${condition.title}`,
-      change: true,
-    });
+    if (!previousKeys.has(key)) {
+      if (!wasObserving(condition.providerId)) continue;
+      events.push({
+        id: `appeared-${condition.id}`,
+        at,
+        label: t("assist.timeline.disruptionAppeared"),
+        detail: `${t(`assist.severity.${condition.severity}`)} — ${condition.title}`,
+        change: true,
+        sourceIds: [condition.providerId],
+      });
+      continue;
+    }
+    const was = previousSeverities[key];
+    if (was && was !== condition.severity) {
+      events.push({
+        id: `reseverity-${condition.id}`,
+        at,
+        label: t("assist.timeline.severityChanged"),
+        detail: `${t("assist.timeline.severityFrom", { from: t(`assist.severity.${was}`) })} → ${t(
+          `assist.severity.${condition.severity}`,
+        )} — ${condition.title}`,
+        change: true,
+        sourceIds: [condition.providerId],
+      });
+    }
   }
 
+  // Clearances. Only a condition whose *own source* answered for now — and was
+  // already observing before — can be declared gone; otherwise we simply do not
+  // know and must not say so.
   for (const key of previousKeys) {
     if (currentByKey.has(key)) continue;
+    const providerId = key.split("|", 1)[0];
+    if (!currentlyObservedProviders.has(providerId) || !wasObserving(providerId)) continue;
     events.push({
       id: `cleared-${key}`,
       at,
       label: t("assist.timeline.disruptionCleared"),
       change: true,
+      sourceIds: [providerId],
     });
   }
 
-  // A provider that had failed and now answers is worth recording: it means a
-  // gap in the last page has closed.
-  for (const report of reports) {
-    const was = previous.providerStates[report.providerId];
-    if (was === "unavailable" && report.state !== "unavailable") {
-      events.push({
-        id: `provider-recovered-${report.providerId}`,
-        at: report.retrievedAt ?? at,
-        label: t("assist.timeline.sourceRecovered", { source: report.source.organization }),
-        change: true,
-      });
-    }
+  // A provider that had failed, or was serving stale data, and now answers
+  // current data has recovered. This is distinct from a disruption clearing: it
+  // is a change in what we could see, not in the world.
+  for (const providerId of recoveredProviders) {
+    const report = reports.find((r) => r.providerId === providerId);
+    if (!report) continue;
+    events.push({
+      id: `provider-recovered-${providerId}`,
+      at: report.retrievedAt ?? at,
+      label: t("assist.timeline.sourceRecovered", { source: report.source.organization }),
+      change: true,
+      sourceIds: [providerId],
+    });
   }
 
-  return events;
+  // Nothing above is a *condition* change if no source observed now.
+  return hasCurrentObservation ? events : [];
 }
 
-/** A stable per-provider fingerprint of one condition, for change detection. */
+/**
+ * A stable per-provider *identity* for one condition, excluding severity so the
+ * same condition is recognised across a reclassification. Severity is tracked
+ * separately in the snapshot.
+ */
 export function conditionKey(condition: ServiceCondition): string {
-  return [
-    condition.providerId,
-    condition.title,
-    condition.severity,
-    condition.from ?? "",
-    condition.to ?? "",
-  ].join("|");
+  return [condition.providerId, condition.title, condition.from ?? "", condition.to ?? ""].join("|");
 }
 
 /** The narrow snapshot the client sends back so the next page can diff it. */
 export function snapshotFor(reports: ProviderReport[]): PreviousAssistState {
+  const conditions = reports
+    .filter((report) => OBSERVING_STATES.has(report.state))
+    .flatMap((report) => report.conditions);
   return {
+    format: SNAPSHOT_FORMAT,
     providerStates: Object.fromEntries(
       reports.map((report) => [report.providerId, report.state]),
     ),
-    conditionKeys: reports
-      .flatMap((report) => report.conditions)
-      .map(conditionKey)
-      .sort(),
+    conditionKeys: conditions.map(conditionKey).sort(),
+    conditionSeverities: Object.fromEntries(
+      conditions.map((condition) => [conditionKey(condition), condition.severity]),
+    ),
   };
 }
 
@@ -829,8 +943,20 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
   });
 
   const providers = rankProviders(usable);
+  // Discovery providers find *pages*; status providers report *conditions*. They
+  // are run separately so a discovered lead can never influence whether the page
+  // says a situation is live, clear or unknown — that judgement belongs only to
+  // sources that actually reported a present-tense status.
+  const statusProviders = providers.filter((p) => p.metadata.id !== GOOGLE_PROVIDER_ID);
+  const discoveryProviders = providers.filter((p) => p.metadata.id === GOOGLE_PROVIDER_ID);
+
   const context: ProviderContext = { t, fetchImpl: input.fetchImpl ?? fetch };
-  const reports = providers.length > 0 ? await gatherReports(providers, classifiedInput, context) : [];
+  const [reports, discoveryReports] = await Promise.all([
+    statusProviders.length > 0 ? gatherReports(statusProviders, classifiedInput, context) : [],
+    discoveryProviders.length > 0
+      ? gatherReports(discoveryProviders, classifiedInput, context)
+      : [],
+  ]);
 
   const conditions = reports
     .flatMap((report) => report.conditions)
@@ -846,13 +972,28 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     t,
   );
   const recommendations = buildRecommendations(classifiedInput, reports, hasDisruption, t);
-  const coverageGaps = buildGaps(skipped, reports, t);
+  // Coverage gaps describe what we could not *report on*. A discovery provider
+  // without credentials is a deployment-configuration fact, not a gap in the
+  // traveller's situation, so it is filtered out here (it is still reported in
+  // the health endpoint and the docs).
+  const coverageGaps = buildGaps(
+    skipped.filter((entry) => entry.provider.metadata.id !== GOOGLE_PROVIDER_ID),
+    reports,
+    t,
+  );
   const sources = toAssistSources(reports, t);
-  // The directory only stands in for evidence when there is no evidence. Once a
-  // live provider has answered, the source panel already names the authority and
-  // a list of "places to check" would be noise.
-  const references =
-    responded.length === 0 ? toReferences(countryCode, effectiveCategory) : [];
+  // Discovery leads: pages a web-search provider surfaced that the curated
+  // directory does not already name. They are kept separate from `sources`
+  // because nothing was retrieved from them.
+  const findings = dedupeFindings(discoveryReports);
+  // The directory stands in for evidence when there is no evidence: once a live
+  // authority has answered, listing "places to check" beside it is noise.
+  // Discovery leads are different — they are additive leads, and are appended
+  // after the directory so the curated authority always reads first.
+  const references = [
+    ...(responded.length === 0 ? toReferences(countryCode, effectiveCategory) : []),
+    ...toDiscoveryReferences(findings, countryCode, effectiveCategory, t),
+  ];
   const rightsNotes =
     effectiveCategory === "flights" || effectiveCategory === "stranded"
       ? selectRightsNotes({}, t)
@@ -907,7 +1048,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
       classificationNote,
       effectiveCategory,
       input.category,
-      references.length > 0,
+      responded.length === 0,
     ),
     aiConfigured: explanation.aiGenerated,
   };
@@ -925,7 +1066,56 @@ function toReferences(
     url: entry.url,
     covers: entry.covers,
     official: true,
+    origin: "directory" as const,
   }));
+}
+
+/** Flattens and deduplicates discovery findings across providers, by URL. */
+function dedupeFindings(reports: ProviderReport[]): SearchFinding[] {
+  const seen = new Set<string>();
+  const findings: SearchFinding[] = [];
+  for (const report of reports) {
+    for (const finding of report.findings ?? []) {
+      if (seen.has(finding.url)) continue;
+      seen.add(finding.url);
+      findings.push(finding);
+    }
+  }
+  return findings;
+}
+
+/**
+ * Converts discovery findings into traveller-facing references, dropping any URL
+ * the curated directory already lists (so a page is never shown twice) and any
+ * finding that is not a plain http(s) URL.
+ */
+function toDiscoveryReferences(
+  findings: SearchFinding[],
+  countryCode: string | undefined,
+  category: AssistanceCategory,
+  t: ProviderContext["t"],
+): AssistReference[] {
+  const known = new Set(
+    directoryFor(countryCode, category).map((entry) => entry.url.toLowerCase()),
+  );
+  return findings
+    .filter((finding) => !known.has(finding.url.toLowerCase()))
+    .map((finding) => ({
+      id: finding.id,
+      organization: finding.organization,
+      title: finding.title,
+      url: finding.url,
+      // Never imply we read it. The lead is a page to check; the copy says so.
+      covers: t(
+        finding.likelyOfficial
+          ? "assist.discovery.coversOfficial"
+          : "assist.discovery.coversSecondary",
+      ),
+      official: finding.likelyOfficial,
+      origin: "discovery" as const,
+      domain: finding.domain,
+      discoveredAt: finding.discoveredAt,
+    }));
 }
 
 function buildUncertain(
