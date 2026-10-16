@@ -54,7 +54,7 @@ const en: Messages = {
   "intent.savedFlight.open": "Open it",
 
   // --- Category shortcuts -------------------------------------------------
-  "shortcuts.title": "Supported situations",
+  "shortcuts.title": "Or start from a situation",
   "shortcuts.note":
     "Every shortcut opens the flow with that situation already chosen. Availability of live sources depends on your location and is stated on the result page.",
   "shortcuts.flights": "Flights",
@@ -1241,7 +1241,7 @@ const es: Messages = {
   "intent.savedFlight": "Tienes una situación de vuelo guardada.",
   "intent.savedFlight.open": "Abrirla",
 
-  "shortcuts.title": "Situaciones compatibles",
+  "shortcuts.title": "O empieza por una situación",
   "shortcuts.note":
     "Cada acceso directo abre el flujo con esa situación ya elegida. La disponibilidad de fuentes en directo depende de tu ubicación y se indica en la página de resultados.",
   "shortcuts.flights": "Vuelos",

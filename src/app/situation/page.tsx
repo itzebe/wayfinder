@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -26,7 +26,7 @@ import { isLocaleCode } from "@/lib/i18n/locales";
 function SituationPageInner() {
   const searchParams = useSearchParams();
   const { locale, setLocale, t } = useLocale();
-  const { situation, status, request, refreshNow, refreshing, buildSituation } = useSituation();
+  const { situation, status, request, buildSituation } = useSituation();
 
   const requestedLocale = searchParams.get("locale");
   const rebuilding = useRef(false);
@@ -57,7 +57,7 @@ function SituationPageInner() {
     <>
       <SiteHeader />
       <main id="main" className="shell py-8 lg:py-12">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <Link
             href="/help"
             className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-600 hover:text-ink-900"
@@ -65,16 +65,6 @@ function SituationPageInner() {
             <ArrowLeft className="size-4" aria-hidden="true" />
             {t("situation.backToForm")}
           </Link>
-
-          {situation ? (
-            <Button variant="ghost" size="sm" onClick={refreshNow} disabled={refreshing}>
-              <RefreshCw
-                className={refreshing ? "size-4 animate-spin" : "size-4"}
-                aria-hidden="true"
-              />
-              {t("situation.refresh")}
-            </Button>
-          ) : null}
         </div>
 
         {!situation && pending ? <SituationSkeleton /> : null}

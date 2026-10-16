@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -38,7 +38,7 @@ import {
 function AssistPageInner() {
   const searchParams = useSearchParams();
   const { locale, setLocale, t } = useLocale();
-  const { assistance, status, request, buildAssistance, refreshNow, refreshing } = useAssistance();
+  const { assistance, status, request, buildAssistance } = useAssistance();
 
   const requestedLocale = searchParams.get("locale");
   const urlRequest = useMemo(
@@ -132,7 +132,7 @@ function AssistPageInner() {
     <>
       <SiteHeader />
       <main id="main" className="shell py-8 lg:py-12">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <Link
             href="/support"
             className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-600 hover:text-ink-900"
@@ -140,16 +140,6 @@ function AssistPageInner() {
             <ArrowLeft className="size-4" aria-hidden="true" />
             {t("assist.backToForm")}
           </Link>
-
-          {assistance && !ambiguousCountries ? (
-            <Button variant="ghost" size="sm" onClick={refreshNow} disabled={refreshing}>
-              <RefreshCw
-                className={refreshing ? "size-4 animate-spin" : "size-4"}
-                aria-hidden="true"
-              />
-              {t("situation.refresh")}
-            </Button>
-          ) : null}
         </div>
 
         {ambiguousCountries ? (

@@ -31,10 +31,7 @@ export function Hero() {
       <div className="shell relative grid grid-cols-[minmax(0,1fr)] gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14 lg:py-16 xl:py-20">
         <div className="animate-[rise_0.5s_var(--ease-out-soft)_both]">
           <p className="inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-50 px-3 py-1.5 text-xs font-medium text-accent-800">
-            <span className="relative flex size-1.5" aria-hidden="true">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent-500 opacity-60" />
-              <span className="relative inline-flex size-1.5 rounded-full bg-accent-600" />
-            </span>
+            <span className="inline-flex size-1.5 rounded-full bg-accent-600" aria-hidden="true" />
             {t("hero.eyebrow")}
           </p>
 

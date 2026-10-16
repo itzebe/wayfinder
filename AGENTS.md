@@ -94,6 +94,24 @@ These are enforced by the product's purpose, not style preference. Do not break 
   registered in `src/lib/assist/registry.ts`. Aviation adapters stay in
   `src/lib/providers/`. Both must normalise + validate before returning; shared
   cache/HTTP helpers are in `src/lib/core/`.
+- One control, one job. A page must not render two controls with the same
+  accessible name doing the same thing. Refresh lives once, next to the
+  freshness badge (`SituationHeader` / the assist view header); the page shell in
+  `src/app/situation/page.tsx` and `src/app/assist/page.tsx` carries only the
+  Back link. Duplicate `Refresh now` buttons were confirmed by walking the
+  accessibility tree (`tests/` CDP helpers), which is how to re-check this.
+- Disabled is never just faded. `Button`'s disabled state sets its own
+  `paper-200`/`ink-500` pair (≈5.8:1) rather than `opacity-50`, which washed the
+  white-on-teal label down to 3.5:1 and failed WCAG 2.2 AA. Keep any bespoke
+  control's disabled state on the same pair. `IntentEntry`'s submit is the
+  hand-rolled case to copy from.
+- Two different things must not share a heading. `shortcuts.title` ("Or start
+  from a situation") is the hero chip group; `situations.title` ("Supported
+  situations") is the `#situations` section. They collided, producing two
+  identically titled headings on one page.
+- Decorative "live" affordances are banned. A pulsing dot implies an active feed;
+  the hero eyebrow dot is now static. Only `DataStateBadge` may say "live", and
+  only from a real `DataState`.
 
 ## Verifying UI changes
 
