@@ -127,7 +127,7 @@ export type AssistStatus = "idle" | "loading" | "ready" | "error";
  * situation rendered differently — a language switch, say — and their change
  * history should follow.
  */
-function assistRequestIdentity(request: AssistRequest): string {
+export function assistRequestIdentity(request: AssistRequest): string {
   return [
     request.category,
     request.location?.trim() ?? "",
