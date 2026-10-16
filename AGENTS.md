@@ -151,6 +151,21 @@ asserting on markup:
   behind an unnecessary prompt. In the UI, `AskForPlace` (`src/app/assist/page.tsx`)
   renders that prompt; its `countryOnly` flag is gated on `reconciled`, so a stale
   answer cannot suppress the rebuild that the traveller's new city requires.
+- The place prompt is also reached **without a round trip**. `countryLevelCoverage`
+  (`src/lib/assist/registry.ts`) derives, per category, which countries a provider
+  can answer from the country name alone by calling each provider's own
+  `supports()` with the same bare-country query the engine would — so the interface
+  and the engine cannot disagree, and a hand-written "countries that work" table
+  cannot drift from the providers. It is published on `GET /api/assist` and consumed
+  by `src/lib/assist/countryHint.ts` (`needsPlacePrompt`), which preempts only a
+  request carrying nothing but a country name: any `description`/`network`/`from`/`to`
+  disables the shortcut, because USGS and DWD's road branch make `supports()` depend
+  on the traveller's own words, which a catalogue cannot evaluate. Absent coverage
+  (slow or failed fetch) only costs the shortcut, never produces a wrong prompt.
+  Two gates differ deliberately: the client `urlNeedsPlace` is computed from the
+  URL, so it needs **no** `reconciled` gate and must not have one; the server
+  `countryOnly` describes a past answer and must keep it. Only a bare country waits
+  for the catalogue to settle (`coverageSettled`); a city query never waits.
 - The in-page language select is `#assist-view-locale`; the header menu is a
   disclosure button with `aria-controls="mobile-menu"` (44px, Escape returns focus).
 - After `scrollIntoView`, wait a frame before reading `getBoundingClientRect` —

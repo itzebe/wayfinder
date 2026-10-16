@@ -169,7 +169,81 @@ try {
   check(!prompt.claimsNoCoverage, "the page claims no source covers a country the forecast covers");
   check(!prompt.falseVerdict, "the page reports a coverage verdict instead of asking for a place");
 
+  // --- The prompt must appear without a server round trip ------------------
+  // The country-level coverage is published, so the page already knows no source
+  // can answer "Iceland". Building the situation first would spend a round trip
+  // (0.3-1.2s in production) to learn what we knew. Measured, not assumed: a POST
+  // to /api/assist before the prompt is the delay this guard exists to catch.
+  await evaluate(
+    client,
+    `(() => {
+      window.__wfPosts = [];
+      const original = window.fetch;
+      window.__wfRestore = () => { window.fetch = original; };
+      window.fetch = function (input, init) {
+        const url = typeof input === "string" ? input : input.url;
+        if ((init?.method || "GET").toUpperCase() === "POST" && url.includes("/api/assist")) {
+          window.__wfPosts.push(url);
+        }
+        return original.call(window, input, init);
+      };
+      return true;
+    })()`,
+  );
+  await client.send("Page.navigate", {
+    url: `${BASE}/assist?category=weather&location=Nepal&locale=en`,
+  });
+  await waitFor(
+    client,
+    `[...document.querySelectorAll('button')].some(b => /check this place/i.test(b.textContent || ""))`,
+  );
+  const postsBeforePrompt = await evaluate(
+    client,
+    `(() => {
+      const count = window.__wfPosts ? window.__wfPosts.length : 0;
+      window.__wfRestore?.();
+      return count;
+    })()`,
+  );
+  console.log("POSTs before the prompt appeared:", postsBeforePrompt);
+  check(
+    postsBeforePrompt === 0,
+    `the prompt waited for ${postsBeforePrompt} /api/assist round trip(s) it did not need`,
+  );
+
+  // --- A country a nationwide source answers must still show its page ------
+  // DWD covers all of Germany, so "Germany" alone is answerable. Preempting it
+  // with a place prompt would hide the real page.
+  await client.send("Page.navigate", {
+    url: `${BASE}/assist?category=weather&location=Germany&locale=en`,
+  });
+  await waitFor(client, `Boolean(document.querySelector("h1"))`, 25000);
+  await sleep(1500);
+  const germany = await evaluate(
+    client,
+    `(() => {
+      const body = document.body.innerText;
+      return {
+        askedForPlace: [...document.querySelectorAll("button")].some(b => /check this place/i.test(b.textContent || "")),
+        hasSources: /official sources/i.test(body),
+        namesGermany: /German/i.test(body),
+      };
+    })()`,
+  );
+  console.log("Germany (nationwide source):", JSON.stringify(germany));
+  check(!germany.askedForPlace, "Germany was asked for a place even though a nationwide source answers it");
+  check(germany.hasSources, "Germany's real page did not render its sources");
+
   // --- Answering with a city must render the real situation page ----------
+  // Back to the country-only prompt, so the city is typed into the page that
+  // actually asks for one.
+  await client.send("Page.navigate", {
+    url: `${BASE}/assist?category=weather&location=Iceland&locale=en`,
+  });
+  await waitFor(
+    client,
+    `[...document.querySelectorAll('button')].some(b => /check this place/i.test(b.textContent || ""))`,
+  );
   await typeReal(client, `document.querySelector("input[placeholder]")`, "Reykjavik");
   await sleep(300);
   await clickReal(

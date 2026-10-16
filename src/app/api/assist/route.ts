@@ -17,7 +17,7 @@ import { NextResponse } from "next/server";
 
 import { composeAssistance } from "@/lib/assist/engine";
 import { assistRequestSchema, assistFieldErrors } from "@/lib/assist/schema";
-import { providerCatalogue, providersForCategory } from "@/lib/assist/registry";
+import { providerCatalogue, providersForCategory, countryLevelCoverage } from "@/lib/assist/registry";
 import { categoriesWithProviders, supportedCountries, CATEGORY_ORDER } from "@/lib/assist/categories";
 import { clearCache } from "@/lib/core/cache";
 import { translate } from "@/lib/i18n/messages";
@@ -92,6 +92,11 @@ export async function GET() {
       })),
       categoriesWithProviders: categoriesWithProviders(),
       supportedCountries: supportedCountries(),
+      // Which countries each category can answer from a country name alone.
+      // Derived from the providers' own supports(), so the interface can ask for
+      // a city immediately instead of after a round trip — and cannot disagree
+      // with the engine about what needs one.
+      countryLevelCoverage: countryLevelCoverage(),
       providers: catalogue,
     },
     { headers: { "Cache-Control": "no-store" } },

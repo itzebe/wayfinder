@@ -15,6 +15,12 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 import { useAssistance, assistRequestIdentity } from "@/components/providers/AssistanceProvider";
 import { isLocaleCode } from "@/lib/i18n/locales";
 import { countryName, resolveCity } from "@/lib/assist/location";
+import {
+  bareCountryOf,
+  loadCountryLevelCoverage,
+  needsPlacePrompt,
+  type CountryLevelCoverage,
+} from "@/lib/assist/countryHint";
 import { assistHref } from "@/lib/assist/request-link";
 import {
   assistRequestFromParams,
@@ -39,6 +45,24 @@ function AssistPageInner() {
   const searchParams = useSearchParams();
   const { locale, setLocale, t } = useLocale();
   const { assistance, status, request, buildAssistance } = useAssistance();
+
+  // Published country-level coverage, so a bare country name can be recognised
+  // before the engine answers. Loaded once per session. `settled` distinguishes
+  // "still loading" from "loaded, and unavailable" — a failed fetch must not
+  // leave a bare country waiting forever for an answer that is not coming.
+  const [countryCoverage, setCountryCoverage] = useState<CountryLevelCoverage | undefined>();
+  const [coverageSettled, setCoverageSettled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void loadCountryLevelCoverage().then((coverage) => {
+      if (cancelled) return;
+      setCountryCoverage(coverage);
+      setCoverageSettled(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const requestedLocale = searchParams.get("locale");
   const urlRequest = useMemo(
@@ -102,11 +126,45 @@ function AssistPageInner() {
   // back.
   const countryOnly = assistance?.query.countryOnly === true && reconciled;
 
+  // The same conclusion, reached before the engine answers. The URL names a bare
+  // country the published coverage says no source can respond to, so the prompt
+  // can be shown now instead of after a round trip.
+  //
+  // This needs no `reconciled` gate and must not have one: it is computed from
+  // the URL, which is the source of truth for the search on screen, so it is
+  // never stale. The moment the URL names a city it is false and the rebuild
+  // below runs freely. That is the opposite of `countryOnly` above, which
+  // describes a *past* answer and would suppress the rebuild if left ungated.
+  const urlNeedsPlace = urlRequest
+    ? needsPlacePrompt(urlRequest, countryCoverage)
+    : undefined;
+  // A bare country whose coverage is still loading: hold the fetch for one tick
+  // rather than spending a round trip we are about to learn was unnecessary.
+  // Bounded by `coverageSettled`, so a slow or failed catalogue delays nothing
+  // beyond the fetch resolving — and only a bare country waits at all; a city
+  // query never reaches here.
+  const awaitingCoverage = Boolean(
+    urlRequest && !coverageSettled && bareCountryOf(urlRequest),
+  );
+  // Either source asks the same question; the URL's answer is the fresher one.
+  const placePrompt = urlNeedsPlace
+    ? { countryCode: urlNeedsPlace.countryCode, countryName: urlNeedsPlace.countryName }
+    : countryOnly
+      ? {
+          countryCode: assistance!.query.countryCode ?? "",
+          countryName: countryName(assistance!.query.countryCode) ?? "",
+        }
+      : undefined;
+  const showPlacePrompt = Boolean(placePrompt);
+
   // Reconcile the URL with what is stored. Runs when the query string changes —
   // including a Back/Forward navigation — so the visible situation always
   // matches the address bar.
   useEffect(() => {
-    if (ambiguousCountries || countryOnly) return;
+    // A prompt is on screen, so there is nothing to fetch: the request cannot be
+    // answered as it stands. Building it anyway would spend the very round trip
+    // the prompt exists to avoid.
+    if (ambiguousCountries || showPlacePrompt || awaitingCoverage) return;
     if (!urlRequest) return;
     if (!isRunnableAssistRequest(urlRequest)) return;
     if (sameAssistRequest(urlRequest, request)) return;
@@ -117,7 +175,15 @@ function AssistPageInner() {
     void buildAssistance({ ...urlRequest, locale: targetLocale }).finally(() => {
       if (rebuilding.current === identity) rebuilding.current = null;
     });
-  }, [urlRequest, request, targetLocale, buildAssistance, ambiguousCountries, countryOnly]);
+  }, [
+    urlRequest,
+    request,
+    targetLocale,
+    buildAssistance,
+    ambiguousCountries,
+    showPlacePrompt,
+    awaitingCoverage,
+  ]);
 
   // Rebuild once per active language so the explanation follows whichever
   // language control the user touched — the header menu or the in-page select.
@@ -143,8 +209,9 @@ function AssistPageInner() {
 
   const pending =
     !ambiguousCountries &&
-    !countryOnly &&
-    (status === "loading" ||
+    !showPlacePrompt &&
+    (awaitingCoverage ||
+      status === "loading" ||
       !reconciled ||
       (Boolean(request) && assistance?.locale !== targetLocale));
   const needsMoreDetail =
@@ -170,21 +237,21 @@ function AssistPageInner() {
             options={ambiguousCountries}
             request={urlRequest!}
           />
-        ) : countryOnly ? (
+        ) : showPlacePrompt ? (
           <AskForPlace
-            country={assistance!.query.countryCode ?? ""}
-            countryName={countryName(assistance!.query.countryCode) ?? ""}
+            country={placePrompt!.countryCode}
+            countryName={placePrompt!.countryName}
             request={urlRequest ?? request}
           />
         ) : null}
-        {!ambiguousCountries && !countryOnly && !assistance && pending ? <AssistSkeleton /> : null}
-        {!ambiguousCountries && !countryOnly && !assistance && !pending && needsMoreDetail ? (
+        {!ambiguousCountries && !showPlacePrompt && !assistance && pending ? <AssistSkeleton /> : null}
+        {!ambiguousCountries && !showPlacePrompt && !assistance && !pending && needsMoreDetail ? (
           <NeedMoreDetail />
         ) : null}
-        {!ambiguousCountries && !countryOnly && !assistance && !pending && !needsMoreDetail ? (
+        {!ambiguousCountries && !showPlacePrompt && !assistance && !pending && !needsMoreDetail ? (
           <EmptyAssistance />
         ) : null}
-        {!ambiguousCountries && !countryOnly && assistance ? (
+        {!ambiguousCountries && !showPlacePrompt && assistance ? (
           <AssistView assistance={assistance} />
         ) : null}
       </main>

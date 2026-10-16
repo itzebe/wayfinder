@@ -10,7 +10,8 @@
 
 import { composeAssistance, snapshotFor } from "@/lib/assist/engine";
 import { clearCache } from "@/lib/core/cache";
-import { selectProviders, rankProviders } from "@/lib/assist/registry";
+import { selectProviders, rankProviders, countryLevelCoverage } from "@/lib/assist/registry";
+import { bareCountryOf, needsPlacePrompt } from "@/lib/assist/countryHint";
 import { classifyDescription } from "@/lib/assist/categories";
 import { resolveLocation } from "@/lib/assist/location";
 import { looksOfficial, normaliseFindings, GOOGLE_PROVIDER_ID } from "@/lib/assist/providers/discovery";
@@ -1948,6 +1949,124 @@ test("source panel: a model forecast is marked as a forecast, not an authority",
     "only the model provider is marked as a forecast",
   );
   assert(authority === undefined || authority.forecast !== true, "an authority is never a forecast");
+});
+
+// --- Immediate place prompt -------------------------------------------------
+
+test("hint: the derived coverage agrees with the engine on every country", async () => {
+  // The interface decides whether to ask for a city from this derived map. If it
+  // disagreed with the engine, the page would either ask for a place a source
+  // could have answered, or wait for a round trip it did not need. So the map is
+  // checked against the engine itself, country by country.
+  const coverage = countryLevelCoverage();
+
+  // A country the map says is answerable must produce a page, not an ask.
+  for (const countryCode of coverage.weather ?? []) {
+    const page = await composeAssistance({
+      category: "weather",
+      countryCode,
+      location: countryCode,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(
+      page.query.countryOnly,
+      undefined,
+      `${countryCode} is listed as answerable but the engine asked for a place`,
+    );
+  }
+
+  // And a country the map omits must produce the ask, never a verdict.
+  for (const countryCode of ["IS", "NP", "DJ", "JP", "BR", "NG"]) {
+    assert(
+      !(coverage.weather ?? []).includes(countryCode),
+      `${countryCode} is wrongly listed as answerable from a country name`,
+    );
+    const page = await composeAssistance({
+      category: "weather",
+      countryCode,
+      location: countryCode,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(
+      page.query.countryOnly,
+      true,
+      `${countryCode} should ask for a place, not answer one`,
+    );
+  }
+});
+
+test("hint: a bare country with no answering source prompts at once", () => {
+  const coverage = countryLevelCoverage();
+  // Iceland: the global forecast covers it, but needs a point, so no source can
+  // answer "Iceland" alone.
+  const prompt = needsPlacePrompt({ category: "weather", location: "Iceland" }, coverage);
+  assert(prompt !== undefined, "a bare country nothing can answer must prompt");
+  assertEqual(prompt?.countryCode, "IS", "the prompt names the country the traveller gave");
+  assertEqual(prompt?.countryName, "Iceland", "with its display name");
+});
+
+test("hint: a country a nationwide source answers is never preempted", () => {
+  const coverage = countryLevelCoverage();
+  // Germany is answered by DWD with no city. Prompting here would hide the real
+  // page, which is the defect this whole path exists to avoid.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Germany" }, coverage),
+    undefined,
+    "Germany must not be preempted",
+  );
+  // The same country under a category no nationwide source serves *does* need a
+  // place, so the decision is per-category, not per-country.
+  assert(
+    needsPlacePrompt({ category: "metro", location: "Germany" }, coverage) !== undefined,
+    "metro for Germany needs a place even though weather does not",
+  );
+});
+
+test("hint: a city, a region or free text is never preempted", () => {
+  const coverage = countryLevelCoverage();
+  // A named place is already specific: "Reykjavik, Iceland" has a city.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Reykjavik, Iceland" }, coverage),
+    undefined,
+    "a place inside the country is not a bare country",
+  );
+  // A description can make a provider apply that the catalogue cannot evaluate,
+  // so a request carrying one always goes to the server.
+  assertEqual(
+    needsPlacePrompt(
+      { category: "weather", location: "Iceland", description: "earthquake tremor" },
+      coverage,
+    ),
+    undefined,
+    "free text must not be preempted",
+  );
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Iceland", network: "Line 1" }, coverage),
+    undefined,
+    "a network name must not be preempted",
+  );
+  // A city the table knows resolves to its country, so it is not a bare country.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Paris" }, coverage),
+    undefined,
+    "a known city is not a bare country",
+  );
+});
+
+test("hint: without the coverage nothing is preempted", () => {
+  // The catalogue may be slow or blocked. Absent coverage must cost the shortcut
+  // and nothing else — never produce a prompt on a guess.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Iceland" }, undefined),
+    undefined,
+    "an unknown coverage must fall back to the server",
+  );
+  // The bare-country test itself needs no coverage, which is what lets a bare
+  // country wait one tick for the catalogue while a city proceeds immediately.
+  assert(bareCountryOf({ category: "weather", location: "Iceland" }) !== undefined, "bare country detected");
+  assertEqual(bareCountryOf({ category: "weather", location: "Reykjavik, Iceland" }), undefined, "city is not bare");
 });
 
 run()
