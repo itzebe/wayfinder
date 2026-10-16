@@ -866,6 +866,10 @@ const en: Messages = {
   "assist.headline.clear": "{category}: no disruption reported by the sources we checked.",
   "assist.headline.noCoverage":
     "{category}: no live source covers this selection, so nothing could be verified.",
+  "assist.headline.directoryOnly":
+    "{category}: no live feed covers this selection yet, so the official bodies are listed below.",
+  "assist.headline.sourcesUnreachable":
+    "{category}: the sources for this selection could not be reached, so nothing could be verified.",
 
   "assist.section.summary": "Situation summary",
   "assist.section.conditions": "What the sources report",
@@ -946,6 +950,7 @@ const en: Messages = {
   "assist.gap.needsCredentials": "{provider} requires credentials that are not configured, so it was not used.",
   "assist.gap.providerDown": "{provider} could not be reached, so its information is missing here.",
   "assist.gap.noProvider": "No official data source covers this selection yet, so nothing could be verified. Treat any detail below as unconfirmed and check with the responsible organisation directly.",
+  "assist.gap.directoryOnly": "No live data feed covers this selection in this deployment, so we could not retrieve a status. The official bodies responsible for this place are listed below for you to check directly.",
   "assist.gap.staleData": "{provider} could not be refreshed; the last known result is shown and marked out of date.",
 
   "assist.source.coversDefault": "Official source.",
@@ -1000,13 +1005,21 @@ const en: Messages = {
     "You asked about {category}{place}. No live source covers this place, so nothing could be verified automatically.",
   "assist.fallback.noSourceMeaning":
     "We did not find a live data source for this place, so we have not reported a status either way — the situation here is unknown, not clear. The official pages listed below are the authorities responsible for this location; check them directly, and confirm anything that affects your own journey with the operator.",
+  "assist.fallback.directoryOnlySummary":
+    "You asked about {category}{place}. No live data feed covers this place in this deployment, so nothing could be verified automatically.",
+  "assist.fallback.directoryOnlyMeaning":
+    "We have the official bodies for this location but no live feed that reports their status, so the situation is unknown, not clear. The official pages listed below are the authorities responsible here; check them directly. Switching to a supported city (for example London, New York or Berlin) may give a live answer.",
+  "assist.fallback.sourcesUnreachableSummary":
+    "You asked about {category}{place}. A source that normally covers this place could not be reached just now, so nothing could be verified automatically.",
+  "assist.fallback.sourcesUnreachableMeaning":
+    "This is a temporary problem reaching the source, not a lack of coverage: the source exists and is configured for this deployment. Try refreshing in a moment. If it keeps failing, use the official links below to check directly.",
   "assist.uncertain.noLiveProvider":
     "No live provider covers this place, so the situation is unknown rather than confirmed clear.",
 
   // --- Official-page directory ------------------------------------------------
   "assist.section.references": "Official pages to check",
   "assist.references.intro":
-    "No live data source covers this place, so we could not retrieve a status automatically. These are the official bodies responsible for this location — open them to check directly.",
+    "No live data feed covers this place, so we could not retrieve a status automatically. These are the official bodies responsible for this location — open them to check directly.",
   "assist.references.official": "Official",
   "assist.references.open": "Open official page",
   "assist.references.none":
@@ -1091,6 +1104,14 @@ const en: Messages = {
   "assist.discovery.noResults":
     "Web search returned no additional pages for this situation.",
   "assist.discovery.badge": "Found by search",
+  "assist.discovery.state.notConfigured":
+    "Web-search discovery is not enabled for this deployment, so only the curated official sources are listed.",
+  "assist.discovery.state.unreachable":
+    "Web-search discovery is configured but could not be reached for this query, so only the curated official sources are listed. This is a problem reaching one source, not a lack of coverage for this place.",
+  "assist.discovery.state.notPermitted":
+    "Web-search discovery is configured but the provider refused the request (its API plan does not allow the paid search-grounding feature). This is a deployment limitation, not a coverage gap for this place.",
+  "assist.discovery.state.noResults":
+    "Web search ran for this situation but returned no additional pages beyond the official sources listed.",
 
   "support.flight.title": "Flight disruption",
   "support.flight.body":
@@ -1970,6 +1991,10 @@ const es: Messages = {
   "assist.headline.clear": "{category}: las fuentes consultadas no informan de incidencias.",
   "assist.headline.noCoverage":
     "{category}: ninguna fuente en directo cubre esta selección, así que no se pudo verificar nada.",
+  "assist.headline.directoryOnly":
+    "{category}: todavía ninguna fuente en directo cubre esta selección, así que los organismos oficiales figuran abajo.",
+  "assist.headline.sourcesUnreachable":
+    "{category}: no se pudo contactar con las fuentes de esta selección, así que no se pudo verificar nada.",
 
   "assist.section.summary": "Resumen de la situación",
   "assist.section.conditions": "Lo que informan las fuentes",
@@ -2051,6 +2076,7 @@ const es: Messages = {
   "assist.gap.providerDown": "No se pudo contactar con {provider}, así que aquí falta su información.",
   "assist.gap.staleData": "No se pudo actualizar {provider}; se muestra el último resultado conocido y marcado como desactualizado.",
   "assist.gap.noProvider": "Ninguna fuente de datos oficial cubre todavía esta selección, así que no se pudo verificar nada. Trata cualquier detalle de abajo como no confirmado y compruébalo directamente con la organización responsable.",
+  "assist.gap.directoryOnly": "Ninguna fuente de datos en directo cubre esta selección en esta implementación, así que no pudimos obtener un estado. Abajo figuran los organismos oficiales responsables de este lugar para que los consultes directamente.",
 
   "assist.source.coversDefault": "Fuente oficial.",
   "assist.source.unavailable": "No se pudo contactar con esta fuente para esta consulta.",
@@ -2104,13 +2130,21 @@ const es: Messages = {
     "Has preguntado por {category}{place}. Ninguna fuente en directo cubre este lugar, así que no se pudo verificar nada automáticamente.",
   "assist.fallback.noSourceMeaning":
     "No encontramos ninguna fuente de datos en directo para este lugar, así que no hemos informado de ningún estado: la situación aquí es desconocida, no despejada. Las páginas oficiales de abajo son las autoridades responsables de esta ubicación; consúltalas directamente y confirma con el operador todo lo que afecte a tu propio trayecto.",
+  "assist.fallback.directoryOnlySummary":
+    "Has preguntado por {category}{place}. Ninguna fuente de datos en directo cubre este lugar en esta implementación, así que nada pudo verificarse automáticamente.",
+  "assist.fallback.directoryOnlyMeaning":
+    "Tenemos los organismos oficiales de esta ubicación, pero ninguna fuente en directo que informe de su estado, así que la situación es desconocida, no despejada. Las páginas oficiales de abajo son las autoridades responsables aquí; consúltalas directamente. Cambiar a una ciudad compatible (por ejemplo Londres, Nueva York o Berlín) puede dar una respuesta en directo.",
+  "assist.fallback.sourcesUnreachableSummary":
+    "Has preguntado por {category}{place}. No se pudo contactar ahora mismo con una fuente que normalmente cubre este lugar, así que nada pudo verificarse automáticamente.",
+  "assist.fallback.sourcesUnreachableMeaning":
+    "Es un problema temporal para contactar con la fuente, no una falta de cobertura: la fuente existe y está configurada para esta implementación. Intenta actualizar dentro de un momento. Si sigue fallando, usa los enlaces oficiales de abajo para comprobarlo directamente.",
   "assist.uncertain.noLiveProvider":
     "Ningún proveedor en directo cubre este lugar, así que la situación es desconocida en lugar de estar confirmada como despejada.",
 
   // --- Directorio de páginas oficiales ---------------------------------------
   "assist.section.references": "Páginas oficiales que consultar",
   "assist.references.intro":
-    "Ninguna fuente de datos en directo cubre este lugar, así que no pudimos obtener un estado automáticamente. Estos son los organismos oficiales responsables de esta ubicación: ábrelos para comprobarlo directamente.",
+    "Ningún canal de datos en directo cubre este lugar, así que no pudimos obtener un estado automáticamente. Estos son los organismos oficiales responsables de esta ubicación: ábrelos para comprobarlo directamente.",
   "assist.references.official": "Oficial",
   "assist.references.open": "Abrir página oficial",
   "assist.references.none":
@@ -2196,6 +2230,14 @@ const es: Messages = {
   "assist.discovery.noResults":
     "La búsqueda web no devolvió páginas adicionales para esta situación.",
   "assist.discovery.badge": "Encontrada por búsqueda",
+  "assist.discovery.state.notConfigured":
+    "La búsqueda web no está activada en esta implementación, así que solo se enumeran las fuentes oficiales seleccionadas.",
+  "assist.discovery.state.unreachable":
+    "La búsqueda web está configurada pero no se pudo contactar con ella para esta consulta, así que solo se enumeran las fuentes oficiales seleccionadas. Es un problema para contactar con una fuente, no una falta de cobertura de este lugar.",
+  "assist.discovery.state.notPermitted":
+    "La búsqueda web está configurada, pero el proveedor rechazó la solicitud (su plan de API no permite la función de búsqueda de pago). Es una limitación de la implementación, no una falta de cobertura de este lugar.",
+  "assist.discovery.state.noResults":
+    "La búsqueda web se ejecutó para esta situación pero no devolvió páginas adicionales más allá de las fuentes oficiales enumeradas.",
 
   "support.flight.title": "Incidencia de vuelo",
   "support.flight.body":

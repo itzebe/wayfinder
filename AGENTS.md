@@ -140,3 +140,11 @@ asserting on markup:
 - The older Google Custom Search JSON API is closed to new customers and is
   scheduled for discontinuation on 1 January 2027; the Site Restricted JSON API
   stopped serving traffic on 8 January 2025. Do not reintroduce either.
+- Discovery failures must stay classified and separate. A discovery provider that
+  is configured but refused (no billing, free tier, quota) fails fast with a 4xx
+  and produces zero leads. `AssistancePage.discovery` records
+  `leads | no_results | not_configured | unreachable` so the page can say what
+  actually happened. Never let "discovery produced nothing" become "no source
+  covers this place" — that is the same misleading collapse that the
+  `hasDirectory` distinction in `buildGaps`/`buildHeadline`/`fallbackExplanation`
+  exists to prevent.

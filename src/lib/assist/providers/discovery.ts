@@ -50,7 +50,7 @@ import "server-only";
 import { z } from "zod";
 
 import { cachedFetch, type CachedFetchOutcome } from "@/lib/core/cache";
-import { fetchJson } from "@/lib/core/http";
+import { fetchJson, HttpError } from "@/lib/core/http";
 import { nowIso } from "@/lib/core/time";
 import type { DataState, SourceRef } from "@/lib/core/types";
 import type { Translate } from "@/lib/i18n/translator";
@@ -290,6 +290,7 @@ export const googleDiscoveryProvider: Provider = {
     const cacheKey = `google-discovery:${model}:${prompt}`;
     let outcome: CachedFetchOutcome<unknown> | undefined;
     let failure: string | undefined;
+    let failureKind: string | undefined;
     try {
       outcome = await cachedFetch<unknown>(
         cacheKey,
@@ -323,6 +324,10 @@ export const googleDiscoveryProvider: Provider = {
       // the directory still answer. Surface it as a warning instead. The
       // upstream message is not echoed, because it can contain credential hints.
       failure = error instanceof Error ? error.name : "unknown";
+      // Keep only the coarse HTTP taxonomy so the page can say *why* discovery
+      // produced nothing without leaking upstream text.
+      if (error instanceof HttpError) failureKind = error.kind;
+      else failureKind = failure;
     }
 
     const failed = failure !== undefined || outcome?.refreshFailed === true;
@@ -353,6 +358,7 @@ export const googleDiscoveryProvider: Provider = {
         note: safeT(context.t, "assist.discovery.note"),
       },
       warnings,
+      errorKind: failed ? failureKind : undefined,
       retrievedAt,
       findings,
     };

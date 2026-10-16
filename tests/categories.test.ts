@@ -99,7 +99,7 @@ test("metro: MTA New York decodes a GTFS Realtime protobuf feed", async () => {
   assertEqual(page.conditions[0].severity, "severe", "SIGNIFICANT_DELAYS maps to severe");
 });
 
-test("metro: an uncovered country yields an honest no-coverage state", async () => {
+test("metro: a covered country with no live feed states the limitation honestly", async () => {
   const page = await composeAssistance({
     category: "metro",
     countryCode: "FR",
@@ -109,7 +109,13 @@ test("metro: an uncovered country yields an honest no-coverage state", async () 
   });
   assertEqual(page.respondingProviders.length, 0, "no provider should respond for France");
   assertEqual(page.overallState, "unavailable");
-  assertIncludes(page.headline, "no live source", "headline states the limitation");
+  // Paris has official bodies in the directory, so the honest statement is
+  // "no live feed" — not "no source covers this place", which would be false.
+  assertIncludes(page.headline, "no live feed covers", "headline states the limitation");
+  assert(
+    page.references.length > 0,
+    "the directory bodies must still be offered when no live feed exists",
+  );
   assert(page.uncertain.length > 0, "limitation must be disclosed");
 });
 
@@ -164,7 +170,7 @@ test("bus: London bus category produces an operator source", async () => {
   assert(page.respondingProviders.includes("tfl-bus"), "expected the bus provider");
 });
 
-test("bus: no provider outside coverage states the limitation", async () => {
+test("bus: a place with directory bodies but no live feed states the limitation", async () => {
   const page = await composeAssistance({
     category: "bus",
     countryCode: "JP",
@@ -173,7 +179,7 @@ test("bus: no provider outside coverage states the limitation", async () => {
     fetchImpl: fixtureFetch(ALL_TABLE),
   });
   assertEqual(page.respondingProviders.length, 0);
-  assertIncludes(page.headline, "no live source");
+  assertIncludes(page.headline, "no live feed covers");
 });
 
 // --- Roads ------------------------------------------------------------------
@@ -1419,7 +1425,7 @@ test("scoping: TfL does not answer for a non-London GB city", async () => {
       0,
       `no London provider should answer for ${city}`,
     );
-    assertIncludes(page.headline, "no live source", "the gap is stated honestly");
+    assertIncludes(page.headline, "no live feed covers", "the gap is stated honestly");
   }
 });
 
@@ -1452,6 +1458,114 @@ test("scoping: Paris metro lists a French transport authority, not the weather s
     first !== undefined && !first.organization.includes("Météo-France"),
     "the national weather service is not the leading reference for a metro query",
   );
+});
+
+// --- Honest reporting when nothing can be verified -------------------------
+//
+// Regression suite for a misleading message: every place with no live provider
+// was described as "no live source covers this place". That is false when the
+// directory has the official bodies, and false when a provider was configured
+// but refused/failed us. These tests pin the three situations apart.
+
+test("coverage: directory bodies but no live feed says 'no live feed', not 'no coverage'", async () => {
+  const page = await composeAssistance({
+    category: "public_service",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.respondingProviders.length, 0, "no live provider covers Lagos public services");
+  assert(
+    page.references.length > 0,
+    "the official bodies for Lagos must be offered",
+  );
+  assert(
+    !/no live source covers/i.test(page.headline),
+    "must not claim no source covers a place whose bodies we list",
+  );
+  assert(
+    !/no live source covers this place/i.test(page.explanation.summary),
+    "the summary must not make the false coverage claim either",
+  );
+  assertIncludes(page.explanation.summary, "live data feed", "the honest limit is named");
+  assertEqual(
+    page.coverageGaps.map((g) => g.reason).join(","),
+    "no_data",
+    "the gap is a missing feed, not missing coverage",
+  );
+});
+
+test("coverage: a place with neither directory nor provider keeps the true no-coverage message", async () => {
+  const page = await composeAssistance({
+    category: "other",
+    location: "Atlantis",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.references.length, 0, "nothing is known about this place");
+  assertEqual(page.coverageGaps[0]?.reason, "not_covered", "genuinely not covered");
+  assertIncludes(page.coverageGaps[0]?.message ?? "", "No official data source", "states it plainly");
+});
+
+test("coverage: a configured discovery provider that fails is a source failure, not a coverage verdict", async () => {
+  process.env.WAYFINDER_GOOGLE_API_KEY = "test-key";
+  try {
+    // The key is set, so discovery runs; it is absent from the fixture table, so
+    // it answers 404 — the shape of a real "configured but refused" deployment.
+    const page = await composeAssistance({
+      category: "public_service",
+      location: "Lagos, Nigeria",
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(page.discovery.state, "unreachable", "discovery ran and failed");
+    assert(
+      typeof page.discovery.errorKind === "string" && page.discovery.errorKind.length > 0,
+      "the refusal is classified, not leaked as raw upstream text",
+    );
+    assert(
+      !/no live source covers/i.test(page.explanation.summary),
+      "a discovery failure must not become a coverage claim",
+    );
+    assert(
+      page.references.length > 0,
+      "the curated bodies are still offered when discovery fails",
+    );
+  } finally {
+    delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  }
+});
+
+test("coverage: a status provider that is selected and fails says 'could not be reached'", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    countryCode: "GB",
+    city: "London",
+    locale: "en",
+    fetchImpl: failingFetch(),
+  });
+  assertEqual(page.respondingProviders.length, 0, "the selected provider did not answer");
+  assertIncludes(page.headline, "could not be reached", "the failure is named as a failure");
+  assert(
+    !/no live source covers|no live feed covers/i.test(page.headline),
+    "a provider failure must not be described as a coverage verdict",
+  );
+});
+
+test("coverage: an unconfigured discovery layer is reported as not configured", async () => {
+  delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  const page = await composeAssistance({
+    category: "public_service",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(
+    page.discovery.state,
+    "not_configured",
+    "an absent credential is a deployment fact, not a coverage gap",
+  );
+  assertEqual(page.discovery.leadCount, 0, "no leads without a key");
 });
 
 run()

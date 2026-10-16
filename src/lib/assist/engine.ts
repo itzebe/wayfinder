@@ -35,6 +35,7 @@ import type {
   AssistReference,
   AssistSource,
   CoverageGap,
+  DiscoveryStatus,
   ProviderReport,
   SearchFinding,
   ServiceCondition,
@@ -222,17 +223,25 @@ function kindForCategory(category: AssistanceCategory): SourceRef["kind"] {
 function buildGaps(
   skipped: SkippedProvider[],
   reports: ProviderReport[],
+  hasDirectory: boolean,
   t: ProviderContext["t"],
 ): CoverageGap[] {
   const gaps: CoverageGap[] = [];
 
   // Nothing was even attempted: say so once, in plain language, rather than
   // returning a page that looks empty for no stated reason.
+  //
+  // Two different situations were previously collapsed into one message. They
+  // are not the same statement and must not read as if they were:
+  //   - no directory *and* no provider: we genuinely have nothing for this place;
+  //   - a directory of official bodies but no live feed: coverage exists, the
+  //     live feed does not. "No source covers this place" would be false here —
+  //     the bodies are named right below.
   if (skipped.length > 0 && reports.length === 0) {
     gaps.push({
       providerId: "coverage",
-      reason: "not_covered",
-      message: t("assist.gap.noProvider"),
+      reason: hasDirectory ? "no_data" : "not_covered",
+      message: hasDirectory ? t("assist.gap.directoryOnly") : t("assist.gap.noProvider"),
     });
   }
 
@@ -749,6 +758,7 @@ function fallbackExplanation(
   input: AssistInput,
   conditions: ServiceCondition[],
   reports: ProviderReport[],
+  hasDirectory: boolean,
   t: ProviderContext["t"],
   reason: string,
 ): AssistancePage["explanation"] {
@@ -767,10 +777,34 @@ function fallbackExplanation(
   // "nothing was checked" are different statements, and a traveller deciding
   // whether to leave for the airport must not be told the reassuring one when
   // it is the other that is true.
+  //
+  // Within "nothing was verified" there are three distinct situations, and
+  // saying the wrong one misleads in a different direction each time:
+  //   - a source was queried and failed  → that source is unavailable, not absent;
+  //   - a directory exists but no live feed → coverage exists, the feed does not;
+  //   - neither → we genuinely have nothing for this place.
   if (responded.length === 0) {
+    if (reports.length > 0) {
+      return {
+        summary: t("assist.fallback.sourcesUnreachableSummary", {
+          category: categoryName,
+          place: placePhrase,
+        }),
+        meaning: t("assist.fallback.sourcesUnreachableMeaning"),
+        aiGenerated: false,
+        unavailableReason: reason,
+      };
+    }
     return {
-      summary: t("assist.fallback.noSourceSummary", { category: categoryName, place: placePhrase }),
-      meaning: t("assist.fallback.noSourceMeaning"),
+      summary: hasDirectory
+        ? t("assist.fallback.directoryOnlySummary", {
+            category: categoryName,
+            place: placePhrase,
+          })
+        : t("assist.fallback.noSourceSummary", { category: categoryName, place: placePhrase }),
+      meaning: hasDirectory
+        ? t("assist.fallback.directoryOnlyMeaning")
+        : t("assist.fallback.noSourceMeaning"),
       aiGenerated: false,
       unavailableReason: reason,
     };
@@ -813,10 +847,18 @@ async function interpret(
   conditions: ServiceCondition[],
   recommendations: AssistRecommendation[],
   reports: ProviderReport[],
+  hasDirectory: boolean,
   t: ProviderContext["t"],
 ): Promise<AssistancePage["explanation"]> {
   if (!isAiConfigured()) {
-    return fallbackExplanation(input, conditions, reports, t, t("fallback.reason.notConfigured"));
+    return fallbackExplanation(
+      input,
+      conditions,
+      reports,
+      hasDirectory,
+      t,
+      t("fallback.reason.notConfigured"),
+    );
   }
 
   const languageName = LANGUAGE_NAMES[input.locale] ?? "English";
@@ -867,7 +909,14 @@ Write both fields in ${languageName}. Reproduce all place names, network names a
     const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
     const meaning = typeof parsed.meaning === "string" ? parsed.meaning.trim() : "";
     if (summary.length < 40 || meaning.length < 40) {
-      return fallbackExplanation(input, conditions, reports, t, t("fallback.reason.tooShort"));
+      return fallbackExplanation(
+        input,
+        conditions,
+        reports,
+        hasDirectory,
+        t,
+        t("fallback.reason.tooShort"),
+      );
     }
     return { summary, meaning, aiGenerated: true };
   } catch (error) {
@@ -875,7 +924,7 @@ Write both fields in ${languageName}. Reproduce all place names, network names a
       error instanceof AiUnavailableError
         ? t("fallback.reason.unavailable", { message: error.message })
         : t("fallback.reason.failed");
-    return fallbackExplanation(input, conditions, reports, t, reason);
+    return fallbackExplanation(input, conditions, reports, hasDirectory, t, reason);
   }
 }
 
@@ -901,13 +950,21 @@ function buildHeadline(
   input: AssistInput,
   conditions: ServiceCondition[],
   reports: ProviderReport[],
+  hasDirectory: boolean,
   effectiveCategory: AssistanceCategory,
   t: ProviderContext["t"],
 ): string {
   const category = t(`assist.category.${effectiveCategory}.title`);
   const responded = reports.filter((r) => r.state !== "unavailable");
   if (responded.length === 0) {
-    return t("assist.headline.noCoverage", { category });
+    // A provider that was selected and failed is not the same as a place nobody
+    // covers. Only the second may be described as a coverage verdict.
+    if (reports.length > 0) {
+      return t("assist.headline.sourcesUnreachable", { category });
+    }
+    return hasDirectory
+      ? t("assist.headline.directoryOnly", { category })
+      : t("assist.headline.noCoverage", { category });
   }
   const worst = conditions.reduce<ServiceCondition["severity"] | undefined>(
     (acc, c) => (acc === undefined || SEVERITY_ORDER[c.severity] < SEVERITY_ORDER[acc] ? c.severity : acc),
@@ -997,13 +1054,18 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     t,
   );
   const recommendations = buildRecommendations(classifiedInput, reports, hasDisruption, t);
+  // Whether this place has curated official bodies at all. This is what lets the
+  // page tell "we have no source for this place" from "we have the bodies but no
+  // live feed" — two different statements that must not share one message.
+  const hasDirectory = directoryFor(countryCode, effectiveCategory).length > 0;
   // Coverage gaps describe what we could not *report on*. A discovery provider
   // without credentials is a deployment-configuration fact, not a gap in the
   // traveller's situation, so it is filtered out here (it is still reported in
-  // the health endpoint and the docs).
+  // the health endpoint, and its own status is surfaced through `discovery`).
   const coverageGaps = buildGaps(
     skipped.filter((entry) => entry.provider.metadata.id !== GOOGLE_PROVIDER_ID),
     reports,
+    hasDirectory,
     t,
   );
   const sources = toAssistSources(reports, t);
@@ -1019,6 +1081,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     ...(responded.length === 0 ? toReferences(countryCode, effectiveCategory) : []),
     ...toDiscoveryReferences(findings, countryCode, effectiveCategory, t),
   ];
+  const discovery = buildDiscoveryStatus(discoveryReports, findings.length);
   const rightsNotes =
     effectiveCategory === "flights" || effectiveCategory === "stranded"
       ? selectRightsNotes({}, t)
@@ -1030,6 +1093,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     conditions,
     recommendations,
     reports,
+    hasDirectory,
     t,
   );
 
@@ -1062,9 +1126,10 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     coverageGaps,
     availableCategories: [],
     respondingProviders: responded.map((r) => r.providerId),
+    discovery,
     explanation,
     overallState: deriveOverallState(reports),
-    headline: buildHeadline(classifiedInput, conditions, reports, effectiveCategory, t),
+    headline: buildHeadline(classifiedInput, conditions, reports, hasDirectory, effectiveCategory, t),
     known: facts
       .filter((fact) => fact.origin === "verified")
       .map((fact) => `${fact.label}: ${fact.value}`),
@@ -1075,6 +1140,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
       effectiveCategory,
       input.category,
       responded.length === 0,
+      hasDirectory,
     ),
     aiConfigured: explanation.aiGenerated,
   };
@@ -1094,6 +1160,29 @@ function toReferences(
     official: true,
     origin: "directory" as const,
   }));
+}
+
+/**
+ * Classifies what the discovery layer did, for the page to report honestly.
+ * A provider that is absent and a provider that failed are different facts, so
+ * they never share a status.
+ */
+function buildDiscoveryStatus(
+  reports: ProviderReport[],
+  leadCount: number,
+): DiscoveryStatus {
+  if (reports.length === 0) {
+    // Not selected: the deployment has no discovery credential. It is still
+    // invoked when configured, so an empty selection means "not configured".
+    return { state: "not_configured", leadCount: 0 };
+  }
+  const report = reports[0];
+  if (report.state === "unavailable") {
+    return { state: "unreachable", leadCount: 0, errorKind: report.errorKind };
+  }
+  return leadCount > 0
+    ? { state: "leads", leadCount }
+    : { state: "no_results", leadCount: 0 };
 }
 
 /** Flattens and deduplicates discovery findings across providers, by URL. */
@@ -1150,7 +1239,8 @@ function buildUncertain(
   classificationNote: string | undefined,
   effectiveCategory: AssistanceCategory,
   requestedCategory: AssistanceCategory,
-  hasReferences: boolean,
+  nothingVerified: boolean,
+  hasDirectory: boolean,
 ): string[] {
   const uncertain: string[] = [t("assist.uncertain.operatorConfirm")];
 
@@ -1167,7 +1257,10 @@ function buildUncertain(
   if (reports.some((r) => r.state === "stale")) {
     uncertain.push(t("assist.uncertain.stale"));
   }
-  if (hasReferences) {
+  // Only say "no live provider covers this place" when that is actually true —
+  // i.e. no provider was selected at all. A provider that was selected and
+  // failed makes that statement false, and its failure is already disclosed.
+  if (nothingVerified && reports.length === 0 && hasDirectory) {
     uncertain.push(t("assist.uncertain.noLiveProvider"));
   }
   uncertain.push(t("assist.uncertain.individualJourney"));
