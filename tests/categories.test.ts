@@ -23,6 +23,7 @@ import {
   GEMINI_GROUNDED,
   GOVUK_SEARCH,
   GTFS_ALERTS_JSON,
+  GTFS_ALERTS_MTA_UNKNOWN,
   NWS_ALERTS,
   OPEN_METEO_FORECAST,
   OPEN_METEO_FORECAST_CALM,
@@ -106,6 +107,33 @@ test("metro: MTA New York decodes a GTFS Realtime protobuf feed", async () => {
   assert(page.conditions.length > 0, "expected a decoded alert");
   assertIncludes(page.conditions[0].title, "A and C trains", "alert header decoded");
   assertEqual(page.conditions[0].severity, "severe", "SIGNIFICANT_DELAYS maps to severe");
+});
+
+test("metro: an unclassified MTA alert is never read as 'no disruption'", async () => {
+  // The real MTA feed encodes every alert as severityLevel=1 (UNKNOWN) /
+  // effect=8 (UNKNOWN_EFFECT) and states the disruption only in prose. An
+  // operator that published an alert must not be presented as having reported
+  // no disruption — the failure mode a stricter headline exposed. The prose is
+  // still shown; only the severity floor is corrected.
+  const page = await composeAssistance({
+    category: "metro",
+    countryCode: "US",
+    city: "New York",
+    locale: "en",
+    fetchImpl: fixtureFetch({ "api-endpoint.mta.info": sseFeed(GTFS_ALERTS_MTA_UNKNOWN) }),
+  });
+  assert(page.conditions.length > 0, "the alert is still shown");
+  assertIncludes(page.conditions[0].title, "not running", "the operator's own words are kept");
+  assert(
+    page.conditions.every((c) => c.severity !== "info"),
+    "an unclassified alert must not be labelled 'Information'",
+  );
+  assertEqual(page.conditions[0].severity, "minor", "an unclassified alert floors at minor");
+  assert(
+    !page.headline.includes("no disruption reported"),
+    "the headline must not deny a disruption the source reported",
+  );
+  assertIncludes(page.headline, "worth checking", "the headline reflects the alert");
 });
 
 test("metro: a covered country with no live feed states the limitation honestly", async () => {

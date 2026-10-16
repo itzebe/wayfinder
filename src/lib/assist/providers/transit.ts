@@ -302,10 +302,19 @@ interface GtfsConfig {
 /**
  * GTFS Realtime encodes severity and effect as numeric enums, not strings.
  * Effect: 1 NO_SERVICE, 2 REDUCED_SERVICE, 3 SIGNIFICANT_DELAYS, 4 DETOUR,
- * 5 ADDITIONAL_SERVICE, 6 MODIFIED_SERVICE, 9 STOP_MOVED.
+ * 5 ADDITIONAL_SERVICE, 6 MODIFIED_SERVICE, 8 UNKNOWN_EFFECT, 9 STOP_MOVED,
+ * 10 NO_EFFECT.
  * Severity: 1 UNKNOWN, 2 INFO, 3 WARNING, 4 SEVERE.
  * A NO_SERVICE or SIGNIFICANT_DELAYS effect is more serious than its severity
  * number suggests, so the effect takes precedence.
+ *
+ * `severityLevel` is still experimental in GTFS Realtime, and some feeds — MTA
+ * New York's among them — leave it at UNKNOWN for every alert and set the
+ * effect to UNKNOWN_EFFECT, stating the disruption only in prose. An alert like
+ * that must not be read as "information": the operator published a service
+ * alert, which is itself a signal, so it floors at `minor` ("worth checking").
+ * `info` is reserved for the effects where the operator explicitly says there
+ * is no service impact.
  */
 function severityFromGtfs(
   severityLevel: number | undefined,
@@ -336,7 +345,11 @@ function severityFromGtfs(
   if (severityLevel === 4) return "severe";
   if (severityLevel === 3) return "major";
   if (severityLevel === 2) return "minor";
-  return "info";
+  // ADDITIONAL_SERVICE / NO_EFFECT: the operator states there is no impact.
+  if (effectCode === 5 || effectCode === 10) return "info";
+  // No usable classification. The source published an alert but gave no effect
+  // or severity we can trust, so this must not read as "no disruption".
+  return "minor";
 }
 
 function buildGtfsProvider(config: GtfsConfig): Provider {
