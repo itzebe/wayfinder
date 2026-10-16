@@ -162,6 +162,36 @@ export const GTFS_ALERTS_JSON = {
 };
 
 /**
+ * The MTA New York subway feed as it actually publishes today: every alert is
+ * encoded `severityLevel=1 (UNKNOWN)` / `effect=8 (UNKNOWN_EFFECT)`, with the
+ * disruption stated only in the prose. Copied from a live fetch of
+ * api-endpoint.mta.info. A real operator that declines to classify its alerts
+ * must not be read as reporting "no disruption".
+ */
+export const GTFS_ALERTS_MTA_UNKNOWN = {
+  header: { gtfsRealtimeVersion: "2.0" },
+  entity: [
+    {
+      id: "lmm:alert:272136:34",
+      alert: {
+        activePeriod: [{ start: 1792158914 }],
+        informedEntity: [{ routeId: "A" }, { routeId: "H" }],
+        severityLevel: "UNKNOWN_SEVERITY",
+        effect: "UNKNOWN_EFFECT",
+        headerText: {
+          translation: [
+            {
+              language: "en",
+              text: "[A] trains are not running between Beach 67 St and Howard Beach-JFK Airport.",
+            },
+          ],
+        },
+      },
+    },
+  ],
+};
+
+/**
  * A grounded Gemini response, in the shape the real API returns: the model's
  * prose plus `groundingMetadata.groundingChunks[].web.{uri,title,domain}`.
  * Used to prove the discovery adapter reads those exact fields and treats the
