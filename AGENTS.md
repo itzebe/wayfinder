@@ -48,7 +48,10 @@ These are enforced by the product's purpose, not style preference. Do not break 
    reported. The directory of official pages (`src/lib/assist/directory.ts`)
    offers a way forward for places with no live provider; those entries are
    official pages to check, not retrieved sources, and carry no retrieval
-   timestamp.
+   timestamp. The directory spans roughly twenty countries; every URL in it was
+   fetched and confirmed to resolve before being added, so do not add an entry
+   from memory — check it first, and leave a country out if nothing reachable
+   exists (South Africa's transport sites, for example, refuse every request).
 
 ## Conventions
 

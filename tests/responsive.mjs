@@ -11,7 +11,14 @@ import { spawn } from "node:child_process";
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const WIDTHS = [320, 360, 390, 768, 1024, 1440];
-const PATHS = ["/", "/support", "/assist?category=metro&location=London%2C%20United%20Kingdom"];
+const PATHS = [
+  "/",
+  "/support",
+  "/assist?category=metro&location=London%2C%20United%20Kingdom",
+  // A place covered only by the official-source directory: it must stay
+  // readable at every width even though no live provider answers for it.
+  "/assist?category=weather&location=Tokyo%2C%20Japan",
+];
 const PORT = 9333;
 
 const chrome = spawn(
