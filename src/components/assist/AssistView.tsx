@@ -466,7 +466,9 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
             )}
           </SectionCard>
 
-          {assistance.coverageGaps.length > 0 || assistance.sources.length > 0 ? (
+          {assistance.coverageGaps.length > 0 ||
+          assistance.sources.length > 0 ||
+          discoveryNoticeKey(assistance) ? (
             <SectionCard
               id="coverage"
               title={t("assist.section.coverage")}
@@ -493,6 +495,15 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
                       </li>
                     ))}
                   </ul>
+                ) : null}
+
+                {/* Discovery status is reported as its own fact. A provider that
+                    is unconfigured or refused us is not a statement that this
+                    place lacks coverage, and must read as what it actually is. */}
+                {discoveryNoticeKey(assistance) ? (
+                  <p className="rounded-md border border-line-soft bg-paper-50 p-3.5 text-sm text-ink-600">
+                    {t(discoveryNoticeKey(assistance)!)}
+                  </p>
                 ) : null}
 
                 <div>
@@ -758,6 +769,38 @@ function limitedProviders(assistance: AssistancePage): string[] {
     if (source.relevance) lines.add(`${source.organization}: ${source.relevance}`);
   }
   return [...lines];
+}
+
+/**
+ * The message key for what the web-search discovery layer did, when it is worth
+ * telling the traveller about. Returns null when discovery succeeded and simply
+ * added leads (the lead list speaks for itself) or was never selected for a
+ * request that does not use it.
+ *
+ * A failure here is described as a failure of one source. It is never phrased as
+ * "no source covers this place", because those are different claims.
+ */
+function discoveryNoticeKey(assistance: AssistancePage): string | null {
+  // Discovery is an additive lead source. When a live authority has already
+  // answered, its status is what matters and a note about the search layer is
+  // noise. The notice exists to explain a page that could not be verified, so it
+  // is only shown then.
+  if (assistance.respondingProviders.length > 0) return null;
+  switch (assistance.discovery.state) {
+    case "not_configured":
+      return "assist.discovery.state.notConfigured";
+    case "unreachable":
+      // A client/rate-limit refusal is almost always a plan-limitation, so it
+      // gets its own, more actionable message than a generic unreachable one.
+      return assistance.discovery.errorKind === "rate_limited" ||
+        assistance.discovery.errorKind === "client_error"
+        ? "assist.discovery.state.notPermitted"
+        : "assist.discovery.state.unreachable";
+    case "no_results":
+      return "assist.discovery.state.noResults";
+    default:
+      return null;
+  }
 }
 
 function MovingChangesBanner({

@@ -52,6 +52,16 @@ These are enforced by the product's purpose, not style preference. Do not break 
    fetched and confirmed to resolve before being added, so do not add an entry
    from memory — check it first. If a host refuses every request from this
    network, leave that country out rather than guessing a URL.
+9. **A forecast is not a warning.** A model's expectation and an authority's
+   declared hazard are different claims. A provider may only describe a hazard
+   as declared when it declares `weatherWarnings: true` and is the responsible
+   authority. A provider that returns a forecast sets `forecast: true`,
+   `weatherWarnings: false`, and caps its severity at `minor`
+   (`src/lib/assist/providers/openMeteo.ts`). Never let a forecast reach
+   `major`/`severe`, and never label a model value a "station observation".
+   A source that answered with only informational readings must not produce a
+   "change worth checking" headline — see `buildHeadline` in
+   `src/lib/assist/engine.ts`.
 
 ## Conventions
 
@@ -132,11 +142,34 @@ asserting on markup:
   entry only after `curl -sI -L` confirms the URL resolves; every `covers` line
   must state what the page can and cannot tell the traveller. Entries carry no
   status and no timestamp by design.
-- Web-search discovery (`src/lib/assist/providers/discovery.ts`) is optional
+- `src/lib/assist/providers/openMeteo.ts` is the global, keyless weather source.
+  It aggregates national models (NOAA GFS, DWD ICON, Météo-France, ECMWF) into
+  one worldwide forecast so places outside US/DE are no longer dead ends. It is a
+  **forecast**, not a warning: it declares `weatherWarnings: false` and
+  `forecast: true`, and its severities are capped at `minor`. Only a national
+  meteorological authority may be presented as having declared a hazard. It is
+  free for non-commercial use under CC BY 4.0 with call limits (<10,000/day,
+  5,000/hour, 600/minute); attribution is mandatory and is carried on every
+  source it returns. Verify the terms at https://open-meteo.com/en/terms before
+  any commercial use.
+- The `ProviderCapabilities.forecast` flag exists to keep "forecast" and
+  "warning" distinct in the engine. Do not fold a forecast into
+  `weatherWarnings`; that would let a model reading be shown as an authority's
+  hazard declaration.
+- Web-search discovery (`src/lib/assist/providers/discovery.ts`) is OPTIONAL
   (`WAYFINDER_GOOGLE_API_KEY`) and uses Gemini grounding with Google Search. It
-  contributes **leads only** — never conditions, statuses or timestamps — ranks
-  below any live authority, and is deduplicated against the directory. Keep that
-  separation when extending it.
+  is an advanced extra, never required: the free providers plus the directory
+  answer every supported category worldwide. It contributes **leads only** —
+  never conditions, statuses or timestamps — ranks below any live authority, and
+  is deduplicated against the directory. Keep that separation when extending it.
 - The older Google Custom Search JSON API is closed to new customers and is
   scheduled for discontinuation on 1 January 2027; the Site Restricted JSON API
   stopped serving traffic on 8 January 2025. Do not reintroduce either.
+- Discovery failures must stay classified and separate. A discovery provider that
+  is configured but refused (no billing, free tier, quota) fails fast with a 4xx
+  and produces zero leads. `AssistancePage.discovery` records
+  `leads | no_results | not_configured | unreachable` so the page can say what
+  actually happened. Never let "discovery produced nothing" become "no source
+  covers this place" — that is the same misleading collapse that the
+  `hasDirectory` distinction in `buildGaps`/`buildHeadline`/`fallbackExplanation`
+  exists to prevent.

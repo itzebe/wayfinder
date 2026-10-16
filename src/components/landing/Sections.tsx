@@ -93,7 +93,7 @@ export function LiveAssistance() {
       icon: TriangleAlert,
       title: t("live.weather.title"),
       body: t("live.weather.body"),
-      source: "NOAA / NWS · Deutscher Wetterdienst · USGS",
+      source: "NOAA / NWS · Deutscher Wetterdienst · USGS · Open-Meteo",
     },
     {
       icon: TrafficCone,

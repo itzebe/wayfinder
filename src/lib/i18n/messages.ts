@@ -637,7 +637,7 @@ const en: Messages = {
   "live.roads.title": "Roads and public notices",
   "live.roads.body": "Lane and road closures from Caltrans, and civic notices from GOV.UK, each carrying the publishing authority and the time it was retrieved.",
   "live.weather.title": "Severe weather and seismic events",
-  "live.weather.body": "Active official warnings from NOAA / National Weather Service and Deutscher Wetterdienst, and recent seismic events from the USGS — with the issuing authority and the affected areas.",
+  "live.weather.body": "Active official warnings from NOAA / National Weather Service and Deutscher Wetterdienst, recent seismic events from the USGS, and a global forecast from Open-Meteo — with the issuing authority and the affected areas.",
   "live.airspace.title": "Airspace status",
   "live.airspace.body": "Ground delay and ground stop programmes, with the reason and average delay, for airports covered by the FAA.",
   // --- Chrome remainder ---
@@ -723,6 +723,11 @@ const en: Messages = {
   "limitations.src.usgs.name": "U.S. Geological Survey (USGS)",
   "limitations.src.usgs.what": "Recent seismic events from the USGS earthquake catalogue.",
   "limitations.src.usgs.limits": "Reports earthquakes from a global catalogue but with varying detection completeness by region. Magnitudes are revised after an event, so a figure can change.",
+  "limitations.src.openmeteo.name": "Open-Meteo",
+  "limitations.src.openmeteo.what":
+    "A worldwide forecast and the model's value for the current hour, aggregated from national weather services (NOAA GFS, DWD ICON, Météo-France, ECMWF and others).",
+  "limitations.src.openmeteo.limits":
+    "A forecast, not an observation and not a warning. The current reading is model output for the hour, not a station measurement, and only a national meteorological authority can declare a warning. Free for non-commercial use under CC BY 4.0; attribution is shown with the data.",
   "limitations.caching.title": "Updates and caching",
   "limitations.caching.cache": "Provider responses are cached briefly on the server and revalidated, so repeated checks do not overwhelm the upstream services.",
   "limitations.caching.poll": "Your situation page re-checks its sources every two minutes while it is open and the tab is visible. Background tabs are not polled.",
@@ -838,7 +843,7 @@ const en: Messages = {
   "assist.location.to": "Destination",
   "assist.location.submit": "Get my situation page",
   "assist.coverage.note":
-    "WAYFINDER has live integrations for a limited set of places. If your area is not covered, you will be told clearly and given the official source to check instead.",
+    "WAYFINDER has live integrations for a limited set of places, plus a worldwide weather forecast. If your area is not covered by a live feed, you will be told clearly and given the official source to check instead.",
   "assist.coverage.countries": "Countries with a live integration: {countries}.",
   "assist.coverage.none": "No live data provider covers this selection yet.",
 
@@ -866,6 +871,10 @@ const en: Messages = {
   "assist.headline.clear": "{category}: no disruption reported by the sources we checked.",
   "assist.headline.noCoverage":
     "{category}: no live source covers this selection, so nothing could be verified.",
+  "assist.headline.directoryOnly":
+    "{category}: no live feed covers this selection yet, so the official bodies are listed below.",
+  "assist.headline.sourcesUnreachable":
+    "{category}: the sources for this selection could not be reached, so nothing could be verified.",
 
   "assist.section.summary": "Situation summary",
   "assist.section.conditions": "What the sources report",
@@ -946,6 +955,7 @@ const en: Messages = {
   "assist.gap.needsCredentials": "{provider} requires credentials that are not configured, so it was not used.",
   "assist.gap.providerDown": "{provider} could not be reached, so its information is missing here.",
   "assist.gap.noProvider": "No official data source covers this selection yet, so nothing could be verified. Treat any detail below as unconfirmed and check with the responsible organisation directly.",
+  "assist.gap.directoryOnly": "No live data feed covers this selection in this deployment, so we could not retrieve a status. The official bodies responsible for this place are listed below for you to check directly.",
   "assist.gap.staleData": "{provider} could not be refreshed; the last known result is shown and marked out of date.",
 
   "assist.source.coversDefault": "Official source.",
@@ -961,10 +971,16 @@ const en: Messages = {
     "Official active alerts published by the National Weather Service for the selected state.",
   "assist.note.dwdScope": "Official weather warnings published by Deutscher Wetterdienst.",
   "assist.note.usgsScope": "Official significant-earthquake data, updated periodically.",
+  "assist.note.openMeteoScope":
+    "Global forecast and current-hour conditions from Open-Meteo (CC BY 4.0), a forecast rather than a station observation.",
   "assist.note.caltransScope":
     "Notices displayed on Caltrans changeable message signs in District 3, California.",
   "assist.note.govukScope": "Official UK government publications matching your search.",
   "assist.warn.providerUnreachable": "{provider} could not be reached.",
+  "assist.warn.providerRateLimited":
+    "{provider} is temporarily limiting requests, so its data may be older than usual.",
+  "assist.warn.placeUnresolved":
+    "We could not match the place you named to coordinates, so no forecast could be retrieved for it.",
   "assist.warn.providerStale": "{provider} could not be refreshed; the last known result is shown.",
   "assist.warn.providerUnreadable": "{provider} returned data we could not read.",
   "assist.warn.regionRequired":
@@ -1000,13 +1016,21 @@ const en: Messages = {
     "You asked about {category}{place}. No live source covers this place, so nothing could be verified automatically.",
   "assist.fallback.noSourceMeaning":
     "We did not find a live data source for this place, so we have not reported a status either way — the situation here is unknown, not clear. The official pages listed below are the authorities responsible for this location; check them directly, and confirm anything that affects your own journey with the operator.",
+  "assist.fallback.directoryOnlySummary":
+    "You asked about {category}{place}. No live data feed covers this place in this deployment, so nothing could be verified automatically.",
+  "assist.fallback.directoryOnlyMeaning":
+    "We have the official bodies for this location but no live feed that reports their status, so the situation is unknown, not clear. The official pages listed below are the authorities responsible here; check them directly. Switching to a supported city (for example London, New York or Berlin) may give a live answer.",
+  "assist.fallback.sourcesUnreachableSummary":
+    "You asked about {category}{place}. A source that normally covers this place could not be reached just now, so nothing could be verified automatically.",
+  "assist.fallback.sourcesUnreachableMeaning":
+    "This is a temporary problem reaching the source, not a lack of coverage: the source exists and is configured for this deployment. Try refreshing in a moment. If it keeps failing, use the official links below to check directly.",
   "assist.uncertain.noLiveProvider":
     "No live provider covers this place, so the situation is unknown rather than confirmed clear.",
 
   // --- Official-page directory ------------------------------------------------
   "assist.section.references": "Official pages to check",
   "assist.references.intro":
-    "No live data source covers this place, so we could not retrieve a status automatically. These are the official bodies responsible for this location — open them to check directly.",
+    "No live data feed covers this place, so we could not retrieve a status automatically. These are the official bodies responsible for this location — open them to check directly.",
   "assist.references.official": "Official",
   "assist.references.open": "Open official page",
   "assist.references.none":
@@ -1091,6 +1115,14 @@ const en: Messages = {
   "assist.discovery.noResults":
     "Web search returned no additional pages for this situation.",
   "assist.discovery.badge": "Found by search",
+  "assist.discovery.state.notConfigured":
+    "Web-search discovery is not enabled for this deployment, so only the curated official sources are listed.",
+  "assist.discovery.state.unreachable":
+    "Web-search discovery is configured but could not be reached for this query, so only the curated official sources are listed. This is a problem reaching one source, not a lack of coverage for this place.",
+  "assist.discovery.state.notPermitted":
+    "Web-search discovery is configured but the provider refused the request (its API plan does not allow the paid search-grounding feature). This is a deployment limitation, not a coverage gap for this place.",
+  "assist.discovery.state.noResults":
+    "Web search ran for this situation but returned no additional pages beyond the official sources listed.",
 
   "support.flight.title": "Flight disruption",
   "support.flight.body":
@@ -1710,7 +1742,7 @@ const es: Messages = {
   "live.route.title": "Referencia de ruta y aerolínea",
   "live.route.body": "Los números de vuelo se resuelven a una ruta, una aerolínea y un indicativo OACI publicados, así que cada consulta posterior usa los identificadores de aeropuerto correctos.",
   "live.weather.title": "Meteorología adversa y sismos",
-  "live.weather.body": "Avisos oficiales activos de NOAA / National Weather Service y del Deutscher Wetterdienst, y sismos recientes del USGS, con la autoridad emisora y las zonas afectadas.",
+  "live.weather.body": "Avisos oficiales activos de NOAA / National Weather Service y del Deutscher Wetterdienst, sismos recientes del USGS y una previsión mundial de Open-Meteo, con la autoridad emisora y las zonas afectadas.",
   "live.transit.title": "Estado del transporte público",
   "live.transit.body": "Estado de líneas y servicios en directo de los propios operadores: líneas de metro, ferrocarril y autobús de Transport for London, alertas del metro de Nueva York (MTA) y avisos de servicio de BART, con la gravedad indicada por cada operador.",
   "live.roads.title": "Carreteras y avisos públicos",
@@ -1800,6 +1832,11 @@ const es: Messages = {
   "limitations.src.usgs.name": "U.S. Geological Survey (USGS)",
   "limitations.src.usgs.what": "Sismos recientes del catálogo de terremotos del USGS.",
   "limitations.src.usgs.limits": "Publica terremotos de un catálogo global, pero con una exhaustividad de detección variable según la región. Las magnitudes se revisan tras un evento, así que una cifra puede cambiar.",
+  "limitations.src.openmeteo.name": "Open-Meteo",
+  "limitations.src.openmeteo.what":
+    "Una previsión mundial y el valor del modelo para la hora actual, agregados de servicios meteorológicos nacionales (NOAA GFS, DWD ICON, Météo-France, ECMWF y otros).",
+  "limitations.src.openmeteo.limits":
+    "Es una previsión, no una observación ni un aviso. La lectura actual es la salida del modelo para la hora, no una medición de una estación, y solo una autoridad meteorológica nacional puede declarar un aviso. Gratuito para uso no comercial bajo CC BY 4.0; la atribución se muestra con los datos.",
   "limitations.caching.title": "Actualizaciones y caché",
   "limitations.caching.cache": "Las respuestas de los proveedores se almacenan brevemente en caché en el servidor y se revalidan, para que las comprobaciones repetidas no saturen los servicios externos.",
   "limitations.caching.poll": "Tu página de situación vuelve a consultar sus fuentes cada dos minutos mientras está abierta y la pestaña es visible. Las pestañas en segundo plano no se consultan.",
@@ -1942,7 +1979,7 @@ const es: Messages = {
   "assist.location.to": "Destino",
   "assist.location.submit": "Crear mi página de situación",
   "assist.coverage.note":
-    "WAYFINDER tiene integraciones en directo para un conjunto limitado de lugares. Si tu zona no está cubierta, se te indicará con claridad y se te dará la fuente oficial que puedes consultar.",
+    "WAYFINDER tiene integraciones en directo para un conjunto limitado de lugares, además de una previsión meteorológica mundial. Si tu zona no está cubierta por una fuente en directo, se te indicará con claridad y se te dará la fuente oficial que puedes consultar.",
   "assist.coverage.countries": "Países con integración en directo: {countries}.",
   "assist.coverage.none": "Todavía no hay ningún proveedor de datos en directo para esta selección.",
 
@@ -1970,6 +2007,10 @@ const es: Messages = {
   "assist.headline.clear": "{category}: las fuentes consultadas no informan de incidencias.",
   "assist.headline.noCoverage":
     "{category}: ninguna fuente en directo cubre esta selección, así que no se pudo verificar nada.",
+  "assist.headline.directoryOnly":
+    "{category}: todavía ninguna fuente en directo cubre esta selección, así que los organismos oficiales figuran abajo.",
+  "assist.headline.sourcesUnreachable":
+    "{category}: no se pudo contactar con las fuentes de esta selección, así que no se pudo verificar nada.",
 
   "assist.section.summary": "Resumen de la situación",
   "assist.section.conditions": "Lo que informan las fuentes",
@@ -2051,6 +2092,7 @@ const es: Messages = {
   "assist.gap.providerDown": "No se pudo contactar con {provider}, así que aquí falta su información.",
   "assist.gap.staleData": "No se pudo actualizar {provider}; se muestra el último resultado conocido y marcado como desactualizado.",
   "assist.gap.noProvider": "Ninguna fuente de datos oficial cubre todavía esta selección, así que no se pudo verificar nada. Trata cualquier detalle de abajo como no confirmado y compruébalo directamente con la organización responsable.",
+  "assist.gap.directoryOnly": "Ninguna fuente de datos en directo cubre esta selección en esta implementación, así que no pudimos obtener un estado. Abajo figuran los organismos oficiales responsables de este lugar para que los consultes directamente.",
 
   "assist.source.coversDefault": "Fuente oficial.",
   "assist.source.unavailable": "No se pudo contactar con esta fuente para esta consulta.",
@@ -2065,10 +2107,16 @@ const es: Messages = {
     "Avisos activos oficiales publicados por el National Weather Service para el estado seleccionado.",
   "assist.note.dwdScope": "Avisos meteorológicos oficiales publicados por Deutscher Wetterdienst.",
   "assist.note.usgsScope": "Datos oficiales de terremotos significativos, actualizados periódicamente.",
+  "assist.note.openMeteoScope":
+    "Previsión global y condiciones de la hora actual de Open-Meteo (CC BY 4.0); es una previsión, no una observación de estación.",
   "assist.note.caltransScope":
     "Avisos mostrados en los paneles de mensajes variables de Caltrans en el Distrito 3, California.",
   "assist.note.govukScope": "Publicaciones oficiales del Gobierno del Reino Unido que coinciden con tu búsqueda.",
   "assist.warn.providerUnreachable": "No se pudo contactar con {provider}.",
+  "assist.warn.providerRateLimited":
+    "{provider} está limitando temporalmente las solicitudes, así que sus datos pueden ser más antiguos de lo habitual.",
+  "assist.warn.placeUnresolved":
+    "No pudimos asociar el lugar que indicaste con unas coordenadas, así que no se pudo obtener ninguna previsión.",
   "assist.warn.providerStale": "No se pudo actualizar {provider}; se muestra el último resultado conocido.",
   "assist.warn.providerUnreadable": "{provider} devolvió datos que no pudimos leer.",
   "assist.warn.regionRequired":
@@ -2104,13 +2152,21 @@ const es: Messages = {
     "Has preguntado por {category}{place}. Ninguna fuente en directo cubre este lugar, así que no se pudo verificar nada automáticamente.",
   "assist.fallback.noSourceMeaning":
     "No encontramos ninguna fuente de datos en directo para este lugar, así que no hemos informado de ningún estado: la situación aquí es desconocida, no despejada. Las páginas oficiales de abajo son las autoridades responsables de esta ubicación; consúltalas directamente y confirma con el operador todo lo que afecte a tu propio trayecto.",
+  "assist.fallback.directoryOnlySummary":
+    "Has preguntado por {category}{place}. Ninguna fuente de datos en directo cubre este lugar en esta implementación, así que nada pudo verificarse automáticamente.",
+  "assist.fallback.directoryOnlyMeaning":
+    "Tenemos los organismos oficiales de esta ubicación, pero ninguna fuente en directo que informe de su estado, así que la situación es desconocida, no despejada. Las páginas oficiales de abajo son las autoridades responsables aquí; consúltalas directamente. Cambiar a una ciudad compatible (por ejemplo Londres, Nueva York o Berlín) puede dar una respuesta en directo.",
+  "assist.fallback.sourcesUnreachableSummary":
+    "Has preguntado por {category}{place}. No se pudo contactar ahora mismo con una fuente que normalmente cubre este lugar, así que nada pudo verificarse automáticamente.",
+  "assist.fallback.sourcesUnreachableMeaning":
+    "Es un problema temporal para contactar con la fuente, no una falta de cobertura: la fuente existe y está configurada para esta implementación. Intenta actualizar dentro de un momento. Si sigue fallando, usa los enlaces oficiales de abajo para comprobarlo directamente.",
   "assist.uncertain.noLiveProvider":
     "Ningún proveedor en directo cubre este lugar, así que la situación es desconocida en lugar de estar confirmada como despejada.",
 
   // --- Directorio de páginas oficiales ---------------------------------------
   "assist.section.references": "Páginas oficiales que consultar",
   "assist.references.intro":
-    "Ninguna fuente de datos en directo cubre este lugar, así que no pudimos obtener un estado automáticamente. Estos son los organismos oficiales responsables de esta ubicación: ábrelos para comprobarlo directamente.",
+    "Ningún canal de datos en directo cubre este lugar, así que no pudimos obtener un estado automáticamente. Estos son los organismos oficiales responsables de esta ubicación: ábrelos para comprobarlo directamente.",
   "assist.references.official": "Oficial",
   "assist.references.open": "Abrir página oficial",
   "assist.references.none":
@@ -2196,6 +2252,14 @@ const es: Messages = {
   "assist.discovery.noResults":
     "La búsqueda web no devolvió páginas adicionales para esta situación.",
   "assist.discovery.badge": "Encontrada por búsqueda",
+  "assist.discovery.state.notConfigured":
+    "La búsqueda web no está activada en esta implementación, así que solo se enumeran las fuentes oficiales seleccionadas.",
+  "assist.discovery.state.unreachable":
+    "La búsqueda web está configurada pero no se pudo contactar con ella para esta consulta, así que solo se enumeran las fuentes oficiales seleccionadas. Es un problema para contactar con una fuente, no una falta de cobertura de este lugar.",
+  "assist.discovery.state.notPermitted":
+    "La búsqueda web está configurada, pero el proveedor rechazó la solicitud (su plan de API no permite la función de búsqueda de pago). Es una limitación de la implementación, no una falta de cobertura de este lugar.",
+  "assist.discovery.state.noResults":
+    "La búsqueda web se ejecutó para esta situación pero no devolvió páginas adicionales más allá de las fuentes oficiales enumeradas.",
 
   "support.flight.title": "Incidencia de vuelo",
   "support.flight.body":

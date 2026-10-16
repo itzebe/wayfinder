@@ -14,6 +14,7 @@ import { selectProviders, rankProviders } from "@/lib/assist/registry";
 import { classifyDescription } from "@/lib/assist/categories";
 import { resolveLocation } from "@/lib/assist/location";
 import { looksOfficial, normaliseFindings, GOOGLE_PROVIDER_ID } from "@/lib/assist/providers/discovery";
+import { openMeteoProvider } from "@/lib/assist/providers/openMeteo";
 import { assistRequestSchema } from "@/lib/assist/schema";
 import { sseFeed } from "./fixtures/gtfs";
 import {
@@ -23,6 +24,10 @@ import {
   GOVUK_SEARCH,
   GTFS_ALERTS_JSON,
   NWS_ALERTS,
+  OPEN_METEO_FORECAST,
+  OPEN_METEO_FORECAST_CALM,
+  OPEN_METEO_GEOCODE,
+  OPEN_METEO_GEOCODE_PARIS,
   TFL_LINE_STATUS,
   TFL_SUSPENSION,
   USGS_QUAKES,
@@ -54,6 +59,10 @@ const ALL_TABLE = {
   "cwwp2.dot.ca.gov": CALTRANS_CMS,
   "www.gov.uk": GOVUK_SEARCH,
   "earthquake.usgs.gov": USGS_QUAKES,
+  // The geocoding host is a distinct URL from the forecast host, so each is its
+  // own key and the fixture fetch can answer them separately.
+  "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE,
+  "api.open-meteo.com": OPEN_METEO_FORECAST,
 };
 
 // --- Metro / subway ---------------------------------------------------------
@@ -99,7 +108,7 @@ test("metro: MTA New York decodes a GTFS Realtime protobuf feed", async () => {
   assertEqual(page.conditions[0].severity, "severe", "SIGNIFICANT_DELAYS maps to severe");
 });
 
-test("metro: an uncovered country yields an honest no-coverage state", async () => {
+test("metro: a covered country with no live feed states the limitation honestly", async () => {
   const page = await composeAssistance({
     category: "metro",
     countryCode: "FR",
@@ -109,7 +118,13 @@ test("metro: an uncovered country yields an honest no-coverage state", async () 
   });
   assertEqual(page.respondingProviders.length, 0, "no provider should respond for France");
   assertEqual(page.overallState, "unavailable");
-  assertIncludes(page.headline, "no live source", "headline states the limitation");
+  // Paris has official bodies in the directory, so the honest statement is
+  // "no live feed" — not "no source covers this place", which would be false.
+  assertIncludes(page.headline, "no live feed covers", "headline states the limitation");
+  assert(
+    page.references.length > 0,
+    "the directory bodies must still be offered when no live feed exists",
+  );
   assert(page.uncertain.length > 0, "limitation must be disclosed");
 });
 
@@ -164,7 +179,7 @@ test("bus: London bus category produces an operator source", async () => {
   assert(page.respondingProviders.includes("tfl-bus"), "expected the bus provider");
 });
 
-test("bus: no provider outside coverage states the limitation", async () => {
+test("bus: a place with directory bodies but no live feed states the limitation", async () => {
   const page = await composeAssistance({
     category: "bus",
     countryCode: "JP",
@@ -173,7 +188,7 @@ test("bus: no provider outside coverage states the limitation", async () => {
     fetchImpl: fixtureFetch(ALL_TABLE),
   });
   assertEqual(page.respondingProviders.length, 0);
-  assertIncludes(page.headline, "no live source");
+  assertIncludes(page.headline, "no live feed covers");
 });
 
 // --- Roads ------------------------------------------------------------------
@@ -279,6 +294,155 @@ test("weather: an unreachable authority yields gaps plus an official fallback li
   assert(
     page.coverageGaps.every((gap) => gap.fallbackUrl !== undefined),
     "every gap should offer an official link",
+  );
+});
+
+// --- Global weather: the free, keyless source for everywhere NWS/DWD do not
+// cover. These are the tests for the Mission 3 objective: a place with no paid
+// web-search key must still get real, honest weather information.
+
+test("weather: a place outside US and DE gets a real forecast, not a dead end", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  // The precondition the whole mission is about: no paid key is configured.
+  assertEqual(page.discovery.state, "not_configured", "discovery is not configured");
+  assert(
+    page.respondingProviders.includes("open-meteo"),
+    "Open-Meteo must answer a place the national warning services do not cover",
+  );
+  assertEqual(page.overallState, "live", "the forecast is live");
+  const current = page.conditions.find((c) => c.id === "open-meteo-current");
+  assert(current !== undefined, "a current-conditions reading is present");
+  assertEqual(current.severity, "minor", "a thunderstorm in a forecast is minor, never a warning");
+  assertIncludes(current.detail ?? "", "Lagos", "the reading names the resolved place");
+  assertIncludes(current.detail ?? "", "not a station observation", "it is labelled a model value");
+});
+
+test("weather: a forecast is never presented as an official warning", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const source = page.sources.find((s) => s.id === "open-meteo");
+  assert(source !== undefined, "the forecast source is in the source panel");
+  assertEqual(source.tier, "secondary", "an aggregator is not a primary authority");
+  // The provider must not be treated as a warning source by the engine at all.
+  assert(
+    openMeteoProvider.metadata.capabilities.forecast === true &&
+      openMeteoProvider.metadata.capabilities.weatherWarnings === false,
+    "it declares a forecast, explicitly not a warning",
+  );
+  // The severity ladder must never reach the level that means "an authority has
+  // declared a hazard", because this provider cannot declare one.
+  assert(
+    page.conditions.every((c) => c.severity !== "severe" && c.severity !== "major"),
+    "no forecast reading may be presented as an authority's warning",
+  );
+});
+
+test("weather: the forecast is attributed, as the CC BY licence requires", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const source = page.sources.find((s) => s.id === "open-meteo");
+  assertIncludes(source?.note ?? "", "Open-Meteo", "the source note names the provider");
+  assert(
+    (source?.note ?? "").includes("CC BY 4.0"),
+    "the licence that requires attribution is stated",
+  );
+});
+
+test("weather: a country-scoped geocode never attaches the wrong city's weather", async () => {
+  // The fixture geocoder returns two "Lagos": Nigeria (correct) and Portugal.
+  // The adapter must pick the Nigerian one, because that is the country the
+  // engine resolved from "Lagos, Nigeria".
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const current = page.conditions.find((c) => c.id === "open-meteo-current");
+  assertIncludes(current?.detail ?? "", "Lagos", "the Nigerian Lagos is named");
+  assert(
+    !(current?.detail ?? "").includes("Faro"),
+    "the Portuguese Lagos must never be chosen",
+  );
+});
+
+test("weather: an unplaceable name stays un-covered, not a fabricated reading", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Atlantis",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.conditions.length, 0, "no condition may be invented for no real place");
+  assert(
+    !page.respondingProviders.includes("open-meteo"),
+    "a place we cannot locate is out of this provider's coverage",
+  );
+});
+
+test("weather: a failing forecast source degrades honestly and offers a link", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: failingFetch(),
+  });
+  assertEqual(page.overallState, "unavailable");
+  const gap = page.coverageGaps.find((g) => g.providerId === "open-meteo");
+  assert(gap !== undefined, "the failed source is disclosed as a gap");
+  assert(
+    (gap?.fallbackUrl ?? "").startsWith("https://"),
+    "the gap offers the official page instead",
+  );
+  assertEqual(page.conditions.length, 0, "a failure never becomes a fabricated reading");
+});
+
+test("weather: the free provider ranks below a national warning authority", async () => {
+  const { usable } = selectProviders({
+    category: "weather",
+    countryCode: "US",
+    region: "CA",
+    city: "Los Angeles",
+    locale: "en",
+  });
+  const ranked = rankProviders(usable).map((p) => p.metadata.id);
+  assert(
+    ranked.indexOf("nws-alerts") < ranked.indexOf("open-meteo"),
+    "the official warning service must outrank the global forecast",
+  );
+});
+
+test("weather: a calm forecast never reads as a disruption", async () => {
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Paris, France",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_PARIS,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_CALM,
+    }),
+  });
+  // The condition is still shown (it is useful), but the headline must not
+  // claim a disruption from a clear-sky reading.
+  assert(page.conditions.length > 0, "the calm reading is still listed");
+  assertIncludes(
+    page.headline,
+    "no disruption reported",
+    "an informational forecast must not be called a disruption",
   );
 });
 
@@ -1419,7 +1583,7 @@ test("scoping: TfL does not answer for a non-London GB city", async () => {
       0,
       `no London provider should answer for ${city}`,
     );
-    assertIncludes(page.headline, "no live source", "the gap is stated honestly");
+    assertIncludes(page.headline, "no live feed covers", "the gap is stated honestly");
   }
 });
 
@@ -1452,6 +1616,114 @@ test("scoping: Paris metro lists a French transport authority, not the weather s
     first !== undefined && !first.organization.includes("Météo-France"),
     "the national weather service is not the leading reference for a metro query",
   );
+});
+
+// --- Honest reporting when nothing can be verified -------------------------
+//
+// Regression suite for a misleading message: every place with no live provider
+// was described as "no live source covers this place". That is false when the
+// directory has the official bodies, and false when a provider was configured
+// but refused/failed us. These tests pin the three situations apart.
+
+test("coverage: directory bodies but no live feed says 'no live feed', not 'no coverage'", async () => {
+  const page = await composeAssistance({
+    category: "public_service",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.respondingProviders.length, 0, "no live provider covers Lagos public services");
+  assert(
+    page.references.length > 0,
+    "the official bodies for Lagos must be offered",
+  );
+  assert(
+    !/no live source covers/i.test(page.headline),
+    "must not claim no source covers a place whose bodies we list",
+  );
+  assert(
+    !/no live source covers this place/i.test(page.explanation.summary),
+    "the summary must not make the false coverage claim either",
+  );
+  assertIncludes(page.explanation.summary, "live data feed", "the honest limit is named");
+  assertEqual(
+    page.coverageGaps.map((g) => g.reason).join(","),
+    "no_data",
+    "the gap is a missing feed, not missing coverage",
+  );
+});
+
+test("coverage: a place with neither directory nor provider keeps the true no-coverage message", async () => {
+  const page = await composeAssistance({
+    category: "other",
+    location: "Atlantis",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.references.length, 0, "nothing is known about this place");
+  assertEqual(page.coverageGaps[0]?.reason, "not_covered", "genuinely not covered");
+  assertIncludes(page.coverageGaps[0]?.message ?? "", "No official data source", "states it plainly");
+});
+
+test("coverage: a configured discovery provider that fails is a source failure, not a coverage verdict", async () => {
+  process.env.WAYFINDER_GOOGLE_API_KEY = "test-key";
+  try {
+    // The key is set, so discovery runs; it is absent from the fixture table, so
+    // it answers 404 — the shape of a real "configured but refused" deployment.
+    const page = await composeAssistance({
+      category: "public_service",
+      location: "Lagos, Nigeria",
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(page.discovery.state, "unreachable", "discovery ran and failed");
+    assert(
+      typeof page.discovery.errorKind === "string" && page.discovery.errorKind.length > 0,
+      "the refusal is classified, not leaked as raw upstream text",
+    );
+    assert(
+      !/no live source covers/i.test(page.explanation.summary),
+      "a discovery failure must not become a coverage claim",
+    );
+    assert(
+      page.references.length > 0,
+      "the curated bodies are still offered when discovery fails",
+    );
+  } finally {
+    delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  }
+});
+
+test("coverage: a status provider that is selected and fails says 'could not be reached'", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    countryCode: "GB",
+    city: "London",
+    locale: "en",
+    fetchImpl: failingFetch(),
+  });
+  assertEqual(page.respondingProviders.length, 0, "the selected provider did not answer");
+  assertIncludes(page.headline, "could not be reached", "the failure is named as a failure");
+  assert(
+    !/no live source covers|no live feed covers/i.test(page.headline),
+    "a provider failure must not be described as a coverage verdict",
+  );
+});
+
+test("coverage: an unconfigured discovery layer is reported as not configured", async () => {
+  delete process.env.WAYFINDER_GOOGLE_API_KEY;
+  const page = await composeAssistance({
+    category: "public_service",
+    location: "Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(
+    page.discovery.state,
+    "not_configured",
+    "an absent credential is a deployment fact, not a coverage gap",
+  );
+  assertEqual(page.discovery.leadCount, 0, "no leads without a key");
 });
 
 run()

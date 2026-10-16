@@ -59,6 +59,13 @@ export interface ProviderCapabilities {
   realtime: boolean;
   /** Severe weather warnings. */
   weatherWarnings: boolean;
+  /**
+   * A general forecast or current-conditions reading. This is NOT a warning: a
+   * forecast says what is expected, a warning says an authority has declared a
+   * hazard. A provider with `forecast: true` and `weatherWarnings: false` can
+   * describe the weather but must never be read as confirming a hazard exists.
+   */
+  forecast: boolean;
   /** Emergency or public-safety notices. */
   emergencyNotices: boolean;
   /** Road closures, incidents, official diversions. */
@@ -162,6 +169,14 @@ export interface ProviderReport {
   source: SourceRef;
   /** Non-fatal problems, already localised by the provider adapter. */
   warnings: string[];
+  /**
+   * The classified reason a provider could not answer, when it failed. It is a
+   * coarse HTTP taxonomy value (`timeout`, `rate_limited`, `client_error`…), not
+   * the upstream text, so it is safe to surface. Without it the page cannot tell
+   * "the source was never there" from "the source was there and refused us" —
+   * the distinction the traveller needs.
+   */
+  errorKind?: string;
   retrievedAt: string;
   /**
    * Pages a discovery provider found that may bear on the situation. These are
@@ -273,6 +288,29 @@ export interface CoverageGap {
   fallbackUrl?: string;
 }
 
+/**
+ * What the optional web-search discovery layer did for this request.
+ *
+ * These states are deliberately distinct because they mean different things to
+ * the traveller, and collapsing them is what produced a misleading "no source
+ * covers this place" message:
+ *   - `leads`          — discovery ran and returned pages to check;
+ *   - `no_results`     — discovery ran, found nothing extra;
+ *   - `not_configured` — no discovery credential in this deployment;
+ *   - `unreachable`    — the credential exists but the provider refused/failed.
+ */
+export interface DiscoveryStatus {
+  state: "leads" | "no_results" | "not_configured" | "unreachable";
+  /** Number of pages discovery actually surfaced (after dedup/scoping). */
+  leadCount: number;
+  /**
+   * Coarse, non-leaking failure classification when `state` is `unreachable`.
+   * `rate_limited` and `client_error` here typically mean the configured key is
+   * not permitted to run the paid Search-grounding tool.
+   */
+  errorKind?: string;
+}
+
 export interface AssistancePage {
   id: string;
   category: AssistanceCategory;
@@ -318,6 +356,14 @@ export interface AssistancePage {
   availableCategories: AssistanceCategory[];
   /** Providers that actually answered for this query. */
   respondingProviders: string[];
+
+  /**
+   * What the optional web-search discovery layer did, so the page never has to
+   * guess. A failed or unconfigured discovery provider must be described as
+   * exactly that — a deployment/availability fact about one source — and never
+   * folded into a statement that "no source covers this place".
+   */
+  discovery: DiscoveryStatus;
 
   explanation: {
     summary: string;

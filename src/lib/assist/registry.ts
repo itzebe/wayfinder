@@ -15,6 +15,7 @@
 import { hasCredentials, type Provider, type ProviderSkipReason } from "./provider";
 import { bartProvider, mtaSubwayProvider, tflBusProvider, tflRailProvider, tflTubeProvider } from "./providers/transit";
 import { dwdWarningsProvider, nwsAlertsProvider, usgsEarthquakeProvider } from "./providers/weather";
+import { openMeteoProvider } from "./providers/openMeteo";
 import { caltransRoadProvider, govUkPublicNoticeProvider } from "./providers/road";
 import { googleDiscoveryProvider } from "./providers/discovery";
 import type { AssistanceQuery, ProviderMetadata } from "./types";
@@ -29,6 +30,10 @@ export const PROVIDERS: Provider[] = [
   nwsAlertsProvider,
   dwdWarningsProvider,
   usgsEarthquakeProvider,
+  // Global forecast: the national warning services above are authoritative but
+  // cover only US and DE. Open-Meteo fills the rest of the world with a
+  // forecast, and is ranked below them because it cannot declare a warning.
+  openMeteoProvider,
   caltransRoadProvider,
   govUkPublicNoticeProvider,
   // Discovery goes last: it is the provider that can help anywhere, so it must

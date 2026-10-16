@@ -202,3 +202,110 @@ export const GEMINI_GROUNDED = {
   ],
 };
 
+
+/**
+ * Open-Meteo geocoding and forecast shapes.
+ *
+ * Copied from the live responses. The geocoding result deliberately includes a
+ * same-named place in another country so the adapter's country filter is
+ * exercised, not just its happy path.
+ */
+export const OPEN_METEO_GEOCODE = {
+  results: [
+    {
+      id: 2332459,
+      name: "Lagos",
+      latitude: 6.45407,
+      longitude: 3.39467,
+      feature_code: "PPLA2",
+      country_code: "NG",
+      timezone: "Africa/Lagos",
+      population: 15388000,
+      country: "Nigeria",
+      admin1: "Lagos",
+    },
+    {
+      id: 9999999,
+      name: "Lagos",
+      latitude: -3.0,
+      longitude: 40.0,
+      country_code: "PT",
+      timezone: "Europe/Lisbon",
+      population: 900,
+      country: "Portugal",
+      admin1: "Faro",
+    },
+  ],
+};
+
+export const OPEN_METEO_FORECAST = {
+  latitude: 6.4323373,
+  longitude: 3.3948028,
+  timezone: "Africa/Lagos",
+  utc_offset_seconds: 3600,
+  current_units: {
+    time: "iso8601",
+    temperature_2m: "°C",
+    wind_speed_10m: "km/h",
+    precipitation: "mm",
+    weather_code: "wmo code",
+  },
+  current: {
+    time: "2026-10-16T15:45",
+    interval: 900,
+    temperature_2m: 28.9,
+    wind_speed_10m: 12.6,
+    precipitation: 0.0,
+    weather_code: 95,
+  },
+  hourly: {
+    time: [
+      "2026-10-16T00:00",
+      "2026-10-16T01:00",
+      "2026-10-16T02:00",
+      "2026-10-16T03:00",
+      "2026-10-16T04:00",
+    ],
+    temperature_2m: [26.1, 25.8, 25.5, 27.0, 29.4],
+    precipitation_probability: [10, 20, 80, 40, 5],
+    weather_code: [1, 2, 95, 61, 3],
+  },
+};
+
+/** A calm forecast: only informational readings, no disruption. */
+export const OPEN_METEO_GEOCODE_PARIS = {
+  results: [
+    {
+      id: 2988507,
+      name: "Paris",
+      latitude: 48.85341,
+      longitude: 2.3488,
+      feature_code: "PPLC",
+      country_code: "FR",
+      timezone: "Europe/Paris",
+      population: 2138551,
+      country: "France",
+      admin1: "Île-de-France",
+    },
+  ],
+};
+
+export const OPEN_METEO_FORECAST_CALM = {
+  latitude: 48.85,
+  longitude: 2.35,
+  timezone: "Europe/Paris",
+  current_units: { temperature_2m: "°C", wind_speed_10m: "km/h", precipitation: "mm" },
+  current: {
+    time: "2026-10-16T12:00",
+    temperature_2m: 15.2,
+    wind_speed_10m: 6.0,
+    precipitation: 0.0,
+    weather_code: 1,
+  },
+  hourly: {
+    time: ["2026-10-16T12:00", "2026-10-16T13:00"],
+    temperature_2m: [15.2, 16.0],
+    precipitation_probability: [0, 5],
+    weather_code: [1, 1],
+  },
+};
