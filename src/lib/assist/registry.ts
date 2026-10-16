@@ -102,3 +102,62 @@ export function providerCatalogue(): ProviderMetadata[] {
 export function providersForCategory(category: AssistanceQuery["category"]): Provider[] {
   return PROVIDERS.filter((provider) => provider.metadata.categories.includes(category));
 }
+
+/**
+ * Which countries can be answered from a country name alone, per category.
+ *
+ * This exists so the interface can tell, without a server round trip, that a
+ * query like "Iceland" with no city has nothing to answer it. It is *derived*,
+ * not declared: it asks each provider's own `supports()` the same question the
+ * engine would, with the same fields, so the interface and the engine cannot
+ * disagree. A hand-written table of "countries that work" would drift from the
+ * providers the first time one changed its coverage.
+ *
+ * Only a country name is supplied — no city, region, network or description.
+ * That is deliberate. Two providers make `supports()` depend on the traveller's
+ * own words (USGS needs a seismic hint, DWD's road branch a weather word), and a
+ * catalogue cannot know those. It does not need to: a request carrying free text
+ * is not a bare country query, and the caller must not preempt one — see
+ * `countryLevelAnswerable`.
+ *
+ * The returned lists name the countries that *can* be answered. Anything else
+ * is where the engine will ask for a place, and the interface may say so at
+ * once. A country that can be answered may still yield nothing to report, but
+ * that is a coverage statement only the engine may make.
+ */
+export function countryLevelCoverage(): Record<string, string[]> {
+  const answerable: Record<string, string[]> = {};
+
+  // Categories are taken from the providers themselves rather than imported from
+  // the category list, which imports this module: deriving them here keeps the
+  // dependency one-way.
+  const categories = new Set<AssistanceQuery["category"]>();
+  for (const provider of PROVIDERS) {
+    for (const category of provider.metadata.categories) categories.add(category);
+  }
+
+  for (const category of categories) {
+    const providers = providersForCategory(category);
+    // Every country any of this category's providers declares. A provider with
+    // an empty country list (a global feed) can still answer a country-level
+    // query when it does not need a point — Open-Meteo does need one, so it
+    // declines here and the country is correctly left off the list.
+    const declared = new Set<string>();
+    for (const provider of providers) {
+      for (const code of provider.metadata.coverage.countries) declared.add(code.toUpperCase());
+    }
+
+    const codes: string[] = [];
+    for (const countryCode of declared) {
+      const query: AssistanceQuery = { category, countryCode, locale: "en" };
+      const canRespond = providers.some(
+        (provider) => provider.supports(query) && hasCredentials(provider),
+      );
+      if (canRespond) codes.push(countryCode);
+    }
+    answerable[category] = codes.sort();
+  }
+
+  return answerable;
+}
+

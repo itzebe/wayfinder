@@ -27,7 +27,11 @@ function buttonClasses(variant: Variant, size: Size, className?: string) {
     "inline-flex items-center justify-center rounded-md font-medium",
     "transition-[background-color,border-color,color,transform,box-shadow] duration-150",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
-    "disabled:cursor-not-allowed disabled:opacity-50",
+    // A disabled control must still be readable. Fading the variant with
+    // `opacity` washed white-on-teal out to 3.5:1, so the disabled state sets
+    // its own token pair instead (ink-500 on paper-200 ≈ 5.8:1).
+    "disabled:cursor-not-allowed disabled:bg-paper-200 disabled:text-ink-500",
+    "disabled:border-line disabled:shadow-none disabled:active:translate-y-0",
     "active:translate-y-px",
     VARIANTS[variant],
     SIZES[size],

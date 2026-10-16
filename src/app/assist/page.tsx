@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -14,7 +14,13 @@ import { AssistSkeleton, AssistView } from "@/components/assist/AssistView";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useAssistance, assistRequestIdentity } from "@/components/providers/AssistanceProvider";
 import { isLocaleCode } from "@/lib/i18n/locales";
-import { resolveCity } from "@/lib/assist/location";
+import { countryName, resolveCity } from "@/lib/assist/location";
+import {
+  bareCountryOf,
+  loadCountryLevelCoverage,
+  needsPlacePrompt,
+  type CountryLevelCoverage,
+} from "@/lib/assist/countryHint";
 import { assistHref } from "@/lib/assist/request-link";
 import {
   assistRequestFromParams,
@@ -38,7 +44,25 @@ import {
 function AssistPageInner() {
   const searchParams = useSearchParams();
   const { locale, setLocale, t } = useLocale();
-  const { assistance, status, request, buildAssistance, refreshNow, refreshing } = useAssistance();
+  const { assistance, status, request, buildAssistance } = useAssistance();
+
+  // Published country-level coverage, so a bare country name can be recognised
+  // before the engine answers. Loaded once per session. `settled` distinguishes
+  // "still loading" from "loaded, and unavailable" — a failed fetch must not
+  // leave a bare country waiting forever for an answer that is not coming.
+  const [countryCoverage, setCountryCoverage] = useState<CountryLevelCoverage | undefined>();
+  const [coverageSettled, setCoverageSettled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void loadCountryLevelCoverage().then((coverage) => {
+      if (cancelled) return;
+      setCountryCoverage(coverage);
+      setCoverageSettled(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const requestedLocale = searchParams.get("locale");
   const urlRequest = useMemo(
@@ -69,14 +93,78 @@ function AssistPageInner() {
   const placeAlternatives = urlRequest?.location
     ? resolveCity(urlRequest.location)
     : undefined;
+  // Ambiguity is detected twice, deliberately. The table catches names we know
+  // are shared; the engine also catches a bare name the table could not place
+  // but which the geocoder found in several countries ("Doha"). Either way the
+  // traveller picks the country rather than being told — falsely — that no
+  // source covers a place whose country we never established.
+  const serverAlternatives = assistance?.query.countryAlternatives;
   const ambiguousCountries =
-    placeAlternatives && placeAlternatives.length > 1 ? placeAlternatives : undefined;
+    placeAlternatives && placeAlternatives.length > 1
+      ? placeAlternatives
+      : serverAlternatives && serverAlternatives.length > 1
+        ? serverAlternatives
+        : undefined;
+
+  // Reconciled when the URL and the stored request point at the *same
+  // situation*. Locale is deliberately excluded: a URL that only differs by
+  // `?locale=fr` names the same place, and the language effect below handles
+  // translating it — treating that as unreconciled would rebuild twice.
+  const reconciled =
+    !urlRequest ||
+    !isRunnableAssistRequest(urlRequest) ||
+    (request !== null && assistRequestIdentity(urlRequest) === assistRequestIdentity(request));
+
+  // A bare country name ("Iceland") names no place to look up. No source reports
+  // on a whole country, so rather than rendering a page that reads as though
+  // nothing covers them, we ask for the city. Detected from the engine's answer,
+  // which is the only place that knows the country resolved but the place did not.
+  //
+  // Gated on `reconciled`: once the traveller answers with a city the URL names a
+  // different situation, and a stale flag here would suppress the rebuild that the
+  // new search needs. Only the situation the URL currently names may hold the page
+  // back.
+  const countryOnly = assistance?.query.countryOnly === true && reconciled;
+
+  // The same conclusion, reached before the engine answers. The URL names a bare
+  // country the published coverage says no source can respond to, so the prompt
+  // can be shown now instead of after a round trip.
+  //
+  // This needs no `reconciled` gate and must not have one: it is computed from
+  // the URL, which is the source of truth for the search on screen, so it is
+  // never stale. The moment the URL names a city it is false and the rebuild
+  // below runs freely. That is the opposite of `countryOnly` above, which
+  // describes a *past* answer and would suppress the rebuild if left ungated.
+  const urlNeedsPlace = urlRequest
+    ? needsPlacePrompt(urlRequest, countryCoverage)
+    : undefined;
+  // A bare country whose coverage is still loading: hold the fetch for one tick
+  // rather than spending a round trip we are about to learn was unnecessary.
+  // Bounded by `coverageSettled`, so a slow or failed catalogue delays nothing
+  // beyond the fetch resolving — and only a bare country waits at all; a city
+  // query never reaches here.
+  const awaitingCoverage = Boolean(
+    urlRequest && !coverageSettled && bareCountryOf(urlRequest),
+  );
+  // Either source asks the same question; the URL's answer is the fresher one.
+  const placePrompt = urlNeedsPlace
+    ? { countryCode: urlNeedsPlace.countryCode, countryName: urlNeedsPlace.countryName }
+    : countryOnly
+      ? {
+          countryCode: assistance!.query.countryCode ?? "",
+          countryName: countryName(assistance!.query.countryCode) ?? "",
+        }
+      : undefined;
+  const showPlacePrompt = Boolean(placePrompt);
 
   // Reconcile the URL with what is stored. Runs when the query string changes —
   // including a Back/Forward navigation — so the visible situation always
   // matches the address bar.
   useEffect(() => {
-    if (ambiguousCountries) return;
+    // A prompt is on screen, so there is nothing to fetch: the request cannot be
+    // answered as it stands. Building it anyway would spend the very round trip
+    // the prompt exists to avoid.
+    if (ambiguousCountries || showPlacePrompt || awaitingCoverage) return;
     if (!urlRequest) return;
     if (!isRunnableAssistRequest(urlRequest)) return;
     if (sameAssistRequest(urlRequest, request)) return;
@@ -87,16 +175,15 @@ function AssistPageInner() {
     void buildAssistance({ ...urlRequest, locale: targetLocale }).finally(() => {
       if (rebuilding.current === identity) rebuilding.current = null;
     });
-  }, [urlRequest, request, targetLocale, buildAssistance, ambiguousCountries]);
-
-  // Reconciled when the URL and the stored request point at the *same
-  // situation*. Locale is deliberately excluded: a URL that only differs by
-  // `?locale=fr` names the same place, and the language effect below handles
-  // translating it — treating that as unreconciled would rebuild twice.
-  const reconciled =
-    !urlRequest ||
-    !isRunnableAssistRequest(urlRequest) ||
-    (request !== null && assistRequestIdentity(urlRequest) === assistRequestIdentity(request));
+  }, [
+    urlRequest,
+    request,
+    targetLocale,
+    buildAssistance,
+    ambiguousCountries,
+    showPlacePrompt,
+    awaitingCoverage,
+  ]);
 
   // Rebuild once per active language so the explanation follows whichever
   // language control the user touched — the header menu or the in-page select.
@@ -122,7 +209,9 @@ function AssistPageInner() {
 
   const pending =
     !ambiguousCountries &&
-    (status === "loading" ||
+    !showPlacePrompt &&
+    (awaitingCoverage ||
+      status === "loading" ||
       !reconciled ||
       (Boolean(request) && assistance?.locale !== targetLocale));
   const needsMoreDetail =
@@ -132,7 +221,7 @@ function AssistPageInner() {
     <>
       <SiteHeader />
       <main id="main" className="shell py-8 lg:py-12">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <Link
             href="/support"
             className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-ink-600 hover:text-ink-900"
@@ -140,16 +229,6 @@ function AssistPageInner() {
             <ArrowLeft className="size-4" aria-hidden="true" />
             {t("assist.backToForm")}
           </Link>
-
-          {assistance && !ambiguousCountries ? (
-            <Button variant="ghost" size="sm" onClick={refreshNow} disabled={refreshing}>
-              <RefreshCw
-                className={refreshing ? "size-4 animate-spin" : "size-4"}
-                aria-hidden="true"
-              />
-              {t("situation.refresh")}
-            </Button>
-          ) : null}
         </div>
 
         {ambiguousCountries ? (
@@ -158,11 +237,23 @@ function AssistPageInner() {
             options={ambiguousCountries}
             request={urlRequest!}
           />
+        ) : showPlacePrompt ? (
+          <AskForPlace
+            country={placePrompt!.countryCode}
+            countryName={placePrompt!.countryName}
+            request={urlRequest ?? request}
+          />
         ) : null}
-        {!ambiguousCountries && !assistance && pending ? <AssistSkeleton /> : null}
-        {!ambiguousCountries && !assistance && !pending && needsMoreDetail ? <NeedMoreDetail /> : null}
-        {!ambiguousCountries && !assistance && !pending && !needsMoreDetail ? <EmptyAssistance /> : null}
-        {!ambiguousCountries && assistance ? <AssistView assistance={assistance} /> : null}
+        {!ambiguousCountries && !showPlacePrompt && !assistance && pending ? <AssistSkeleton /> : null}
+        {!ambiguousCountries && !showPlacePrompt && !assistance && !pending && needsMoreDetail ? (
+          <NeedMoreDetail />
+        ) : null}
+        {!ambiguousCountries && !showPlacePrompt && !assistance && !pending && !needsMoreDetail ? (
+          <EmptyAssistance />
+        ) : null}
+        {!ambiguousCountries && !showPlacePrompt && assistance ? (
+          <AssistView assistance={assistance} />
+        ) : null}
       </main>
       <SiteFooter />
     </>
@@ -238,6 +329,67 @@ function NeedMoreDetail() {
       <div className="mt-5 flex justify-center">
         <Button href="/support" size="lg">
           {t("nav.getHelp")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Shown when the traveller named a country but no place inside it. No source can
+ * be scoped to a whole country, so we ask for a city instead of rendering a page
+ * that would read as though nothing covers them.
+ */
+function AskForPlace({
+  country,
+  countryName: name,
+  request,
+}: {
+  country: string;
+  countryName: string;
+  request: ReturnType<typeof assistRequestFromParams> | null;
+}) {
+  const { t } = useLocale();
+  const router = useRouter();
+  const [place, setPlace] = useState("");
+  const fieldId = useId();
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmed = place.trim();
+    if (!trimmed || !request) return;
+    router.push(assistHref({ ...request, location: `${trimmed}, ${name || country}` }));
+  };
+
+  return (
+    <Card className="mx-auto max-w-2xl">
+      <h1 className="text-xl font-semibold text-ink-900">
+        {t("assist.askPlace.title", { country: name || country })}
+      </h1>
+      <p className="measure mt-2 text-sm leading-relaxed text-ink-600">
+        {t("assist.askPlace.body", { country: name || country })}
+      </p>
+      <form onSubmit={submit} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label htmlFor={fieldId} className="text-sm font-medium text-ink-800">
+            {t("assist.askPlace.label")}
+          </label>
+          <input
+            id={fieldId}
+            value={place}
+            onChange={(event) => setPlace(event.target.value)}
+            placeholder={t("assist.askPlace.placeholder")}
+            autoComplete="address-level2"
+            className="mt-1.5 min-h-12 w-full rounded-md border border-line bg-paper-0 px-3 text-base text-ink-900 placeholder:text-ink-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600"
+          />
+        </div>
+        <Button type="submit" size="lg" disabled={!place.trim()}>
+          {t("assist.askPlace.submit")}
+        </Button>
+      </form>
+      <div className="mt-5 border-t border-line-soft pt-4">
+        <Button variant="secondary" onClick={() => router.push("/support")}>
+          {t("assist.disambiguate.other")}
         </Button>
       </div>
     </Card>

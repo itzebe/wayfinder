@@ -526,6 +526,7 @@ export function AssistanceFlow() {
 
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Button
+                type="button"
                 variant="ghost"
                 size="lg"
                 onClick={() => setStep(1)}

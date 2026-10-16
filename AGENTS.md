@@ -94,6 +94,24 @@ These are enforced by the product's purpose, not style preference. Do not break 
   registered in `src/lib/assist/registry.ts`. Aviation adapters stay in
   `src/lib/providers/`. Both must normalise + validate before returning; shared
   cache/HTTP helpers are in `src/lib/core/`.
+- One control, one job. A page must not render two controls with the same
+  accessible name doing the same thing. Refresh lives once, next to the
+  freshness badge (`SituationHeader` / the assist view header); the page shell in
+  `src/app/situation/page.tsx` and `src/app/assist/page.tsx` carries only the
+  Back link. Duplicate `Refresh now` buttons were confirmed by walking the
+  accessibility tree (`tests/` CDP helpers), which is how to re-check this.
+- Disabled is never just faded. `Button`'s disabled state sets its own
+  `paper-200`/`ink-500` pair (≈5.8:1) rather than `opacity-50`, which washed the
+  white-on-teal label down to 3.5:1 and failed WCAG 2.2 AA. Keep any bespoke
+  control's disabled state on the same pair. `IntentEntry`'s submit is the
+  hand-rolled case to copy from.
+- Two different things must not share a heading. `shortcuts.title` ("Or start
+  from a situation") is the hero chip group; `situations.title` ("Supported
+  situations") is the `#situations` section. They collided, producing two
+  identically titled headings on one page.
+- Decorative "live" affordances are banned. A pulsing dot implies an active feed;
+  the hero eyebrow dot is now static. Only `DataStateBadge` may say "live", and
+  only from a real `DataState`.
 
 ## Verifying UI changes
 
@@ -112,6 +130,42 @@ asserting on markup:
   existing callers but are no longer asked for in the flow. `resolveLocation`
   (`src/lib/assist/location.ts`) turns the free text into country/city/region
   before provider selection — never demand a country code again.
+- A name the curated table cannot place goes to the keyless Open-Meteo geocoder
+  (`src/lib/assist/placeGeocode.ts`, `resolveLocationWithGeocoder`). Three rules
+  are load-bearing and must not be relaxed: only an **exact** name match counts
+  (another city's country must never be attached), a multi-country match resolves
+  only when the leading population dominates by `DOMINANCE_RATIO` (10×), and any
+  failure — no match, network error, unexpected payload — returns "unknown",
+  never a guess. The curated table always wins; the geocoder runs only for a name
+  that resolved to no country at all.
+- Never report a coverage verdict for a place whose country we did not
+  establish. `composeAssistance` derives a single `PlaceState` from the resolved
+  place: `ambiguous` (a real city name in several countries — ask which, do not
+  name a country), `country_only` (a country with no place inside it — ask for a
+  city), or `resolved`. Both unresolved states emit a coverage gap
+  (`ambiguous_place` / `add_place`) and their own headline/summary instead of the
+  "no source covers this" wording, which would be false: the global forecast
+  covers every country in the table. `country_only` is gated on **no provider
+  having responded**, so a nationwide source that can answer a country-level
+  query (DWD for Germany) still shows its real page rather than being hidden
+  behind an unnecessary prompt. In the UI, `AskForPlace` (`src/app/assist/page.tsx`)
+  renders that prompt; its `countryOnly` flag is gated on `reconciled`, so a stale
+  answer cannot suppress the rebuild that the traveller's new city requires.
+- The place prompt is also reached **without a round trip**. `countryLevelCoverage`
+  (`src/lib/assist/registry.ts`) derives, per category, which countries a provider
+  can answer from the country name alone by calling each provider's own
+  `supports()` with the same bare-country query the engine would — so the interface
+  and the engine cannot disagree, and a hand-written "countries that work" table
+  cannot drift from the providers. It is published on `GET /api/assist` and consumed
+  by `src/lib/assist/countryHint.ts` (`needsPlacePrompt`), which preempts only a
+  request carrying nothing but a country name: any `description`/`network`/`from`/`to`
+  disables the shortcut, because USGS and DWD's road branch make `supports()` depend
+  on the traveller's own words, which a catalogue cannot evaluate. Absent coverage
+  (slow or failed fetch) only costs the shortcut, never produces a wrong prompt.
+  Two gates differ deliberately: the client `urlNeedsPlace` is computed from the
+  URL, so it needs **no** `reconciled` gate and must not have one; the server
+  `countryOnly` describes a past answer and must keep it. Only a bare country waits
+  for the catalogue to settle (`coverageSettled`); a city query never waits.
 - The in-page language select is `#assist-view-locale`; the header menu is a
   disclosure button with `aria-controls="mobile-menu"` (44px, Escape returns focus).
 - After `scrollIntoView`, wait a frame before reading `getBoundingClientRect` —

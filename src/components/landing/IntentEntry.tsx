@@ -144,7 +144,11 @@ export function IntentEntry({ className }: { className?: string }) {
             "inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-5 text-base font-semibold text-paper-0",
             "transition-colors duration-150",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
-            canSubmit ? "bg-accent-600 hover:bg-accent-700" : "cursor-not-allowed bg-ink-300",
+            // Disabled keeps the label readable (ink-500 on paper-200 ≈ 5.8:1)
+            // rather than white-on-ink-300 at 3.5:1, which failed WCAG AA.
+            canSubmit
+              ? "bg-accent-600 hover:bg-accent-700"
+              : "cursor-not-allowed bg-paper-200 text-ink-500",
           )}
         >
           <Search className="size-4" aria-hidden="true" />

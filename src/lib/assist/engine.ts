@@ -23,8 +23,9 @@ import { callAi, isAiConfigured, AiUnavailableError } from "@/lib/ai/llm";
 import { rankProviders, selectProviders, type SkippedProvider } from "./registry";
 import { GOOGLE_PROVIDER_ID } from "./providers/discovery";
 import { classifyDescription } from "./categories";
-import { resolveLocation } from "./location";
+import { countryName, resolveLocation } from "./location";
 import { directoryFor } from "./directory";
+import { resolveLocationWithGeocoder } from "./placeGeocode";
 import { selectRightsNotes } from "@/lib/situation/passengerRights";
 import type { Provider, ProviderContext } from "./provider";
 import { worstState } from "./provider";
@@ -767,6 +768,13 @@ function toAssistSources(
   }));
 }
 
+/**
+ * How well the traveller's place was established. The two unresolved cases need
+ * different words: an ambiguous name never fixed a country, while a country-only
+ * query fixed the country and lacks the point inside it.
+ */
+type PlaceState = "resolved" | "ambiguous" | "country_only";
+
 /** Deterministic explanation used whenever the AI layer is unavailable. */
 function fallbackExplanation(
   input: AssistInput,
@@ -775,10 +783,37 @@ function fallbackExplanation(
   hasDirectory: boolean,
   t: ProviderContext["t"],
   reason: string,
+  placeState: PlaceState = "resolved",
 ): AssistancePage["explanation"] {
   const categoryName = t(`assist.category.${input.category}.title`);
   const place = input.city ?? input.countryCode ?? "";
   const placePhrase = place ? t("assist.fallback.leadPlace", { place }) : "";
+
+  // An ambiguous place name means no country was established, so no source was
+  // queried. Saying "no source covers this" would name a country the traveller
+  // never gave; the honest statement is that we need to know which one they mean.
+  if (placeState === "ambiguous") {
+    return {
+      summary: t("assist.fallback.ambiguousSummary", { place: input.location ?? place }),
+      meaning: t("assist.fallback.ambiguousMeaning"),
+      aiGenerated: false,
+      unavailableReason: reason,
+    };
+  }
+
+  // A country with no place inside it is not a coverage gap. We know the country
+  // and the global forecast covers it; what we lack is the point to query, so we
+  // say that rather than letting the page read as though nothing serves them.
+  if (placeState === "country_only") {
+    return {
+      summary: t("assist.fallback.countryOnlySummary", {
+        country: countryName(input.countryCode) ?? input.countryCode ?? "",
+      }),
+      meaning: t("assist.fallback.countryOnlyMeaning"),
+      aiGenerated: false,
+      unavailableReason: reason,
+    };
+  }
 
   const responded = reports.filter((r) => r.state !== "unavailable");
   const lead = t("assist.fallback.lead", {
@@ -863,6 +898,7 @@ async function interpret(
   reports: ProviderReport[],
   hasDirectory: boolean,
   t: ProviderContext["t"],
+  placeState: PlaceState,
 ): Promise<AssistancePage["explanation"]> {
   if (!isAiConfigured()) {
     return fallbackExplanation(
@@ -872,6 +908,7 @@ async function interpret(
       hasDirectory,
       t,
       t("fallback.reason.notConfigured"),
+      placeState,
     );
   }
 
@@ -930,6 +967,7 @@ Write both fields in ${languageName}. Reproduce all place names, network names a
         hasDirectory,
         t,
         t("fallback.reason.tooShort"),
+        placeState,
       );
     }
     return { summary, meaning, aiGenerated: true };
@@ -938,7 +976,15 @@ Write both fields in ${languageName}. Reproduce all place names, network names a
       error instanceof AiUnavailableError
         ? t("fallback.reason.unavailable", { message: error.message })
         : t("fallback.reason.failed");
-    return fallbackExplanation(input, conditions, reports, hasDirectory, t, reason);
+    return fallbackExplanation(
+      input,
+      conditions,
+      reports,
+      hasDirectory,
+      t,
+      reason,
+      placeState,
+    );
   }
 }
 
@@ -967,8 +1013,23 @@ function buildHeadline(
   hasDirectory: boolean,
   effectiveCategory: AssistanceCategory,
   t: ProviderContext["t"],
+  placeState: PlaceState,
 ): string {
   const category = t(`assist.category.${effectiveCategory}.title`);
+  // Ambiguity outranks everything: no source was queried, so any statement about
+  // what sources report — including "none covers this" — would name a country
+  // the traveller never established.
+  if (placeState === "ambiguous") {
+    return t("assist.headline.ambiguousPlace", { place: input.location ?? "" });
+  }
+  // A country with no place inside it is the same class of problem: we did not
+  // query a source, because we cannot scope one to a whole country. Saying a
+  // source reported nothing would be a verdict on data we never asked for.
+  if (placeState === "country_only") {
+    return t("assist.headline.countryOnly", {
+      country: countryName(input.countryCode) ?? input.countryCode ?? "",
+    });
+  }
   const responded = reports.filter((r) => r.state !== "unavailable");
   if (responded.length === 0) {
     // A provider that was selected and failed is not the same as a place nobody
@@ -1006,7 +1067,15 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
   // selection, coverage gaps, the directory — depends on knowing the country.
   // Explicit structured fields win over the free-text field so a caller that
   // already knows the country code is not second-guessed.
-  const resolved = resolveLocation(input.location);
+  //
+  // The curated table answers most names. A bare name it cannot place is passed
+  // to the geocoder so "Reykjavik" resolves to Iceland rather than being
+  // reported — wrongly — as a place no source covers. The lookup never
+  // overrides the table: an unrecognised country part, or a name the table
+  // deliberately left ambiguous, is returned unchanged.
+  const resolved = await resolveLocationWithGeocoder(input.location, {
+    fetchImpl: input.fetchImpl,
+  });
   const countryCode = input.countryCode ?? resolved.countryCode;
   const city = input.city ?? resolved.city;
   // The free-text location is the traveller's actual words. A structured region
@@ -1080,16 +1149,59 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
   // page tell "we have no source for this place" from "we have the bodies but no
   // live feed" — two different statements that must not share one message.
   const hasDirectory = directoryFor(countryCode, effectiveCategory).length > 0;
+  // A bare place name that is a real city in several countries and could not be
+  // narrowed. No provider was selected, so the page must not report a coverage
+  // verdict — that would name a country the traveller never gave. It asks which
+  // one they meant instead.
+  const countryAmbiguous = (resolved.countryAlternatives?.length ?? 0) > 1;
+  // A country on its own — "France", "Iceland", "Djibouti" — establishes which
+  // country the traveller means but not which place inside it. Most sources need
+  // a point or a network and cannot be scoped to a whole country, so if nothing
+  // answered we ask for a city. Reporting "no source covers this" would be false,
+  // because the global forecast covers every country in the table.
+  //
+  // This is deliberately gated on `responded` being empty: a nationwide source
+  // (DWD covers all of Germany) *can* answer a country-level query, and when it
+  // does the page is real and must be shown. Asking for a city over a good answer
+  // would hide data the traveller came for.
+  const countryOnlyCode =
+    countryCode && !city && responded.length === 0 ? countryCode : undefined;
+  const countryOnlyName = countryOnlyCode ? (countryName(countryOnlyCode) ?? countryOnlyCode) : "";
+  const placeState: PlaceState = countryAmbiguous
+    ? "ambiguous"
+    : countryOnlyCode
+      ? "country_only"
+      : "resolved";
   // Coverage gaps describe what we could not *report on*. A discovery provider
   // without credentials is a deployment-configuration fact, not a gap in the
   // traveller's situation, so it is filtered out here (it is still reported in
   // the health endpoint, and its own status is surfaced through `discovery`).
-  const coverageGaps = buildGaps(
-    skipped.filter((entry) => entry.provider.metadata.id !== GOOGLE_PROVIDER_ID),
-    reports,
-    hasDirectory,
-    t,
-  );
+  const coverageGaps = countryAmbiguous
+    ? [
+        {
+          providerId: "coverage",
+          reason: "ambiguous_place" as const,
+          message: t("assist.gap.ambiguousPlace", {
+            place: city ?? input.location ?? "",
+          }),
+        },
+      ]
+    : countryOnlyCode
+      ? [
+          {
+            providerId: "coverage",
+            reason: "add_place" as const,
+            message: t("assist.gap.addPlace", {
+              country: countryOnlyName,
+            }),
+          },
+        ]
+      : buildGaps(
+          skipped.filter((entry) => entry.provider.metadata.id !== GOOGLE_PROVIDER_ID),
+          reports,
+          hasDirectory,
+          t,
+        );
   const sources = toAssistSources(reports, providers, t);
   // Discovery leads: pages a web-search provider surfaced that the curated
   // directory does not already name. They are kept separate from `sources`
@@ -1117,6 +1229,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     reports,
     hasDirectory,
     t,
+    placeState,
   );
 
   return {
@@ -1135,6 +1248,15 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
       to: input.to,
       location: input.location,
       ...(resolved.countryInferred ? { countryInferred: true } : {}),
+      ...(countryOnlyCode ? { countryOnly: true } : {}),
+      ...(countryAmbiguous
+        ? {
+            countryAlternatives: (resolved.countryAlternatives ?? []).map((option) => ({
+              countryCode: option.countryCode,
+              countryName: option.countryName,
+            })),
+          }
+        : {}),
     },
     facts,
     conditions,
@@ -1151,7 +1273,15 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
     discovery,
     explanation,
     overallState: deriveOverallState(reports),
-    headline: buildHeadline(classifiedInput, conditions, reports, hasDirectory, effectiveCategory, t),
+    headline: buildHeadline(
+      classifiedInput,
+      conditions,
+      reports,
+      hasDirectory,
+      effectiveCategory,
+      t,
+      placeState,
+    ),
     known: facts
       .filter((fact) => fact.origin === "verified")
       .map((fact) => `${fact.label}: ${fact.value}`),

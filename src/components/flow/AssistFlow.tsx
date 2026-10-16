@@ -12,6 +12,7 @@ import { FlowProgress } from "@/components/flow/SituationPicker";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useAssistance, type AssistRequest } from "@/components/providers/AssistanceProvider";
 import { assistHref } from "@/lib/assist/request-link";
+import { needsPlacePrompt, type CountryLevelCoverage } from "@/lib/assist/countryHint";
 import { LOCALES } from "@/lib/i18n/locales";
 import type { AssistanceCategory } from "@/lib/assist/types";
 
@@ -40,6 +41,10 @@ export function AssistFlow() {
   const [step, setStep] = useState<1 | 2>(draft.category ? 2 : 1);
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
   const [unavailable, setUnavailable] = useState<AssistanceCategory[]>([]);
+  // Which countries each category can answer from a country name alone. Fetched
+  // once with the catalogue below; until it arrives, a bare country waits for the
+  // engine rather than being guessed at.
+  const [countryCoverage, setCountryCoverage] = useState<CountryLevelCoverage | undefined>();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
 
@@ -60,7 +65,9 @@ export function AssistFlow() {
   }, [paramCategory, patchDraft]);
 
   // Ask the catalogue which categories have a provider at all, so a category we
-  // cannot serve anywhere is marked rather than offered and then refused.
+  // cannot serve anywhere is marked rather than offered and then refused. The
+  // same response carries the country-level coverage that lets a bare country
+  // name skip the round trip below.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -69,8 +76,11 @@ export function AssistFlow() {
         if (!response.ok) return;
         const payload = (await response.json()) as {
           categories?: { id: AssistanceCategory; available: boolean }[];
+          countryLevelCoverage?: CountryLevelCoverage;
         };
-        if (cancelled || !payload.categories) return;
+        if (cancelled) return;
+        setCountryCoverage(payload.countryLevelCoverage);
+        if (!payload.categories) return;
         setUnavailable(
           payload.categories
             .filter((entry) => !entry.available && entry.id !== "flights")
@@ -136,12 +146,23 @@ export function AssistFlow() {
       locale,
     };
 
+    // A bare country name no source can answer without a place: go straight to
+    // the situation page, which asks for a city. The coverage is published, so
+    // building the page first would spend a round trip — 0.3–1.2s in production
+    // — to learn what we already know. Nothing is claimed about the place here:
+    // the page still says no source was queried, and the real search runs once a
+    // city is given. A request carrying free text is never preempted.
+    if (needsPlacePrompt(request, countryCoverage)) {
+      router.push(assistHref(request));
+      return;
+    }
+
     const ok = await buildAssistance(request);
     // Navigate to the canonical, shareable link for this search rather than a
     // bare /assist: the query string is what makes the page reopenable and the
     // situation it names unambiguous if the traveller presses Back.
     if (ok) router.push(assistHref(request));
-  }, [draft, locale, router, buildAssistance, t]);
+  }, [draft, locale, router, buildAssistance, t, countryCoverage]);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -342,6 +363,7 @@ export function AssistFlow() {
 
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Button
+                type="button"
                 variant="ghost"
                 size="lg"
                 onClick={() => setStep(1)}

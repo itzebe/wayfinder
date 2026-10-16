@@ -10,7 +10,8 @@
 
 import { composeAssistance, snapshotFor } from "@/lib/assist/engine";
 import { clearCache } from "@/lib/core/cache";
-import { selectProviders, rankProviders } from "@/lib/assist/registry";
+import { selectProviders, rankProviders, countryLevelCoverage } from "@/lib/assist/registry";
+import { bareCountryOf, needsPlacePrompt } from "@/lib/assist/countryHint";
 import { classifyDescription } from "@/lib/assist/categories";
 import { resolveLocation } from "@/lib/assist/location";
 import { looksOfficial, normaliseFindings, GOOGLE_PROVIDER_ID } from "@/lib/assist/providers/discovery";
@@ -28,7 +29,12 @@ import {
   OPEN_METEO_FORECAST,
   OPEN_METEO_FORECAST_CALM,
   OPEN_METEO_GEOCODE,
+  OPEN_METEO_GEOCODE_DOHA,
+  OPEN_METEO_GEOCODE_NEAR_MISS,
   OPEN_METEO_GEOCODE_PARIS,
+  OPEN_METEO_GEOCODE_REYKJAVIK,
+  OPEN_METEO_GEOCODE_SALEM,
+  OPEN_METEO_FORECAST_REYKJAVIK,
   TFL_LINE_STATUS,
   TFL_SUSPENSION,
   USGS_QUAKES,
@@ -472,6 +478,178 @@ test("weather: a calm forecast never reads as a disruption", async () => {
     "no disruption reported",
     "an informational forecast must not be called a disruption",
   );
+});
+
+// --- Bare-place geocoding ---------------------------------------------------
+
+test("geocode: a bare name the table does not know resolves to its country", async () => {
+  // "Reykjavik" is not in the curated table. Before this, it produced "no live
+  // source covers this selection" — a false statement about a country the global
+  // forecast covers. The geocoder must place it instead.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Reykjavik",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_REYKJAVIK,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_REYKJAVIK,
+    }),
+  });
+  assertEqual(page.query.countryCode, "IS", "the country is resolved from the geocoder");
+  assertEqual(page.query.countryInferred, true, "the match is disclosed as ours, not the user's");
+  assert(page.sources.length > 0, "the global source now answers for this place");
+  assert(
+    !page.coverageGaps.some((gap) => gap.reason === "not_covered"),
+    "a covered place must never be reported as uncovered",
+  );
+});
+
+test("geocode: a dominant namesake resolves without asking", async () => {
+  // Doha exists in several countries, but the Qatari capital dwarfs the rest.
+  // Resolving it is correct; asking would be noise.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Doha",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_DOHA,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_REYKJAVIK,
+    }),
+  });
+  assertEqual(page.query.countryCode, "QA", "the dominant country is chosen");
+  assertEqual(page.query.countryAlternatives, undefined, "no choice is offered when it is clear");
+});
+
+test("geocode: a genuinely shared name offers choices, never a verdict", async () => {
+  // Salem is large in both India and the United States. Picking one would invent
+  // a country, and calling it uncovered would be a false coverage statement.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Salem",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_SALEM,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_REYKJAVIK,
+    }),
+  });
+  assertEqual(page.query.countryCode, undefined, "no country is assumed");
+  const alternatives = page.query.countryAlternatives ?? [];
+  assert(alternatives.length > 1, "the traveller is offered the countries to choose from");
+  assert(
+    alternatives.some((option) => option.countryCode === "IN") &&
+      alternatives.some((option) => option.countryCode === "US"),
+    "both real candidate countries are offered",
+  );
+  assert(
+    page.coverageGaps.every((gap) => gap.reason === "ambiguous_place"),
+    "the page says the place is ambiguous, not that nothing covers it",
+  );
+  assert(
+    !/no (live )?source covers/i.test(page.headline),
+    "a coverage verdict must not be issued for a country we never established",
+  );
+});
+
+test("geocode: a country with no place asks for one, never a coverage verdict", async () => {
+  // "Iceland" names a country but no point inside it. The global forecast covers
+  // Iceland, so "no source covers this" would be false; what we actually lack is
+  // the place to query. The page must say that instead.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Iceland",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_REYKJAVIK,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_REYKJAVIK,
+    }),
+  });
+  assertEqual(page.query.countryCode, "IS", "the country the traveller named is kept");
+  assertEqual(page.query.city, undefined, "no city is invented for them");
+  assertEqual(page.query.countryOnly, true, "the page knows the country was given alone");
+  assertEqual(page.sources.length, 0, "no source is queried without a point to query");
+  assert(
+    page.coverageGaps.every((gap) => gap.reason === "add_place"),
+    "the gap asks for a place rather than reporting no coverage",
+  );
+  assert(
+    !/no (live )?source covers/i.test(page.headline),
+    "a coverage verdict must not be issued for a country the forecast does cover",
+  );
+  assert(
+    /Iceland/.test(page.headline),
+    "the headline names the country so the ask is specific",
+  );
+});
+
+test("geocode: a country a nationwide source covers still shows its page", async () => {
+  // DWD issues warnings for the whole of Germany, so "Germany" alone is a real
+  // query that a source can answer. Asking for a city here would hide the answer
+  // the traveller came for; the country-only ask is only for countries where
+  // nothing could be scoped.
+  const page = await composeAssistance({
+    category: "weather",
+    countryCode: "DE",
+    location: "Germany",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.query.countryOnly, undefined, "a country an answer exists for is not 'country only'");
+  assert(page.sources.length > 0, "the nationwide source's answer is shown");
+  assert(
+    page.coverageGaps.every((gap) => gap.reason !== "add_place"),
+    "no place is demanded when a source already answered",
+  );
+});
+
+test("geocode: a near-miss name contributes no country", async () => {
+  // The only result is "Salemi", not "Salem". Attaching Italy to the query would
+  // be inventing a fact from a different place's record.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Salem",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_NEAR_MISS,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_REYKJAVIK,
+    }),
+  });
+  assertEqual(page.query.countryCode, undefined, "an inexact match must not set a country");
+  assertEqual(page.query.countryAlternatives, undefined, "nor may it fabricate choices");
+  assertEqual(page.sources.length, 0, "nothing may be retrieved for a place we did not place");
+});
+
+test("geocode: an unreachable geocoder is unknown, never a guess", async () => {
+  // A failed lookup must leave the honest "we could not place this" path intact.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Reykjavik",
+    locale: "en",
+    fetchImpl: failingFetch(),
+  });
+  assertEqual(page.query.countryCode, undefined, "a failure must not invent a country");
+  assertEqual(page.sources.length, 0, "and must not retrieve anything");
+});
+
+test("geocode: a name whose country part is unrecognised is left alone", async () => {
+  // The traveller named a country we do not know. The geocoder must not override
+  // that with a different country read from the same words.
+  const page = await composeAssistance({
+    category: "weather",
+    location: "Springfield, Ruritania",
+    locale: "en",
+    fetchImpl: fixtureFetch({
+      ...ALL_TABLE,
+      "geocoding-api.open-meteo.com": OPEN_METEO_GEOCODE_REYKJAVIK,
+      "api.open-meteo.com": OPEN_METEO_FORECAST_REYKJAVIK,
+    }),
+  });
+  assertEqual(page.query.countryCode, undefined, "an unrecognised country part is not replaced");
+  assertEqual(page.sources.length, 0, "and no source is queried for a country never established");
 });
 
 // --- Public services --------------------------------------------------------
@@ -1771,6 +1949,124 @@ test("source panel: a model forecast is marked as a forecast, not an authority",
     "only the model provider is marked as a forecast",
   );
   assert(authority === undefined || authority.forecast !== true, "an authority is never a forecast");
+});
+
+// --- Immediate place prompt -------------------------------------------------
+
+test("hint: the derived coverage agrees with the engine on every country", async () => {
+  // The interface decides whether to ask for a city from this derived map. If it
+  // disagreed with the engine, the page would either ask for a place a source
+  // could have answered, or wait for a round trip it did not need. So the map is
+  // checked against the engine itself, country by country.
+  const coverage = countryLevelCoverage();
+
+  // A country the map says is answerable must produce a page, not an ask.
+  for (const countryCode of coverage.weather ?? []) {
+    const page = await composeAssistance({
+      category: "weather",
+      countryCode,
+      location: countryCode,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(
+      page.query.countryOnly,
+      undefined,
+      `${countryCode} is listed as answerable but the engine asked for a place`,
+    );
+  }
+
+  // And a country the map omits must produce the ask, never a verdict.
+  for (const countryCode of ["IS", "NP", "DJ", "JP", "BR", "NG"]) {
+    assert(
+      !(coverage.weather ?? []).includes(countryCode),
+      `${countryCode} is wrongly listed as answerable from a country name`,
+    );
+    const page = await composeAssistance({
+      category: "weather",
+      countryCode,
+      location: countryCode,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(
+      page.query.countryOnly,
+      true,
+      `${countryCode} should ask for a place, not answer one`,
+    );
+  }
+});
+
+test("hint: a bare country with no answering source prompts at once", () => {
+  const coverage = countryLevelCoverage();
+  // Iceland: the global forecast covers it, but needs a point, so no source can
+  // answer "Iceland" alone.
+  const prompt = needsPlacePrompt({ category: "weather", location: "Iceland" }, coverage);
+  assert(prompt !== undefined, "a bare country nothing can answer must prompt");
+  assertEqual(prompt?.countryCode, "IS", "the prompt names the country the traveller gave");
+  assertEqual(prompt?.countryName, "Iceland", "with its display name");
+});
+
+test("hint: a country a nationwide source answers is never preempted", () => {
+  const coverage = countryLevelCoverage();
+  // Germany is answered by DWD with no city. Prompting here would hide the real
+  // page, which is the defect this whole path exists to avoid.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Germany" }, coverage),
+    undefined,
+    "Germany must not be preempted",
+  );
+  // The same country under a category no nationwide source serves *does* need a
+  // place, so the decision is per-category, not per-country.
+  assert(
+    needsPlacePrompt({ category: "metro", location: "Germany" }, coverage) !== undefined,
+    "metro for Germany needs a place even though weather does not",
+  );
+});
+
+test("hint: a city, a region or free text is never preempted", () => {
+  const coverage = countryLevelCoverage();
+  // A named place is already specific: "Reykjavik, Iceland" has a city.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Reykjavik, Iceland" }, coverage),
+    undefined,
+    "a place inside the country is not a bare country",
+  );
+  // A description can make a provider apply that the catalogue cannot evaluate,
+  // so a request carrying one always goes to the server.
+  assertEqual(
+    needsPlacePrompt(
+      { category: "weather", location: "Iceland", description: "earthquake tremor" },
+      coverage,
+    ),
+    undefined,
+    "free text must not be preempted",
+  );
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Iceland", network: "Line 1" }, coverage),
+    undefined,
+    "a network name must not be preempted",
+  );
+  // A city the table knows resolves to its country, so it is not a bare country.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Paris" }, coverage),
+    undefined,
+    "a known city is not a bare country",
+  );
+});
+
+test("hint: without the coverage nothing is preempted", () => {
+  // The catalogue may be slow or blocked. Absent coverage must cost the shortcut
+  // and nothing else — never produce a prompt on a guess.
+  assertEqual(
+    needsPlacePrompt({ category: "weather", location: "Iceland" }, undefined),
+    undefined,
+    "an unknown coverage must fall back to the server",
+  );
+  // The bare-country test itself needs no coverage, which is what lets a bare
+  // country wait one tick for the catalogue while a city proceeds immediately.
+  assert(bareCountryOf({ category: "weather", location: "Iceland" }) !== undefined, "bare country detected");
+  assertEqual(bareCountryOf({ category: "weather", location: "Reykjavik, Iceland" }), undefined, "city is not bare");
 });
 
 run()
