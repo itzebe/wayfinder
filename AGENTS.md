@@ -130,6 +130,27 @@ asserting on markup:
   existing callers but are no longer asked for in the flow. `resolveLocation`
   (`src/lib/assist/location.ts`) turns the free text into country/city/region
   before provider selection — never demand a country code again.
+- A name the curated table cannot place goes to the keyless Open-Meteo geocoder
+  (`src/lib/assist/placeGeocode.ts`, `resolveLocationWithGeocoder`). Three rules
+  are load-bearing and must not be relaxed: only an **exact** name match counts
+  (another city's country must never be attached), a multi-country match resolves
+  only when the leading population dominates by `DOMINANCE_RATIO` (10×), and any
+  failure — no match, network error, unexpected payload — returns "unknown",
+  never a guess. The curated table always wins; the geocoder runs only for a name
+  that resolved to no country at all.
+- Never report a coverage verdict for a place whose country we did not
+  establish. `composeAssistance` derives a single `PlaceState` from the resolved
+  place: `ambiguous` (a real city name in several countries — ask which, do not
+  name a country), `country_only` (a country with no place inside it — ask for a
+  city), or `resolved`. Both unresolved states emit a coverage gap
+  (`ambiguous_place` / `add_place`) and their own headline/summary instead of the
+  "no source covers this" wording, which would be false: the global forecast
+  covers every country in the table. `country_only` is gated on **no provider
+  having responded**, so a nationwide source that can answer a country-level
+  query (DWD for Germany) still shows its real page rather than being hidden
+  behind an unnecessary prompt. In the UI, `AskForPlace` (`src/app/assist/page.tsx`)
+  renders that prompt; its `countryOnly` flag is gated on `reconciled`, so a stale
+  answer cannot suppress the rebuild that the traveller's new city requires.
 - The in-page language select is `#assist-view-locale`; the header menu is a
   disclosure button with `aria-controls="mobile-menu"` (44px, Escape returns focus).
 - After `scrollIntoView`, wait a frame before reading `getBoundingClientRect` —

@@ -288,7 +288,14 @@ export interface CoverageGap {
     | "needs_credentials"
     | "no_data"
     | "rate_limited"
-    | "stale";
+    | "stale"
+    /** The place name is a real city in several countries and was not narrowed. */
+    | "ambiguous_place"
+    /**
+     * A country was named but no place inside it. We cannot scope any source to
+     * a whole country, so we ask for a city rather than claim no coverage.
+     */
+    | "add_place";
   /** Localised, traveller-facing explanation. */
   message: string;
   /** Official link the traveller can use instead, when one exists. */
@@ -341,6 +348,21 @@ export interface AssistancePage {
      * was ours, and invite a correction.
      */
     countryInferred?: boolean;
+    /**
+     * Set when the place name names a real city in more than one country and
+     * nothing else decided between them. The page then asks the traveller which
+     * one they mean instead of reporting a coverage verdict for a country we
+     * never established.
+     */
+    countryAlternatives?: { countryCode: string; countryName: string }[];
+    /**
+     * Set when the traveller named a country but no place inside it. No source
+     * can be scoped to a whole country — a forecast needs a point, an operator
+     * needs a network — so the page asks for a city instead of reporting that
+     * nothing covers the country. That report would be false: the global
+     * forecast covers every country in the table.
+     */
+    countryOnly?: boolean;
   };
 
   /** Verified and self-reported facts, each labelled with its origin. */

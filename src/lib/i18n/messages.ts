@@ -869,6 +869,8 @@ const en: Messages = {
   "assist.headline.disruption": "{category}: a source is reporting a significant disruption.",
   "assist.headline.minor": "{category}: sources report a change worth checking.",
   "assist.headline.clear": "{category}: no disruption reported by the sources we checked.",
+  "assist.headline.ambiguousPlace": "{place} matches more than one country, so no source was queried. Choose the country you mean.",
+  "assist.headline.countryOnly": "{country} on its own is too broad to check, so no source was queried. Add a city to see the conditions where you are.",
   "assist.headline.noCoverage":
     "{category}: no live source covers this selection, so nothing could be verified.",
   "assist.headline.directoryOnly":
@@ -959,6 +961,8 @@ const en: Messages = {
   "assist.gap.needsCredentials": "{provider} requires credentials that are not configured, so it was not used.",
   "assist.gap.providerDown": "{provider} could not be reached, so its information is missing here.",
   "assist.gap.noProvider": "No official data source covers this selection yet, so nothing could be verified. Treat any detail below as unconfirmed and check with the responsible organisation directly.",
+  "assist.gap.ambiguousPlace": "{place} is a real place name in more than one country, so we cannot tell which authority or source applies. Choose the country you mean, or type the place as \"City, Country\".",
+  "assist.gap.addPlace": "You named {country} but no place inside it. No source can report on a whole country — a forecast needs a point and an operator needs a network — so nothing was queried yet. Add a city to get the conditions for where you are.",
   "assist.gap.directoryOnly": "No live data feed covers this selection in this deployment, so we could not retrieve a status. The official bodies responsible for this place are listed below for you to check directly.",
   "assist.gap.staleData": "{provider} could not be refreshed; the last known result is shown and marked out of date.",
 
@@ -1016,6 +1020,10 @@ const en: Messages = {
     "The verified findings are: {findings}. Confirm the status of your own journey with the operator before you rely on it.",
   "assist.fallback.noSources":
     "No source that covers this selection could be reached, so nothing is verified. Use the official links below to check directly.",
+  "assist.fallback.ambiguousSummary": "\"{place}\" is a real place name in more than one country, so we have not queried a source or reported a status for it. Nothing is verified until you choose which country you mean.",
+  "assist.fallback.ambiguousMeaning": "Pick the country you meant, or type the place as \"City, Country\". We ask because the country decides which authority and which data source apply; choosing one for you would invent a fact about where you are.",
+  "assist.fallback.countryOnlySummary": "You gave {country}, but not a place inside it, so we have not queried a source or reported a status. Nothing is verified yet.",
+  "assist.fallback.countryOnlyMeaning": "Add a city or town — \"Nice, France\" — and we will check the conditions there. Sources report on a point or a network, never on a whole country, so a country name alone cannot be looked up without guessing where you are.",
   "assist.fallback.noSourceSummary":
     "You asked about {category}{place}. No live source covers this place, so nothing could be verified automatically.",
   "assist.fallback.noSourceMeaning":
@@ -1160,6 +1168,11 @@ const en: Messages = {
   "assist.disambiguate.title": "Which place do you mean?",
   "assist.disambiguate.body": "“{place}” is a city name shared by more than one country. Choose the one you mean so we can look up the right authorities.",
   "assist.disambiguate.other": "Enter a different place",
+  "assist.askPlace.title": "Where in {country}?",
+  "assist.askPlace.body": "You told us the country, but no source reports on a whole country — a forecast needs a point and an operator needs a network. Add a city or town and we will check the conditions there.",
+  "assist.askPlace.label": "City or town",
+  "assist.askPlace.placeholder": "e.g. Reykjavik",
+  "assist.askPlace.submit": "Check this place",
   "assist.value.notGiven": "Not given",
   "assist.value.unknown": "Not reported",
   "assist.conditions.note":
@@ -2011,6 +2024,8 @@ const es: Messages = {
   "assist.headline.disruption": "{category}: una fuente informa de una incidencia importante.",
   "assist.headline.minor": "{category}: las fuentes informan de un cambio que conviene comprobar.",
   "assist.headline.clear": "{category}: las fuentes consultadas no informan de incidencias.",
+  "assist.headline.ambiguousPlace": "{place} coincide con más de un país, así que no se consultó ninguna fuente. Elige el país que quieres decir.",
+  "assist.headline.countryOnly": "{country} por sí solo es demasiado amplio para comprobarlo, así que no se consultó ninguna fuente. Añade una ciudad para ver las condiciones donde estás.",
   "assist.headline.noCoverage":
     "{category}: ninguna fuente en directo cubre esta selección, así que no se pudo verificar nada.",
   "assist.headline.directoryOnly":
@@ -2102,6 +2117,8 @@ const es: Messages = {
   "assist.gap.providerDown": "No se pudo contactar con {provider}, así que aquí falta su información.",
   "assist.gap.staleData": "No se pudo actualizar {provider}; se muestra el último resultado conocido y marcado como desactualizado.",
   "assist.gap.noProvider": "Ninguna fuente de datos oficial cubre todavía esta selección, así que no se pudo verificar nada. Trata cualquier detalle de abajo como no confirmado y compruébalo directamente con la organización responsable.",
+  "assist.gap.ambiguousPlace": "{place} es un nombre de lugar real en más de un país, así que no podemos saber qué autoridad o fuente corresponde. Elige el país que quieres decir, o escribe el lugar como \"Ciudad, País\".",
+  "assist.gap.addPlace": "Indicaste {country} pero ningún lugar dentro de él. Ninguna fuente puede informar sobre un país entero: un pronóstico necesita un punto y un operador necesita una red. Todavía no se consultó nada. Añade una ciudad para ver las condiciones donde estás.",
   "assist.gap.directoryOnly": "Ninguna fuente de datos en directo cubre esta selección en esta implementación, así que no pudimos obtener un estado. Abajo figuran los organismos oficiales responsables de este lugar para que los consultes directamente.",
 
   "assist.source.coversDefault": "Fuente oficial.",
@@ -2158,6 +2175,10 @@ const es: Messages = {
     "Los hallazgos verificados son: {findings}. Confirma el estado de tu propio trayecto con el operador antes de fiarte de él.",
   "assist.fallback.noSources":
     "No se pudo contactar con ninguna fuente que cubra esta selección, así que no hay nada verificado. Usa los enlaces oficiales de abajo para comprobarlo directamente.",
+  "assist.fallback.ambiguousSummary": "\"{place}\" es un nombre de lugar real en más de un país, así que no hemos consultado ninguna fuente ni informado de un estado. No hay nada verificado hasta que elijas el país que quieres decir.",
+  "assist.fallback.ambiguousMeaning": "Elige el país que querías decir, o escribe el lugar como \"Ciudad, País\". Lo preguntamos porque el país determina qué autoridad y qué fuente de datos corresponden; elegir una por ti inventaría un dato sobre dónde estás.",
+  "assist.fallback.countryOnlySummary": "Indicaste {country}, pero ningún lugar dentro de él, así que no hemos consultado ninguna fuente ni informado de un estado. Todavía no hay nada verificado.",
+  "assist.fallback.countryOnlyMeaning": "Añade una ciudad o un pueblo — \"Niza, Francia\" — y comprobaremos las condiciones allí. Las fuentes informan sobre un punto o una red, nunca sobre un país entero, así que un nombre de país por sí solo no se puede consultar sin adivinar dónde estás.",
   "assist.fallback.noSourceSummary":
     "Has preguntado por {category}{place}. Ninguna fuente en directo cubre este lugar, así que no se pudo verificar nada automáticamente.",
   "assist.fallback.noSourceMeaning":
@@ -2304,6 +2325,11 @@ const es: Messages = {
   "assist.disambiguate.title": "¿A qué lugar te refieres?",
   "assist.disambiguate.body": "«{place}» es un nombre de ciudad compartido por varios países. Elige el que quieres para buscar las autoridades correctas.",
   "assist.disambiguate.other": "Introducir otro lugar",
+  "assist.askPlace.title": "¿Dónde en {country}?",
+  "assist.askPlace.body": "Nos indicaste el país, pero ninguna fuente informa sobre un país entero: un pronóstico necesita un punto y un operador necesita una red. Añade una ciudad o un pueblo y comprobaremos las condiciones allí.",
+  "assist.askPlace.label": "Ciudad o pueblo",
+  "assist.askPlace.placeholder": "p. ej. Reikiavik",
+  "assist.askPlace.submit": "Comprobar este lugar",
   "assist.value.notGiven": "No indicado",
   "assist.value.unknown": "Sin datos",
   "assist.conditions.note":

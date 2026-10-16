@@ -339,3 +339,137 @@ export const OPEN_METEO_FORECAST_CALM = {
     weather_code: [1, 1],
   },
 };
+
+/**
+ * Reykjavík, as the geocoder returns it. Used to prove a bare name the curated
+ * table does not know still resolves to its country instead of being reported as
+ * a place no source covers.
+ */
+export const OPEN_METEO_GEOCODE_REYKJAVIK = {
+  results: [
+    {
+      id: 3413829,
+      name: "Reykjavík",
+      latitude: 64.13548,
+      longitude: -21.89541,
+      feature_code: "PPLC",
+      country_code: "IS",
+      timezone: "Atlantic/Reykjavik",
+      population: 118918,
+      country: "Iceland",
+      admin1: "Capital Region",
+    },
+  ],
+};
+
+export const OPEN_METEO_FORECAST_REYKJAVIK = {
+  latitude: 64.14,
+  longitude: -21.9,
+  timezone: "Atlantic/Reykjavik",
+  current_units: { temperature_2m: "°C", wind_speed_10m: "km/h", precipitation: "mm" },
+  current: {
+    time: "2026-10-16T12:00",
+    temperature_2m: 3.4,
+    wind_speed_10m: 22.0,
+    precipitation: 0.4,
+    weather_code: 61,
+  },
+};
+
+/**
+ * "Doha" as the geocoder returns it: one dominant exact match in Qatar beside
+ * much smaller namesakes elsewhere. The dominance rule resolves this to QA
+ * rather than asking.
+ */
+export const OPEN_METEO_GEOCODE_DOHA = {
+  results: [
+    {
+      id: 290030,
+      name: "Doha",
+      latitude: 25.2867,
+      longitude: 51.5333,
+      country_code: "QA",
+      population: 344939,
+      country: "Qatar",
+      admin1: "Baladiyat ad Dawhah",
+    },
+    {
+      id: 1272411,
+      name: "Doha",
+      latitude: 25.5,
+      longitude: 83.0,
+      country_code: "IN",
+      population: 1200,
+      country: "India",
+      admin1: "Bihar",
+    },
+    {
+      id: 900001,
+      name: "Doha",
+      latitude: 34.0,
+      longitude: 36.0,
+      country_code: "LB",
+      population: 800,
+      country: "Lebanon",
+    },
+  ],
+};
+
+/**
+ * "Salem" as the geocoder returns it: a large exact match in India and a
+ * comparable one in the United States. Neither may be assumed, so this must
+ * produce choices rather than a coverage verdict.
+ */
+export const OPEN_METEO_GEOCODE_SALEM = {
+  results: [
+    {
+      id: 1257629,
+      name: "Salem",
+      latitude: 11.6538,
+      longitude: 78.1554,
+      country_code: "IN",
+      population: 917414,
+      country: "India",
+      admin1: "Tamil Nadu",
+    },
+    {
+      id: 4935582,
+      name: "Salem",
+      latitude: 42.5195,
+      longitude: -70.8967,
+      country_code: "US",
+      population: 42869,
+      country: "United States",
+      admin1: "Massachusetts",
+    },
+    {
+      id: 4935578,
+      name: "Salem",
+      latitude: 44.9429,
+      longitude: -123.0351,
+      country_code: "US",
+      population: 175259,
+      country: "United States",
+      admin1: "Oregon",
+    },
+  ],
+};
+
+/**
+ * A payload in which the only result is a *different* name. Nothing here matches
+ * "Salem" exactly, so it must be discarded rather than contributing a country.
+ */
+export const OPEN_METEO_GEOCODE_NEAR_MISS = {
+  results: [
+    {
+      id: 4000001,
+      name: "Salemi",
+      latitude: 37.8,
+      longitude: 12.8,
+      country_code: "IT",
+      population: 11000,
+      country: "Italy",
+    },
+  ],
+};
+

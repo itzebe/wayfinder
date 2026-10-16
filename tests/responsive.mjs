@@ -21,6 +21,9 @@ const PATHS = [
   // A name that is a real city in more than one country: the disambiguation
   // prompt is a distinct surface and must not overflow on a phone.
   "/assist?category=metro&location=San%20Jose",
+  // A bare country name: the "where in …?" prompt is another distinct surface,
+  // and its inline field plus submit button must not overflow on a phone.
+  "/assist?category=weather&location=Iceland",
 ];
 const PORT = 9333;
 

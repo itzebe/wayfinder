@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -14,7 +14,7 @@ import { AssistSkeleton, AssistView } from "@/components/assist/AssistView";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useAssistance, assistRequestIdentity } from "@/components/providers/AssistanceProvider";
 import { isLocaleCode } from "@/lib/i18n/locales";
-import { resolveCity } from "@/lib/assist/location";
+import { countryName, resolveCity } from "@/lib/assist/location";
 import { assistHref } from "@/lib/assist/request-link";
 import {
   assistRequestFromParams,
@@ -69,14 +69,44 @@ function AssistPageInner() {
   const placeAlternatives = urlRequest?.location
     ? resolveCity(urlRequest.location)
     : undefined;
+  // Ambiguity is detected twice, deliberately. The table catches names we know
+  // are shared; the engine also catches a bare name the table could not place
+  // but which the geocoder found in several countries ("Doha"). Either way the
+  // traveller picks the country rather than being told — falsely — that no
+  // source covers a place whose country we never established.
+  const serverAlternatives = assistance?.query.countryAlternatives;
   const ambiguousCountries =
-    placeAlternatives && placeAlternatives.length > 1 ? placeAlternatives : undefined;
+    placeAlternatives && placeAlternatives.length > 1
+      ? placeAlternatives
+      : serverAlternatives && serverAlternatives.length > 1
+        ? serverAlternatives
+        : undefined;
+
+  // Reconciled when the URL and the stored request point at the *same
+  // situation*. Locale is deliberately excluded: a URL that only differs by
+  // `?locale=fr` names the same place, and the language effect below handles
+  // translating it — treating that as unreconciled would rebuild twice.
+  const reconciled =
+    !urlRequest ||
+    !isRunnableAssistRequest(urlRequest) ||
+    (request !== null && assistRequestIdentity(urlRequest) === assistRequestIdentity(request));
+
+  // A bare country name ("Iceland") names no place to look up. No source reports
+  // on a whole country, so rather than rendering a page that reads as though
+  // nothing covers them, we ask for the city. Detected from the engine's answer,
+  // which is the only place that knows the country resolved but the place did not.
+  //
+  // Gated on `reconciled`: once the traveller answers with a city the URL names a
+  // different situation, and a stale flag here would suppress the rebuild that the
+  // new search needs. Only the situation the URL currently names may hold the page
+  // back.
+  const countryOnly = assistance?.query.countryOnly === true && reconciled;
 
   // Reconcile the URL with what is stored. Runs when the query string changes —
   // including a Back/Forward navigation — so the visible situation always
   // matches the address bar.
   useEffect(() => {
-    if (ambiguousCountries) return;
+    if (ambiguousCountries || countryOnly) return;
     if (!urlRequest) return;
     if (!isRunnableAssistRequest(urlRequest)) return;
     if (sameAssistRequest(urlRequest, request)) return;
@@ -87,16 +117,7 @@ function AssistPageInner() {
     void buildAssistance({ ...urlRequest, locale: targetLocale }).finally(() => {
       if (rebuilding.current === identity) rebuilding.current = null;
     });
-  }, [urlRequest, request, targetLocale, buildAssistance, ambiguousCountries]);
-
-  // Reconciled when the URL and the stored request point at the *same
-  // situation*. Locale is deliberately excluded: a URL that only differs by
-  // `?locale=fr` names the same place, and the language effect below handles
-  // translating it — treating that as unreconciled would rebuild twice.
-  const reconciled =
-    !urlRequest ||
-    !isRunnableAssistRequest(urlRequest) ||
-    (request !== null && assistRequestIdentity(urlRequest) === assistRequestIdentity(request));
+  }, [urlRequest, request, targetLocale, buildAssistance, ambiguousCountries, countryOnly]);
 
   // Rebuild once per active language so the explanation follows whichever
   // language control the user touched — the header menu or the in-page select.
@@ -122,6 +143,7 @@ function AssistPageInner() {
 
   const pending =
     !ambiguousCountries &&
+    !countryOnly &&
     (status === "loading" ||
       !reconciled ||
       (Boolean(request) && assistance?.locale !== targetLocale));
@@ -148,11 +170,23 @@ function AssistPageInner() {
             options={ambiguousCountries}
             request={urlRequest!}
           />
+        ) : countryOnly ? (
+          <AskForPlace
+            country={assistance!.query.countryCode ?? ""}
+            countryName={countryName(assistance!.query.countryCode) ?? ""}
+            request={urlRequest ?? request}
+          />
         ) : null}
-        {!ambiguousCountries && !assistance && pending ? <AssistSkeleton /> : null}
-        {!ambiguousCountries && !assistance && !pending && needsMoreDetail ? <NeedMoreDetail /> : null}
-        {!ambiguousCountries && !assistance && !pending && !needsMoreDetail ? <EmptyAssistance /> : null}
-        {!ambiguousCountries && assistance ? <AssistView assistance={assistance} /> : null}
+        {!ambiguousCountries && !countryOnly && !assistance && pending ? <AssistSkeleton /> : null}
+        {!ambiguousCountries && !countryOnly && !assistance && !pending && needsMoreDetail ? (
+          <NeedMoreDetail />
+        ) : null}
+        {!ambiguousCountries && !countryOnly && !assistance && !pending && !needsMoreDetail ? (
+          <EmptyAssistance />
+        ) : null}
+        {!ambiguousCountries && !countryOnly && assistance ? (
+          <AssistView assistance={assistance} />
+        ) : null}
       </main>
       <SiteFooter />
     </>
@@ -228,6 +262,67 @@ function NeedMoreDetail() {
       <div className="mt-5 flex justify-center">
         <Button href="/support" size="lg">
           {t("nav.getHelp")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Shown when the traveller named a country but no place inside it. No source can
+ * be scoped to a whole country, so we ask for a city instead of rendering a page
+ * that would read as though nothing covers them.
+ */
+function AskForPlace({
+  country,
+  countryName: name,
+  request,
+}: {
+  country: string;
+  countryName: string;
+  request: ReturnType<typeof assistRequestFromParams> | null;
+}) {
+  const { t } = useLocale();
+  const router = useRouter();
+  const [place, setPlace] = useState("");
+  const fieldId = useId();
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmed = place.trim();
+    if (!trimmed || !request) return;
+    router.push(assistHref({ ...request, location: `${trimmed}, ${name || country}` }));
+  };
+
+  return (
+    <Card className="mx-auto max-w-2xl">
+      <h1 className="text-xl font-semibold text-ink-900">
+        {t("assist.askPlace.title", { country: name || country })}
+      </h1>
+      <p className="measure mt-2 text-sm leading-relaxed text-ink-600">
+        {t("assist.askPlace.body", { country: name || country })}
+      </p>
+      <form onSubmit={submit} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <label htmlFor={fieldId} className="text-sm font-medium text-ink-800">
+            {t("assist.askPlace.label")}
+          </label>
+          <input
+            id={fieldId}
+            value={place}
+            onChange={(event) => setPlace(event.target.value)}
+            placeholder={t("assist.askPlace.placeholder")}
+            autoComplete="address-level2"
+            className="mt-1.5 min-h-12 w-full rounded-md border border-line bg-paper-0 px-3 text-base text-ink-900 placeholder:text-ink-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600"
+          />
+        </div>
+        <Button type="submit" size="lg" disabled={!place.trim()}>
+          {t("assist.askPlace.submit")}
+        </Button>
+      </form>
+      <div className="mt-5 border-t border-line-soft pt-4">
+        <Button variant="secondary" onClick={() => router.push("/support")}>
+          {t("assist.disambiguate.other")}
         </Button>
       </div>
     </Card>
