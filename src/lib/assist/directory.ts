@@ -320,6 +320,186 @@ const ENTRIES: DirectoryEntry[] = [
     covers:
       "A major Singapore operator: its own service information for the bus and rail routes it runs.",
   },
+
+  // --- Japan ---------------------------------------------------------------
+  {
+    id: "jp:jma",
+    countryCode: "JP",
+    organization: "Japan Meteorological Agency (JMA)",
+    title: "JMA — weather warnings and advisories",
+    url: "https://www.jma.go.jp/bosai/",
+    categories: ["weather", "public_service", "road", "other"],
+    covers:
+      "Japan's national meteorological authority: its live warning and advisory map. Check the page for the warning level in force where you are.",
+  },
+  {
+    id: "jp:mlit",
+    countryCode: "JP",
+    organization: "Ministry of Land, Infrastructure, Transport and Tourism (MLIT)",
+    title: "MLIT — transport and infrastructure notices",
+    url: "https://www.mlit.go.jp/",
+    categories: ["rail", "metro", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "Japan's transport ministry: announcements affecting rail, road, aviation and ports. It publishes notices rather than a per-train status, so confirm a specific service with the operator.",
+  },
+  {
+    id: "jp:odpt",
+    countryCode: "JP",
+    organization: "Association of Open Public Transportation Data (ODPT)",
+    title: "ODPT — Tokyo public transport open data",
+    url: "https://www.odpt.org/",
+    categories: ["metro", "rail", "bus", "other"],
+    covers:
+      "The open-data body for Tokyo's transport operators. It describes the data the operators publish; the operator's own page remains the source for a specific line.",
+  },
+
+  // --- France --------------------------------------------------------------
+  {
+    id: "fr:meteofrance",
+    countryCode: "FR",
+    organization: "Météo-France",
+    title: "Météo-France — forecasts and vigilance",
+    url: "https://meteofrance.com/",
+    categories: ["weather", "public_service", "road", "other"],
+    covers:
+      "France's national meteorological service: forecasts and the official vigilance map for severe-weather warnings.",
+  },
+
+  // --- Spain ---------------------------------------------------------------
+  {
+    id: "es:dgt",
+    countryCode: "ES",
+    organization: "Dirección General de Tráfico (DGT)",
+    title: "DGT — traffic information",
+    url: "https://www.dgt.es/",
+    categories: ["road", "public_service", "other"],
+    covers:
+      "Spain's traffic authority: its own traffic and road-condition information, including incidents and closures.",
+  },
+
+  // --- Mexico --------------------------------------------------------------
+  {
+    id: "mx:sct",
+    countryCode: "MX",
+    organization: "Secretaría de Infraestructura, Comunicaciones y Transportes (SICT)",
+    title: "SICT — transport and infrastructure information",
+    url: "https://www.gob.mx/sct",
+    categories: ["road", "rail", "bus", "metro", "public_service", "stranded", "other"],
+    covers:
+      "Mexico's federal transport ministry: notices for roads, rail and transport. A national publication rather than a live incident feed.",
+  },
+
+  // --- Argentina -----------------------------------------------------------
+  {
+    id: "ar:transporte",
+    countryCode: "AR",
+    organization: "Ministerio de Transporte de la Nación",
+    title: "Ministerio de Transporte — transport information",
+    url: "https://www.argentina.gob.ar/transporte",
+    categories: ["rail", "bus", "road", "metro", "public_service", "stranded", "other"],
+    covers:
+      "Argentina's national transport ministry: notices and information for the transport services it oversees.",
+  },
+
+  // --- United Arab Emirates ------------------------------------------------
+  {
+    id: "ae:rta",
+    countryCode: "AE",
+    organization: "Roads and Transport Authority (RTA) Dubai",
+    title: "RTA Dubai — transport and road information",
+    url: "https://www.rta.ae/wps/portal/rta/ae/home",
+    categories: ["metro", "bus", "road", "stranded", "other"],
+    covers:
+      "Dubai's roads and transport authority: information for the metro, buses and roads it operates.",
+  },
+
+  // --- New Zealand ---------------------------------------------------------
+  {
+    id: "nz:nzta",
+    countryCode: "NZ",
+    organization: "Waka Kotahi NZ Transport Agency",
+    title: "NZTA — traffic and travel information",
+    url: "https://www.nzta.govt.nz/traffic-and-travel-information/",
+    categories: ["road", "public_service", "other"],
+    covers:
+      "New Zealand's transport agency: its own traffic and travel information, including road closures and conditions.",
+  },
+
+  // --- South Korea (weather) ----------------------------------------------
+  {
+    id: "kr:kma",
+    countryCode: "KR",
+    organization: "Korea Meteorological Administration (KMA)",
+    title: "KMA — weather information",
+    url: "https://www.kma.go.kr/eng/",
+    categories: ["weather", "public_service", "other"],
+    covers:
+      "South Korea's national meteorological service: forecasts and weather warnings.",
+  },
+
+  // --- Kenya ---------------------------------------------------------------
+  {
+    id: "ke:transport",
+    countryCode: "KE",
+    organization: "Ministry of Roads and Transport (Kenya)",
+    title: "Kenya Ministry of Roads and Transport",
+    url: "https://www.transport.go.ke/",
+    categories: ["road", "rail", "bus", "metro", "public_service", "stranded", "other"],
+    covers:
+      "Kenya's national roads and transport ministry: notices and information for the transport it oversees.",
+  },
+  {
+    id: "ke:kenha",
+    countryCode: "KE",
+    organization: "Kenya National Highways Authority (KeNHA)",
+    title: "KeNHA — road information",
+    url: "https://www.kenha.co.ke/",
+    categories: ["road", "public_service", "other"],
+    covers:
+      "Kenya's national highways authority: information for the trunk roads it manages, including closures and works.",
+  },
+  {
+    id: "ke:kura",
+    countryCode: "KE",
+    organization: "Kenya Urban Roads Authority (KURA)",
+    title: "KURA — urban road information",
+    url: "https://www.kura.go.ke/",
+    categories: ["road", "public_service", "other"],
+    covers:
+      "Kenya's urban roads authority: information for the city roads it manages.",
+  },
+  {
+    id: "ke:kma-weather",
+    countryCode: "KE",
+    organization: "Kenya Meteorological Department",
+    title: "Kenya Meteorological Department — forecasts and warnings",
+    url: "https://kma.go.ke/",
+    categories: ["weather", "public_service", "road", "other"],
+    covers:
+      "Kenya's national meteorological service: forecasts and weather advisories.",
+  },
+
+  // --- Colombia ------------------------------------------------------------
+  {
+    id: "co:transport",
+    countryCode: "CO",
+    organization: "Ministerio de Transporte (Colombia)",
+    title: "Ministerio de Transporte — transport information",
+    url: "https://www.mintransporte.gov.co/",
+    categories: ["road", "rail", "bus", "metro", "public_service", "stranded", "other"],
+    covers:
+      "Colombia's national transport ministry: notices and information for the transport it oversees.",
+  },
+  {
+    id: "co:invias",
+    countryCode: "CO",
+    organization: "INVÍAS — Instituto Nacional de Vías",
+    title: "INVÍAS — road conditions",
+    url: "https://www.invias.gov.co/",
+    categories: ["road", "public_service", "other"],
+    covers:
+      "Colombia's national roads institute: information for the national road network, including closures and conditions.",
+  },
 ];
 
 const BY_COUNTRY = new Map<string, DirectoryEntry[]>();

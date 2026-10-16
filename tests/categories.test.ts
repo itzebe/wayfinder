@@ -672,6 +672,33 @@ test("lagos: a directory-only page still yields actionable next steps", async ()
   );
 });
 
+test("directory: coverage now spans more than the live-provider countries", async () => {
+  const tokyo = await composeAssistance({
+    category: "weather",
+    location: "Tokyo, Japan",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(tokyo.query.countryCode, "JP");
+  assert(tokyo.references.length > 0, "Japan has official weather/transport pages to check");
+  assert(
+    tokyo.references.every((r) => r.url.startsWith("https://")),
+    "directory links must be https",
+  );
+
+  const countries = new Set<string>();
+  for (const probe of ["JP", "FR", "ES", "MX", "AR", "AE", "NZ", "KR", "KE", "CO"]) {
+    const page = await composeAssistance({
+      category: "road",
+      countryCode: probe,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    if (page.references.length > 0) countries.add(probe);
+  }
+  assert(countries.size >= 10, `expected broad directory coverage, got ${countries.size}`);
+});
+
 run()
   .then(() => report("Category suites (fixtures)"))
   .catch((error) => {
