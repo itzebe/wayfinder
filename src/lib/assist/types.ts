@@ -233,6 +233,13 @@ export interface AssistSource extends SourceRef {
   covers: string;
   /** Why it is or is not relevant to this specific query. */
   relevance?: string;
+  /**
+   * True when this source's data is a forecast or model reading rather than an
+   * authority's declared status (Open-Meteo). The page must label it as a
+   * forecast, never as a live warning — the same distinction the engine enforces
+   * with `ProviderCapabilities.forecast`.
+   */
+  forecast?: boolean;
 }
 
 /**

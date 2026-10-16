@@ -908,6 +908,10 @@ const en: Messages = {
   "assist.severity.info": "Information",
   "assist.severity.good_service": "Good service",
 
+  "assist.source.forecastBadge": "Forecast",
+  "assist.source.forecastNote":
+    "A model's expectation, not a warning an authority has declared. Treat it as what is likely, not as a confirmed hazard.",
+
   "assist.rec.openSource": "Open the official source",
   "assist.rec.followOfficial.title": "Follow the official instructions",
   "assist.rec.followOfficial.rationale":
@@ -1184,6 +1188,8 @@ const en: Messages = {
   "assist.rights.readSource": "Read the official text",
   "assist.timeline.none": "No update has been recorded yet.",
   "assist.uncertain.none": "No specific uncertainty was recorded.",
+  "assist.uncertain.note":
+    "What we could not confirm. Read this before the next steps, because a step may only be safe once one of these is resolved.",
   "assist.gap.openFallback": "Open the official page instead",
   "assist.coverage.limitations": "What the sources can and cannot tell us",
   "assist.section.share": "Share or save",
@@ -2044,6 +2050,10 @@ const es: Messages = {
   "assist.severity.info": "Información",
   "assist.severity.good_service": "Servicio normal",
 
+  "assist.source.forecastBadge": "Previsión",
+  "assist.source.forecastNote":
+    "La expectativa de un modelo, no una alerta declarada por una autoridad. Tómalo como lo probable, no como un peligro confirmado.",
+
   "assist.rec.openSource": "Abrir la fuente oficial",
   "assist.rec.followOfficial.title": "Sigue las instrucciones oficiales",
   "assist.rec.followOfficial.rationale":
@@ -2322,6 +2332,8 @@ const es: Messages = {
   "assist.rights.readSource": "Leer el texto oficial",
   "assist.timeline.none": "Todavía no se ha registrado ninguna actualización.",
   "assist.uncertain.none": "No se ha registrado ninguna incertidumbre concreta.",
+  "assist.uncertain.note":
+    "Lo que no pudimos confirmar. Léelo antes de los siguientes pasos, porque un paso puede ser seguro solo cuando se resuelva alguno de estos puntos.",
   "assist.gap.openFallback": "Abrir la página oficial",
   "assist.coverage.limitations": "Qué pueden y qué no pueden decirnos las fuentes",
   "assist.section.share": "Compartir o guardar",

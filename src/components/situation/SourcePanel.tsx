@@ -23,7 +23,8 @@ export function SourcePanel({
   className,
   compact,
 }: {
-  sources: SourceRef[];
+  /** `AssistSource` adds `forecast`; a bare `SourceRef` simply has none. */
+  sources: (SourceRef & { forecast?: boolean })[];
   className?: string;
   compact?: boolean;
 }) {
@@ -70,7 +71,13 @@ export function SourcePanel({
   );
 }
 
-function SourceItem({ source, compact }: { source: SourceRef; compact?: boolean }) {
+function SourceItem({
+  source,
+  compact,
+}: {
+  source: SourceRef & { forecast?: boolean };
+  compact?: boolean;
+}) {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -87,10 +94,21 @@ function SourceItem({ source, compact }: { source: SourceRef; compact?: boolean 
             <p className="text-sm font-medium leading-snug text-ink-900">{source.title}</p>
             <p className="mt-0.5 text-xs text-ink-500">{source.organization}</p>
           </div>
-          <Badge tone={toneForTier(source.tier)}>
-            {source.tier === "primary" ? t("sources.primary") : t("sources.secondary")}
-          </Badge>
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            {source.forecast ? (
+              <Badge tone="warn">{t("assist.source.forecastBadge")}</Badge>
+            ) : null}
+            <Badge tone={toneForTier(source.tier)}>
+              {source.tier === "primary" ? t("sources.primary") : t("sources.secondary")}
+            </Badge>
+          </div>
         </div>
+
+        {source.forecast ? (
+          <p className="mt-2 rounded-sm border border-warn-200 bg-warn-50 px-2.5 py-1.5 text-xs leading-relaxed text-warn-700">
+            {t("assist.source.forecastNote")}
+          </p>
+        ) : null}
 
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <DataStateBadge state={source.state} />

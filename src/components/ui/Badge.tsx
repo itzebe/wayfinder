@@ -86,13 +86,35 @@ export function toneForConfidence(confidence: Confidence): Tone {
   }
 }
 
+/**
+ * Severity vocabulary → tone.
+ *
+ * Two vocabularies reach the UI. The flight signals use an assessment ladder
+ * (`high | elevated | moderate | low | none`), while the generic situation page
+ * prints the operator's own severity for a condition
+ * (`severe | major | minor | info | good_service`). Both must map, because a
+ * `severe` condition styled as neutral grey silently understates a suspension —
+ * the very failure this scale exists to prevent. Colour is never the only
+ * signal; the badge's text always states the severity in words.
+ */
 export function toneForSeverity(severity: string): Tone {
   switch (severity) {
+    // Generic condition severities (the operator's own vocabulary).
+    case "severe":
+      return "danger";
+    case "major":
+      return "warn";
+    case "minor":
+      return "accent";
+    case "good_service":
+      return "success";
+    case "info":
+      return "neutral";
+    // Flight assessment ladder.
     case "high":
       return "danger";
-    case "moderate":
-      return "warn";
     case "elevated":
+    case "moderate":
       return "warn";
     case "low":
       return "accent";
