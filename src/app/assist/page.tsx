@@ -12,7 +12,7 @@ import { Callout } from "@/components/ui/Callout";
 import { Card } from "@/components/ui/Card";
 import { AssistSkeleton, AssistView } from "@/components/assist/AssistView";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { useAssistance } from "@/components/providers/AssistanceProvider";
+import { useAssistance, assistRequestIdentity } from "@/components/providers/AssistanceProvider";
 import { isLocaleCode } from "@/lib/i18n/locales";
 import { resolveCity } from "@/lib/assist/location";
 import { assistHref } from "@/lib/assist/request-link";
@@ -46,7 +46,11 @@ function AssistPageInner() {
     [searchParams],
   );
 
-  const rebuilding = useRef(false);
+  // Tracks the situation identity of the rebuild currently in flight. Storing
+  // the identity — not a plain boolean — means a rebuild for a *different*
+  // situation is never mistaken for one of our own: the address bar stays
+  // authoritative even if a stale translate happened to be mid-flight.
+  const rebuilding = useRef<string | null>(null);
 
   const targetLocale =
     requestedLocale && isLocaleCode(requestedLocale) ? requestedLocale : locale;
@@ -76,30 +80,45 @@ function AssistPageInner() {
     if (!urlRequest) return;
     if (!isRunnableAssistRequest(urlRequest)) return;
     if (sameAssistRequest(urlRequest, request)) return;
-    if (rebuilding.current) return;
+    const identity = assistRequestIdentity(urlRequest);
+    if (rebuilding.current === identity) return;
 
-    rebuilding.current = true;
+    rebuilding.current = identity;
     void buildAssistance({ ...urlRequest, locale: targetLocale }).finally(() => {
-      rebuilding.current = false;
+      if (rebuilding.current === identity) rebuilding.current = null;
     });
   }, [urlRequest, request, targetLocale, buildAssistance, ambiguousCountries]);
 
+  // Reconciled when the URL and the stored request point at the *same
+  // situation*. Locale is deliberately excluded: a URL that only differs by
+  // `?locale=fr` names the same place, and the language effect below handles
+  // translating it — treating that as unreconciled would rebuild twice.
   const reconciled =
-    !urlRequest || !isRunnableAssistRequest(urlRequest) || sameAssistRequest(urlRequest, request);
+    !urlRequest ||
+    !isRunnableAssistRequest(urlRequest) ||
+    (request !== null && assistRequestIdentity(urlRequest) === assistRequestIdentity(request));
 
   // Rebuild once per active language so the explanation follows whichever
   // language control the user touched — the header menu or the in-page select.
+  //
+  // This must not run while the URL still points at a different situation than
+  // the stored one: `request` is then the *stale* stored page, and translating
+  // it would race the URL-driven rebuild above and could leave the old place on
+  // screen. Waiting for `reconciled` keeps the URL authoritative — the rebuild
+  // above happens first, and language follows afterwards if it is still needed.
   useEffect(() => {
     if (ambiguousCountries) return;
     if (!request) return;
+    if (!reconciled) return;
     if (assistance?.locale === targetLocale) return;
-    if (rebuilding.current) return;
+    const identity = assistRequestIdentity(request);
+    if (rebuilding.current === identity) return;
 
-    rebuilding.current = true;
+    rebuilding.current = identity;
     void buildAssistance({ ...request, locale: targetLocale }).finally(() => {
-      rebuilding.current = false;
+      if (rebuilding.current === identity) rebuilding.current = null;
     });
-  }, [request, targetLocale, assistance?.locale, buildAssistance, ambiguousCountries]);
+  }, [request, targetLocale, assistance?.locale, buildAssistance, ambiguousCountries, reconciled]);
 
   const pending =
     !ambiguousCountries &&
