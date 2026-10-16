@@ -1370,6 +1370,90 @@ test("paris: the page text can never read 'Paris, Lagos'", async () => {
   assert(!prose.includes("Lagos"), "the stale region must not appear anywhere on the page");
 });
 
+// --- Provider scoping: a city operator must not answer for its whole country --
+// A single-city operator declaring a country-wide catchment attached New York's
+// subway alerts to Los Angeles and Oakland, and BART's to New York; the same
+// shape gave Manchester London's TfL line status.
+
+test("scoping: the New York subway does not answer for Los Angeles or Oakland", async () => {
+  for (const city of ["Los Angeles", "Oakland", "San Diego"]) {
+    const page = await composeAssistance({
+      category: "metro",
+      countryCode: "US",
+      city,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assert(
+      !page.respondingProviders.includes("mta-subway"),
+      `MTA New York must not answer for ${city}`,
+    );
+    const prose = `${page.headline} ${page.explanation.summary} ${page.explanation.meaning}`;
+    assert(!prose.includes("86 St"), `New York-specific alert text must not reach ${city}`);
+  }
+});
+
+test("scoping: BART does not answer for New York", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    countryCode: "US",
+    city: "New York",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assert(page.respondingProviders.includes("mta-subway"), "the city operator still answers");
+  assert(!page.respondingProviders.includes("bart"), "BART must not answer for New York");
+});
+
+test("scoping: TfL does not answer for a non-London GB city", async () => {
+  for (const city of ["Manchester", "Birmingham", "Edinburgh"]) {
+    const page = await composeAssistance({
+      category: "metro",
+      countryCode: "GB",
+      city,
+      locale: "en",
+      fetchImpl: fixtureFetch(ALL_TABLE),
+    });
+    assertEqual(
+      page.respondingProviders.length,
+      0,
+      `no London provider should answer for ${city}`,
+    );
+    assertIncludes(page.headline, "no live source", "the gap is stated honestly");
+  }
+});
+
+test("scoping: a London query still answers, so scoping did not narrow coverage away", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    countryCode: "GB",
+    city: "London",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assert(page.respondingProviders.includes("tfl-tube"), "London still routes to TfL");
+  assert(page.conditions.length > 0, "London still yields conditions");
+});
+
+test("scoping: Paris metro lists a French transport authority, not the weather service", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Paris",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const orgs = page.references.map((r) => r.organization);
+  assert(
+    orgs.some((o) => o.includes("Île-de-France Mobilités")),
+    "a Paris-region transport authority is listed",
+  );
+  const first = page.references[0];
+  assert(
+    first !== undefined && !first.organization.includes("Météo-France"),
+    "the national weather service is not the leading reference for a metro query",
+  );
+});
+
 run()
   .then(() => report("Category suites (fixtures)"))
   .catch((error) => {

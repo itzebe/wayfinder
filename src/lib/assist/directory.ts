@@ -355,6 +355,26 @@ const ENTRIES: DirectoryEntry[] = [
 
   // --- France --------------------------------------------------------------
   {
+    id: "fr:idfm",
+    countryCode: "FR",
+    organization: "Île-de-France Mobilités",
+    title: "Île-de-France Mobilités — traffic information",
+    url: "https://www.iledefrance-mobilites.fr/",
+    categories: ["metro", "rail", "bus", "road", "public_service", "stranded", "other"],
+    covers:
+      "The transport authority for the Paris region: its 'Infos trafic' section reports disruptions to the metro, RER, tram and bus networks. It is a general information page, not a live service-status feed.",
+  },
+  {
+    id: "fr:sncf",
+    countryCode: "FR",
+    organization: "SNCF",
+    title: "SNCF — trains and network information",
+    url: "https://www.sncf.com/",
+    categories: ["rail", "stranded", "other"],
+    covers:
+      "France's national rail operator: mainline train information and service notices. Covers SNCF journeys, not urban metro or bus networks.",
+  },
+  {
     id: "fr:meteofrance",
     countryCode: "FR",
     organization: "Météo-France",

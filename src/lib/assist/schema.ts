@@ -30,7 +30,7 @@ const optionalText = (max: number) =>
   z
     .string()
     .trim()
-    .max(max)
+    .max(max, { message: "validation.textTooLong" })
     .optional()
     .or(z.literal(""))
     .transform((value) => (value === "" ? undefined : value));
