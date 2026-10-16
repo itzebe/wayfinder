@@ -17,6 +17,13 @@
  * It is not a coverage claim — a country being resolvable here says nothing
  * about whether a live provider serves it. Coverage is derived from the provider
  * registry and reported separately.
+ *
+ * A bare city ("Paris") is resolved to the country it sits in, because a place
+ * name with no country is the single most common thing a person types and
+ * refusing it produced an empty page for a place we can identify exactly. A name
+ * that is a real city in more than one country ("San Jose") is *not* resolved:
+ * choosing would invent a country the traveller never named, so the alternatives
+ * are returned for them to pick.
  */
 
 export interface ResolvedLocation {
@@ -30,6 +37,18 @@ export interface ResolvedLocation {
   countryAsTyped?: string;
   /** The input had a country part but we could not match it. */
   countryUnrecognised: boolean;
+  /**
+   * True when the country came from a bare city name ("Paris" → FR) rather than
+   * from the traveller naming the country. Disclosable, because it is our
+   * reading of their words, not something they told us.
+   */
+  countryInferred?: boolean;
+  /**
+   * When a bare place name is a real city in more than one country, the choices.
+   * Non-empty means we deliberately did *not* pick one: choosing would be
+   * inventing a country the traveller never named.
+   */
+  countryAlternatives?: { countryCode: string; countryName: string }[];
 }
 
 /** ISO 3166-1 alpha-2 → English name plus aliases people actually type. */
@@ -103,6 +122,209 @@ const BY_ALIAS = new Map<string, CountryEntry>();
 for (const entry of COUNTRIES) {
   BY_ALIAS.set(fold(entry.name), entry);
   for (const alias of entry.aliases) BY_ALIAS.set(fold(alias), entry);
+}
+
+/**
+ * City → country.
+ *
+ * A bare place name is the most common thing a person types ("Paris", "Tokyo"),
+ * and it is also the input that carries no country at all. Without this table a
+ * bare city resolves to no country, which means no directory entry and no
+ * provider: the traveller gets an empty page for a place we can identify
+ * perfectly well.
+ *
+ * `countries` lists every country the name plausibly refers to. One entry means
+ * the name identifies the country on its own. More than one means it does not,
+ * and the caller must ask rather than choose — appending a country the traveller
+ * never named is the failure this whole module exists to prevent.
+ */
+const CITIES: { name: string; countries: string[] }[] = [
+  // Unambiguous in practice — the name identifies one country.
+  { name: "Paris", countries: ["FR"] },
+  { name: "Marseille", countries: ["FR"] },
+  { name: "Lyon", countries: ["FR"] },
+  { name: "Toulouse", countries: ["FR"] },
+  { name: "Lagos", countries: ["NG"] },
+  { name: "Abuja", countries: ["NG"] },
+  { name: "Kano", countries: ["NG"] },
+  { name: "Ikeja", countries: ["NG"] },
+  { name: "Port Harcourt", countries: ["NG"] },
+  { name: "Tokyo", countries: ["JP"] },
+  { name: "Osaka", countries: ["JP"] },
+  { name: "Kyoto", countries: ["JP"] },
+  { name: "Nagoya", countries: ["JP"] },
+  { name: "Sapporo", countries: ["JP"] },
+  { name: "Fukuoka", countries: ["JP"] },
+  { name: "London", countries: ["GB"] },
+  { name: "Bristol", countries: ["GB"] },
+  { name: "Edinburgh", countries: ["GB"] },
+  { name: "Glasgow", countries: ["GB"] },
+  { name: "Cardiff", countries: ["GB"] },
+  { name: "Belfast", countries: ["GB"] },
+  { name: "Leeds", countries: ["GB"] },
+  { name: "Liverpool", countries: ["GB"] },
+  { name: "Berlin", countries: ["DE"] },
+  { name: "Munich", countries: ["DE"] },
+  { name: "Hamburg", countries: ["DE"] },
+  { name: "Frankfurt", countries: ["DE"] },
+  { name: "Cologne", countries: ["DE"] },
+  { name: "Stuttgart", countries: ["DE"] },
+  { name: "Madrid", countries: ["ES"] },
+  { name: "Barcelona", countries: ["ES"] },
+  { name: "Lisbon", countries: ["PT"] },
+  { name: "Porto", countries: ["PT"] },
+  { name: "Rome", countries: ["IT"] },
+  { name: "Milan", countries: ["IT"] },
+  { name: "Naples", countries: ["IT"] },
+  { name: "Amsterdam", countries: ["NL"] },
+  { name: "Rotterdam", countries: ["NL"] },
+  { name: "Brussels", countries: ["BE"] },
+  { name: "Vienna", countries: ["AT"] },
+  { name: "Zurich", countries: ["CH"] },
+  { name: "Geneva", countries: ["CH"] },
+  { name: "Copenhagen", countries: ["DK"] },
+  { name: "Stockholm", countries: ["SE"] },
+  { name: "Oslo", countries: ["NO"] },
+  { name: "Helsinki", countries: ["FI"] },
+  { name: "Warsaw", countries: ["PL"] },
+  { name: "Krakow", countries: ["PL"] },
+  { name: "Prague", countries: ["CZ"] },
+  { name: "Athens", countries: ["GR"] },
+  { name: "Dublin", countries: ["IE"] },
+  { name: "Istanbul", countries: ["TR"] },
+  { name: "Ankara", countries: ["TR"] },
+  { name: "Moscow", countries: ["RU"] },
+  { name: "Kyiv", countries: ["UA"] },
+  { name: "Cairo", countries: ["EG"] },
+  { name: "Alexandria", countries: ["EG"] },
+  { name: "Nairobi", countries: ["KE"] },
+  { name: "Mombasa", countries: ["KE"] },
+  { name: "Accra", countries: ["GH"] },
+  { name: "Kumasi", countries: ["GH"] },
+  { name: "Addis Ababa", countries: ["ET"] },
+  { name: "Dar es Salaam", countries: ["TZ"] },
+  { name: "Kampala", countries: ["UG"] },
+  { name: "Casablanca", countries: ["MA"] },
+  { name: "Marrakesh", countries: ["MA"] },
+  { name: "Johannesburg", countries: ["ZA"] },
+  { name: "Cape Town", countries: ["ZA"] },
+  { name: "Durban", countries: ["ZA"] },
+  { name: "Pretoria", countries: ["ZA"] },
+  { name: "Mumbai", countries: ["IN"] },
+  { name: "Delhi", countries: ["IN"] },
+  { name: "Bengaluru", countries: ["IN"] },
+  { name: "Bangalore", countries: ["IN"] },
+  { name: "Chennai", countries: ["IN"] },
+  { name: "Kolkata", countries: ["IN"] },
+  { name: "Hyderabad", countries: ["IN"] },
+  { name: "Karachi", countries: ["PK"] },
+  { name: "Lahore", countries: ["PK"] },
+  { name: "Islamabad", countries: ["PK"] },
+  { name: "Dhaka", countries: ["BD"] },
+  { name: "Bangkok", countries: ["TH"] },
+  { name: "Phuket", countries: ["TH"] },
+  { name: "Hanoi", countries: ["VN"] },
+  { name: "Ho Chi Minh City", countries: ["VN"] },
+  { name: "Saigon", countries: ["VN"] },
+  { name: "Jakarta", countries: ["ID"] },
+  { name: "Bali", countries: ["ID"] },
+  { name: "Manila", countries: ["PH"] },
+  { name: "Singapore", countries: ["SG"] },
+  { name: "Kuala Lumpur", countries: ["MY"] },
+  { name: "Seoul", countries: ["KR"] },
+  { name: "Busan", countries: ["KR"] },
+  { name: "Beijing", countries: ["CN"] },
+  { name: "Shanghai", countries: ["CN"] },
+  { name: "Guangzhou", countries: ["CN"] },
+  { name: "Shenzhen", countries: ["CN"] },
+  { name: "Taipei", countries: ["TW"] },
+  { name: "Hong Kong", countries: ["HK"] },
+  { name: "Sydney", countries: ["AU"] },
+  { name: "Melbourne", countries: ["AU"] },
+  { name: "Brisbane", countries: ["AU"] },
+  { name: "Perth", countries: ["AU"] },
+  { name: "Auckland", countries: ["NZ"] },
+  { name: "Wellington", countries: ["NZ"] },
+  { name: "Toronto", countries: ["CA"] },
+  { name: "Vancouver", countries: ["CA"] },
+  { name: "Montreal", countries: ["CA"] },
+  { name: "Ottawa", countries: ["CA"] },
+  { name: "Calgary", countries: ["CA"] },
+  { name: "New York", countries: ["US"] },
+  { name: "New York City", countries: ["US"] },
+  { name: "Los Angeles", countries: ["US"] },
+  { name: "Chicago", countries: ["US"] },
+  { name: "San Francisco", countries: ["US"] },
+  { name: "Seattle", countries: ["US"] },
+  { name: "Boston", countries: ["US"] },
+  { name: "Washington", countries: ["US"] },
+  { name: "Miami", countries: ["US"] },
+  { name: "Atlanta", countries: ["US"] },
+  { name: "Houston", countries: ["US"] },
+  { name: "Dallas", countries: ["US"] },
+  { name: "Denver", countries: ["US"] },
+  { name: "Phoenix", countries: ["US"] },
+  { name: "Las Vegas", countries: ["US"] },
+  { name: "Mexico City", countries: ["MX"] },
+  { name: "Guadalajara", countries: ["MX"] },
+  { name: "Cancun", countries: ["MX"] },
+  { name: "Sao Paulo", countries: ["BR"] },
+  { name: "Rio de Janeiro", countries: ["BR"] },
+  { name: "Brasilia", countries: ["BR"] },
+  { name: "Buenos Aires", countries: ["AR"] },
+  { name: "Lima", countries: ["PE"] },
+  { name: "Bogota", countries: ["CO"] },
+  { name: "Medellin", countries: ["CO"] },
+  { name: "Dubai", countries: ["AE"] },
+  { name: "Abu Dhabi", countries: ["AE"] },
+  { name: "Riyadh", countries: ["SA"] },
+  { name: "Jeddah", countries: ["SA"] },
+  { name: "Tel Aviv", countries: ["IL"] },
+  { name: "Jerusalem", countries: ["IL"] },
+
+  // Genuinely ambiguous — the same name is a real city in more than one country,
+  // so it cannot identify a country on its own and the traveller must choose.
+  { name: "San Jose", countries: ["CR", "US"] },
+  { name: "Cordoba", countries: ["AR", "ES", "MX"] },
+  { name: "Valencia", countries: ["ES", "VE"] },
+  { name: "Victoria", countries: ["CA", "AU", "SC"] },
+  { name: "Hamilton", countries: ["CA", "NZ", "BM"] },
+  { name: "Birmingham", countries: ["GB", "US"] },
+  { name: "Manchester", countries: ["GB", "US"] },
+  { name: "Newcastle", countries: ["GB", "AU", "US"] },
+  { name: "Toledo", countries: ["ES", "US", "PH"] },
+  { name: "Portland", countries: ["US", "AU"] },
+  { name: "Kingston", countries: ["JM", "CA", "US"] },
+];
+
+const BY_CITY = new Map<string, string[]>();
+for (const entry of CITIES) {
+  const key = fold(entry.name);
+  const existing = BY_CITY.get(key);
+  if (existing) {
+    for (const code of entry.countries) if (!existing.includes(code)) existing.push(code);
+  } else {
+    BY_CITY.set(key, [...entry.countries]);
+  }
+}
+
+/**
+ * Looks a bare place name up as a city.
+ *
+ * Returns the distinct countries the name could refer to. `undefined` means the
+ * name is not one we know, which is an honest outcome — the caller then searches
+ * with the words the traveller gave and says the country was not recognised.
+ */
+export function resolveCity(
+  value: string | undefined,
+): { countryCode: string; countryName: string }[] | undefined {
+  if (!value) return undefined;
+  const codes = BY_CITY.get(fold(value));
+  if (!codes || codes.length === 0) return undefined;
+  return codes.map((code) => ({
+    countryCode: code,
+    countryName: countryName(code) ?? code,
+  }));
 }
 
 /** Strips diacritics and punctuation so "São Paulo" == "Sao Paulo". */
@@ -199,6 +421,31 @@ export function resolveLocation(input: string | undefined): ResolvedLocation {
   const single = resolveCountry(raw);
   if (single) {
     return { countryCode: single.code, countryAsTyped: raw, countryUnrecognised: false };
+  }
+
+  // No country was named. Before giving up, try the place as a city: "Paris" and
+  // "Tokyo" are places we can identify exactly, and refusing them because they
+  // arrived without a country is what produced an empty page. A name that maps
+  // to one country is accepted; a name that maps to several is returned as
+  // alternatives so the caller asks instead of choosing.
+  const asCity = resolveCity(parts[0] ?? raw);
+  if (asCity) {
+    if (asCity.length === 1) {
+      return {
+        countryCode: asCity[0].countryCode,
+        countryAsTyped: parts[0] ?? raw,
+        city: parts[0] ?? raw,
+        countryInferred: true,
+        countryUnrecognised: false,
+      };
+    }
+    if (parts.length === 1) {
+      return {
+        city: parts[0] ?? raw,
+        countryAlternatives: asCity,
+        countryUnrecognised: false,
+      };
+    }
   }
 
   // No country recognised. Keep what the traveller gave us as the city so it can

@@ -290,6 +290,12 @@ export interface AssistancePage {
     to?: string;
     /** The location exactly as the traveller typed it, for display and re-runs. */
     location?: string;
+    /**
+     * True when the country was read from a bare place name rather than named by
+     * the traveller ("Paris" → France). Surfaced so the page can say the match
+     * was ours, and invite a correction.
+     */
+    countryInferred?: boolean;
   };
 
   /** Verified and self-reported facts, each labelled with its origin. */

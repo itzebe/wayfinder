@@ -1285,6 +1285,91 @@ test("timeline: a new search cannot inherit an unrelated previous snapshot", asy
   );
 });
 
+// --- Paris regression: a bare city, and stale state that used to follow it ---
+
+test("paris: a bare city resolves to its country, not to nothing", async () => {
+  const resolved = resolveLocation("Paris");
+  assertEqual(resolved.countryCode, "FR", "a bare 'Paris' must resolve to France");
+  assertEqual(resolved.city, "Paris");
+  assertEqual(resolved.countryInferred, true, "the country was read from the name, not given");
+  assertEqual(resolved.countryUnrecognised, false);
+});
+
+test("paris: the countries we recognise resolve for a bare city", () => {
+  assertEqual(resolveLocation("Tokyo").countryCode, "JP");
+  assertEqual(resolveLocation("Lagos").countryCode, "NG");
+  assertEqual(resolveLocation("London").countryCode, "GB");
+  assertEqual(resolveLocation("Nairobi").countryCode, "KE");
+});
+
+test("paris: a genuinely ambiguous name is offered, never silently assigned", () => {
+  const resolved = resolveLocation("San Jose");
+  assertEqual(resolved.countryCode, undefined, "no country may be invented for an ambiguous name");
+  assert(
+    (resolved.countryAlternatives?.length ?? 0) > 1,
+    "the alternatives are offered for the traveller to choose",
+  );
+});
+
+test("paris: 'Paris' produces a directory reference, not an empty page", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Paris",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.query.countryCode, "FR", "the country must be resolved from the bare city");
+  assertEqual(page.query.city, "Paris");
+  assertEqual(page.query.countryInferred, true, "the inferred country is disclosed to the page");
+  assert(
+    page.references.length > 0,
+    "Paris must offer official pages rather than nothing",
+  );
+});
+
+test("paris: a stale structured region cannot leak into a new search", async () => {
+  // This is the exact reported failure: a region left over from an earlier
+  // Lagos search arriving alongside a new "Paris". The rendered place must be
+  // Paris in France, never "Paris, Lagos".
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Paris",
+    region: "Lagos",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.query.region, undefined, "a region absent from the typed location is dropped");
+  assertEqual(page.query.city, "Paris");
+  assertEqual(page.query.countryCode, "FR");
+});
+
+test("paris: a region the traveller did type is still kept", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Ikeja, Lagos, Nigeria",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  assertEqual(page.query.region, "Lagos", "a region the traveller typed is part of the location");
+  assertEqual(page.query.city, "Ikeja");
+});
+
+test("paris: the page text can never read 'Paris, Lagos'", async () => {
+  const page = await composeAssistance({
+    category: "metro",
+    location: "Paris",
+    region: "Lagos",
+    locale: "en",
+    fetchImpl: fixtureFetch(ALL_TABLE),
+  });
+  const place = [page.query.city, page.query.region, page.query.countryCode]
+    .filter(Boolean)
+    .join(", ");
+  assertEqual(place, "Paris, FR", "the displayed place is Paris in France");
+  const prose = `${page.explanation.summary} ${page.explanation.meaning} ${page.headline}`;
+  assert(!prose.includes("Lagos"), "the stale region must not appear anywhere on the page");
+});
+
 run()
   .then(() => report("Category suites (fixtures)"))
   .catch((error) => {

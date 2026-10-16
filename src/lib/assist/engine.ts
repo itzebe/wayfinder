@@ -119,6 +119,26 @@ export interface PreviousAssistState {
 /** Current snapshot format. Bump only with a migration for stored snapshots. */
 export const SNAPSHOT_FORMAT = 2 as number;
 
+/**
+ * Keeps a structured region only when it is actually part of what the traveller
+ * typed. The client exists to send one free-text location; a region arriving
+ * without it in the text is stale state from an older request, and joining it to
+ * a newly titled city is how "Lagos" once rendered as "Paris, Lagos".
+ */
+function regionConsistentWithLocation(
+  region: string | undefined,
+  location: string | undefined,
+): string | undefined {
+  const value = region?.trim();
+  if (!value) return undefined;
+  if (!location?.trim()) return undefined;
+  return foldForMatch(location).includes(foldForMatch(value)) ? value : undefined;
+}
+
+function foldForMatch(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 /** How long the whole provider fan-out is allowed to take. */
 const GATHER_BUDGET_MS = 15_000;
 
@@ -910,7 +930,12 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
   const resolved = resolveLocation(input.location);
   const countryCode = input.countryCode ?? resolved.countryCode;
   const city = input.city ?? resolved.city;
-  const region = input.region ?? resolved.region;
+  // The free-text location is the traveller's actual words. A structured region
+  // that is not part of it cannot have come from the same place — it is a
+  // leftover from an earlier request (an older client persisted one) — and
+  // joining it to the new city renders a place the traveller never named
+  // ("Paris, Lagos"). Only keep a region the typed location actually contains.
+  const region = regionConsistentWithLocation(input.region, input.location) ?? resolved.region;
 
   // The open-ended category is classified from the traveller's words.
   let effectiveCategory = input.category;
@@ -1023,6 +1048,7 @@ export async function composeAssistance(input: AssistInput): Promise<AssistanceP
       from: input.from,
       to: input.to,
       location: input.location,
+      ...(resolved.countryInferred ? { countryInferred: true } : {}),
     },
     facts,
     conditions,

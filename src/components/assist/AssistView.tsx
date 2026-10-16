@@ -154,6 +154,11 @@ export function AssistView({ assistance }: { assistance: AssistancePage }) {
                     <UnknownValue label={t("assist.value.notGiven")} />
                   )}
                 </DataRow>
+                {assistance.query.countryInferred ? (
+                  <DataRow label={t("assist.summary.countryMatch")}>
+                    <span className="text-ink-600">{t("assist.summary.countryInferred")}</span>
+                  </DataRow>
+                ) : null}
                 <DataRow label={t("assist.summary.lastChecked")} mono>
                   {formatAbsolute(assistance.updatedAt)}
                 </DataRow>

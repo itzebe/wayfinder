@@ -60,7 +60,6 @@ export interface AssistDraft {
    * dead-end bug, and most people simply do not know their ISO code.
    */
   location: string;
-  region: string;
   network: string;
   from: string;
   to: string;
@@ -70,12 +69,38 @@ export interface AssistDraft {
 export const EMPTY_ASSIST_DRAFT: AssistDraft = {
   category: null,
   location: "",
-  region: "",
   network: "",
   from: "",
   to: "",
   description: "",
 };
+
+/** Fields that survive a storage round-trip. Anything else is discarded. */
+const ASSIST_DRAFT_KEYS = Object.keys(EMPTY_ASSIST_DRAFT) as (keyof AssistDraft)[];
+
+/**
+ * Rebuilds a draft from stored JSON, keeping only known keys.
+ *
+ * A stale key is not harmless here. Older builds persisted a structured
+ * `region` alongside the free-text `location`; a traveller who used that flow
+ * once ("Lagos") then typed a new place ("Paris") had the old region sent with
+ * the new search and rendered as "Paris, Lagos". Dropping unknown keys on read
+ * is what stops a value we no longer collect from following every later search.
+ */
+function reviveAssistDraft(raw: unknown): AssistDraft {
+  if (!raw || typeof raw !== "object") return EMPTY_ASSIST_DRAFT;
+  const source = raw as Record<string, unknown>;
+  const draft: AssistDraft = { ...EMPTY_ASSIST_DRAFT };
+  for (const key of ASSIST_DRAFT_KEYS) {
+    const value = source[key];
+    if (key === "category") {
+      if (typeof value === "string") draft.category = value as AssistanceCategory;
+    } else if (typeof value === "string") {
+      draft[key] = value;
+    }
+  }
+  return draft;
+}
 
 export interface AssistRequest {
   category: AssistanceCategory;
@@ -173,8 +198,8 @@ export function AssistanceProvider({ children }: { children: React.ReactNode }) 
 
   // --- Restore ------------------------------------------------------------
   useEffect(() => {
-    const storedDraft = readJson<AssistDraft>(KEYS.draft);
-    if (storedDraft) setDraft({ ...EMPTY_ASSIST_DRAFT, ...storedDraft });
+    const storedDraft = readJson<unknown>(KEYS.draft);
+    if (storedDraft) setDraft(reviveAssistDraft(storedDraft));
 
     const storedRequest = readJson<AssistRequest>(KEYS.request);
     const storedPage = readJson<AssistancePage>(KEYS.assistance);

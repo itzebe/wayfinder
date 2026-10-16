@@ -129,7 +129,6 @@ export function AssistFlow() {
     const request: AssistRequest = {
       category: draft.category,
       location: draft.location.trim() || undefined,
-      region: draft.region.trim() || undefined,
       network: draft.network.trim() || undefined,
       from: draft.from.trim() || undefined,
       to: draft.to.trim() || undefined,
