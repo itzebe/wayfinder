@@ -74,7 +74,7 @@ export function CategoryShortcuts({ className }: { className?: string }) {
             <a
               href={href}
               className={cn(
-                "inline-flex min-h-10 items-center gap-2 rounded-full border border-line bg-paper-0 px-3.5 text-sm font-medium text-ink-700",
+                "inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-paper-0 px-3.5 text-sm font-medium text-ink-700",
                 "transition-[border-color,background-color,color] duration-150",
                 "hover:border-accent-300 hover:bg-accent-50 hover:text-ink-900",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",

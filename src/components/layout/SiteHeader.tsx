@@ -87,7 +87,7 @@ export function SiteHeader() {
           <Link
             href="/"
             aria-label={t("nav.home")}
-            className="flex min-w-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-600"
+            className="flex min-h-11 min-w-11 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-600"
           >
             <WayfinderWordmark size={24} />
           </Link>
@@ -98,7 +98,9 @@ export function SiteHeader() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "rounded-md px-3 py-2 text-sm font-medium text-ink-600",
+                  // min-h-11: the desktop nav must clear the 44px touch minimum
+                  // so it stays usable on tablets and touch-screen laptops.
+                  "inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-ink-600",
                   "transition-colors duration-150 hover:bg-paper-100 hover:text-ink-900",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
                 )}

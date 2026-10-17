@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   Clock,
   ExternalLink,
   Gauge,
@@ -13,7 +14,9 @@ import {
   Landmark,
   ListOrdered,
   MapPin,
+  Pause,
   Plane,
+  Play,
   RefreshCw,
   ScrollText,
   ShieldAlert,
@@ -37,6 +40,7 @@ import { formatAbsolute, formatClock, formatRelative } from "@/lib/format/dateti
 import { getLocaleMeta, LOCALES } from "@/lib/i18n/locales";
 import type { DataState, Recommendation } from "@/lib/core/types";
 import type { SituationPage } from "@/lib/situation/compose";
+import { splitStatusFields } from "@/lib/situation/statusFields";
 
 /**
  * The situation page — the signature screen.
@@ -248,8 +252,20 @@ function SituationHeader({
               type="button"
               onClick={onToggleAutoRefresh}
               aria-pressed={autoRefresh}
-              className="text-xs font-medium text-ink-500 underline decoration-line-strong underline-offset-2 hover:text-ink-700 hover:decoration-accent-500"
+              className={cn(
+                // 44px minimum: this control pauses and resumes live checking,
+                // so it is a real action and must be a comfortable touch target
+                // rather than an 18px-tall line of underlined text.
+                "inline-flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium",
+                "text-ink-500 transition-colors duration-150 hover:bg-paper-100 hover:text-ink-800",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
+              )}
             >
+              {autoRefresh ? (
+                <Pause className="size-3.5 shrink-0" aria-hidden="true" />
+              ) : (
+                <Play className="size-3.5 shrink-0" aria-hidden="true" />
+              )}
               {autoRefresh
                 ? secondsUntilRefresh !== null
                   ? t("situation.autoRefresh", { seconds: secondsUntilRefresh })
@@ -392,9 +408,89 @@ function SituationSummary({ situation }: { situation: SituationPage }) {
 function CurrentStatus({ situation }: { situation: SituationPage }) {
   const { t } = useLocale();
   const intel = situation.intel;
+  const [showUnpublished, setShowUnpublished] = useState(false);
+  const unpublishedId = useId();
 
   const weatherState: DataState = intel.weatherState;
   const statusState: DataState = intel.airportStatusState;
+
+  type StatusRow = {
+    label: string;
+    mono?: boolean;
+    hint?: string;
+    value: React.ReactNode;
+  };
+
+  // A row is "known" when a reachable source actually published something for
+  // it. Everything else is collected so absence can be summarised once instead
+  // of repeated as eight separate rows. The partition rule lives in
+  // `splitStatusFields` so it can be unit-tested rather than inferred from JSX.
+  const split = splitStatusFields(intel);
+  const known: StatusRow[] = [];
+  const unpublished: StatusRow[] = [];
+
+  for (const field of split.known) {
+    if (field === "flightNumber") {
+      known.push({ label: t("field.flightNumber"), mono: true, value: intel.flightNumber });
+    } else if (field === "callsign") {
+      known.push({ label: t("field.callsign"), mono: true, value: intel.callsignIcao });
+    } else if (field === "airline") {
+      known.push({ label: t("field.airline"), value: intel.airline?.name });
+    } else {
+      const airport = field === "origin" ? intel.origin : intel.destination;
+      known.push({
+        label: field === "origin" ? t("field.origin") : t("field.destination"),
+        value: (
+          <span>
+            {airport?.name ?? t("value.nameNotPublished")}
+            <span className="ident ms-1.5 text-ink-500">{airport?.iata ?? airport?.icao}</span>
+          </span>
+        ),
+      });
+    }
+  }
+
+  for (const field of split.unpublished) {
+    const labelKey: Record<string, string> = {
+      callsign: "field.callsign",
+      airline: "field.airline",
+      origin: "field.origin",
+      destination: "field.destination",
+      scheduledDeparture: "field.scheduledDeparture",
+      scheduledArrival: "field.scheduledArrival",
+      gate: "field.gate",
+      terminal: "field.terminal",
+    };
+    const hintKey: Record<string, string> = {
+      scheduledDeparture: "hint.scheduledByAirlineOnly",
+      scheduledArrival: "hint.publishedByAirlineOnly",
+    };
+
+    unpublished.push({
+      label: t(labelKey[field] ?? "field.gate"),
+      mono: field === "callsign",
+      hint: hintKey[field] ? t(hintKey[field]) : undefined,
+      value:
+        field === "callsign" ? (
+          <UnknownValue label={t("value.notResolved")} />
+        ) : field === "airline" ? (
+          <UnknownValue label={t("value.notPublishedForFlight")} />
+        ) : (
+          <UnknownValue label={t("value.notPublished")} />
+        ),
+    });
+  }
+
+  const statusRow: StatusRow = {
+    label: t("field.status"),
+    hint: t("hint.noPerFlightStatus"),
+    value: (
+      <span className="inline-flex items-center gap-2 text-warn-700">
+        <XCircle className="size-4 shrink-0" aria-hidden="true" />
+        <span className="text-sm font-medium">{t("value.cannotConfirm")}</span>
+      </span>
+    ),
+  };
 
   return (
     <SectionCard
@@ -403,78 +499,63 @@ function CurrentStatus({ situation }: { situation: SituationPage }) {
       description={t("situation.statusNote")}
       icon={<CalendarClock className="size-5" />}
     >
+      {/*
+        Known fields come first and the fields no reachable source publishes are
+        folded into one disclosure. Previously eight "Not published" rows pushed
+        the operational picture more than a screen down on a phone, so a
+        traveller had to scroll past absence to reach substance.
+      */}
       <dl>
-        <DataRow label={t("field.flightNumber")} mono>
-          {intel.flightNumber}
-        </DataRow>
-
-        <DataRow label={t("field.callsign")} mono>
-          {intel.callsignIcao ?? <UnknownValue label={t("value.notResolved")} />}
-        </DataRow>
-
-        <DataRow label={t("field.airline")}>
-          {intel.airline ? (
-            intel.airline.name
-          ) : (
-            <UnknownValue label={t("value.notPublishedForFlight")} />
-          )}
-        </DataRow>
-
-        <DataRow label={t("field.origin")}>
-          {intel.origin ? (
-            <span>
-              {intel.origin.name ?? t("value.nameNotPublished")}
-              <span className="ident ms-1.5 text-ink-500">
-                {intel.origin.iata ?? intel.origin.icao}
-              </span>
-            </span>
-          ) : (
-            <UnknownValue label={t("value.notPublished")} />
-          )}
-        </DataRow>
-
-        <DataRow label={t("field.destination")}>
-          {intel.destination ? (
-            <span>
-              {intel.destination.name ?? t("value.nameNotPublished")}
-              <span className="ident ms-1.5 text-ink-500">
-                {intel.destination.iata ?? intel.destination.icao}
-              </span>
-            </span>
-          ) : (
-            <UnknownValue label={t("value.notPublished")} />
-          )}
-        </DataRow>
-
-        <DataRow
-          label={t("field.scheduledDeparture")}
-          hint={t("hint.scheduledByAirlineOnly")}
-        >
-          <UnknownValue label={t("value.notPublished")} />
-        </DataRow>
-
-        <DataRow label={t("field.scheduledArrival")} hint={t("hint.publishedByAirlineOnly")}>
-          <UnknownValue label={t("value.notPublished")} />
-        </DataRow>
-
-        <DataRow label={t("field.gate")}>
-          <UnknownValue label={t("value.notPublished")} />
-        </DataRow>
-
-        <DataRow label={t("field.terminal")}>
-          <UnknownValue label={t("value.notPublished")} />
-        </DataRow>
-
-        <DataRow
-          label={t("field.status")}
-          hint={t("hint.noPerFlightStatus")}
-        >
-          <span className="inline-flex items-center gap-2 text-warn-700">
-            <XCircle className="size-4 shrink-0" aria-hidden="true" />
-            <span className="text-sm font-medium">{t("value.cannotConfirm")}</span>
-          </span>
+        {known.map((row) => (
+          <DataRow key={row.label} label={row.label} mono={row.mono} hint={row.hint}>
+            {row.value}
+          </DataRow>
+        ))}
+        {/* The single most important answer stays visible even when it is a
+            "cannot confirm" — folding it away would hide the product's verdict. */}
+        <DataRow label={statusRow.label} hint={statusRow.hint}>
+          {statusRow.value}
         </DataRow>
       </dl>
+
+      {unpublished.length > 0 ? (
+        <div className="mt-4 rounded-md border border-line-soft bg-paper-50">
+          <button
+            type="button"
+            onClick={() => setShowUnpublished((value) => !value)}
+            aria-expanded={showUnpublished}
+            aria-controls={unpublishedId}
+            className={cn(
+              "flex min-h-11 w-full items-center justify-between gap-3 px-3.5 py-2.5 text-start",
+              "text-sm text-ink-600 hover:text-ink-900",
+              "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Info className="size-4 shrink-0 text-ink-400" aria-hidden="true" />
+              <span className="min-w-0">
+                {t("situation.notPublishedCount", { count: unpublished.length })}
+              </span>
+            </span>
+            <ChevronDown
+              className={cn(
+                "size-4 shrink-0 transition-transform duration-200",
+                showUnpublished && "rotate-180",
+              )}
+              aria-hidden="true"
+            />
+          </button>
+          {showUnpublished ? (
+            <dl id={unpublishedId} className="border-t border-line-soft px-3.5 pb-1">
+              {unpublished.map((row) => (
+                <DataRow key={row.label} label={row.label} mono={row.mono} hint={row.hint}>
+                  {row.value}
+                </DataRow>
+              ))}
+            </dl>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Operational picture: weather and airspace, each with its own freshness. */}
       <div className="mt-5 space-y-3.5 border-t border-line-soft pt-5">
@@ -504,10 +585,7 @@ function CurrentStatus({ situation }: { situation: SituationPage }) {
               ) : null}
             </ul>
           ) : (
-            <p className="mt-2.5 text-sm italic text-ink-500">
-              No aviation weather observations could be retrieved for these airports. Check the
-              national weather service or the airport's own site.
-            </p>
+            <p className="mt-2.5 text-sm italic text-ink-500">{t("situation.weatherNone")}</p>
           )}
         </div>
 
@@ -569,10 +647,10 @@ function CurrentStatus({ situation }: { situation: SituationPage }) {
           ) : (
             <p className="mt-2.5 text-sm text-ink-600">
               {statusState === "unavailable"
-                ? "The FAA airspace status feed could not be reached, so restrictions could not be checked."
+                ? t("situation.airspaceUnavailable")
                 : intel.origin?.countryCode && intel.origin.countryCode !== "US"
-                  ? "No restrictions are reported. The FAA feed covers United States airports only, so nothing is expected for a non-US route."
-                  : "No air traffic restrictions are currently reported for these airports."}
+                  ? t("situation.airspaceNonUs")
+                  : t("situation.airspaceNone")}
             </p>
           )}
         </div>
@@ -835,7 +913,7 @@ function RecommendedSteps({ situation }: { situation: SituationPage }) {
                       href={action.actionUrl}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="mt-2.5 inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
+                      className="mt-2.5 inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
                     >
                       {action.actionLabel ?? t("action.openSource")}
                       <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -979,7 +1057,7 @@ function RightsSection({ situation }: { situation: SituationPage }) {
                 href={note.url}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
+                className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600"
               >
                 {note.organization}
                 <ExternalLink className="size-3.5" aria-hidden="true" />

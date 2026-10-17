@@ -240,3 +240,94 @@ asserting on markup:
   covers this place" — that is the same misleading collapse that the
   `hasDirectory` distinction in `buildGaps`/`buildHeadline`/`fallbackExplanation`
   exists to prevent.
+
+## Launch film (`/.agent_tmp/video/`, not committed)
+
+Two deliverables, both 3840x2160 H.264 + AAC, `+faststart`:
+`wayfinder-launch-22s-4k-scored.mp4` (22s cut) and
+`wayfinder-launch-4k-scored.mp4` (full film). Silent versions sit beside them.
+`README.md` in that folder documents the pipeline; `src/` holds one script per
+concern (score, mux, cuts, audioverify, audiocheck, serve, verify).
+
+Things that were expensive to learn, so they do not need learning twice:
+
+- **Verify the delivered file, not the intent.** Every real bug in the score was
+  found by decoding audio back out of the muxed MP4. Three of them:
+  `airTick` computed `input - lowpass` *after* updating the lowpass state, so the
+  high band was always zero and the tick was silent; the mix had 97% of its
+  energy below 2kHz (a sine-partial pad has no presence content — fix with an
+  octave-up voicing plus a quiet swept-noise air bed, not with EQ); and
+  single-pass `loudnorm` overshot to **+2.16 dBTP**, which is inter-sample
+  clipping. `mux.mjs` now measures an intermediate and normalises in linear
+  mode, which scales by one factor and cannot overshoot.
+- **A constant noise floor compresses measured dB rises.** Adding a quiet air
+  bed to the mix made the beat-alignment check report strong ticks as weak,
+  because a floor F added to both sides shrinks the ratio toward 1. The tick was
+  unchanged; only the metric moved. Check timing, and treat the magnitude as
+  indicative.
+- **RMS windows must exceed one cycle of the lowest note.** 10ms windows are
+  shorter than one cycle of a 73Hz sub, so RMS swings with phase and invents
+  onsets. 30ms on a 5ms hop is the working setting.
+- **Adjacent chords must share few notes.** F#m and D share three of four, so a
+  cut landing on that pair barely moves however loud the transient.
+- **One-pole filters cannot isolate a band.** 2-3.9kHz needs a real FFT; the
+  one-pole version reported ticks as missing when they were present.
+- **`serve.mjs` must not cache HTML.** It advertised `max-age=3600` on
+  `index.html`, so a page update stayed invisible for an hour. HTML is now
+  `no-cache` with an ETag that is actually honoured (304), while media is
+  `immutable`. Any Range request must take precedence over `If-None-Match`.
+- **H.264 level is a compatibility decision, not a quality one.** The 4K masters
+  are High@5.2, and a phone or older laptop that cannot decode 4K declines the
+  file outright rather than degrading — so a 4K-only delivery is unplayable for
+  a large share of devices. `compat.mjs` derives 1080p Level 4.0 and 720p
+  Level 3.1 versions, capping bitrate with `-maxrate`/`-bufsize` so a stream
+  stays inside the envelope its level promises, and **stream-copies the audio**
+  so the mastered −14 LUFS mix survives bit-exact. The watch page offers
+  compatible sources first and keeps the 4K master available but not first.
+- **A missing analysis dependency must not read as a content defect.** With
+  Pillow absent, the blank-frame check's Python one-liner failed for all ten
+  samples and the gate printed "10 blank" — indistinguishable from a corrupt
+  render, and it sent me hunting a video bug that did not exist. `verify.mjs`
+  now counts unmeasurable frames separately (`frame check ran`) and takes
+  `--res` so one gate serves both tiers.
+
+## Suspect a stale dev server before suspecting the markup
+
+A long-lived `next dev` process had been started before recent edits. `/`
+returned 200, but `/_next/static/css/app/layout.css` was a 9-byte "Not Found",
+so the page rendered with **no Tailwind at all** and every `hidden`,
+`lg:hidden` and grid class silently did nothing. That produced a phantom
+duplicate: `HeroExtras` appeared twice at 1440px because `lg:hidden` was not
+applying, which looked exactly like a real responsive bug in `Hero.tsx`.
+Production was correct all along.
+
+- When a measurement contradicts the source, check the server first. The tell
+  is one request: fetch the stylesheet and look at its byte length. A layout
+  that ignores every utility class is a CSS-delivery failure.
+- If dev and `next start` disagree about layout, production is telling the
+  truth — it is the artefact that ships.
+- `npm run start` hardcodes `-p 3000` and collides with dev. Use
+  `npx next start -p <port>` to run a build alongside it.
+- Restart dev after a long edit session rather than trusting the process.
+
+## Status fields: absence must be shown, never invented
+
+`src/lib/situation/statusFields.ts` splits current-status fields into what a
+reachable source published and what it did not; `CurrentStatus` folds the
+unpublished ones into one disclosure. The rule is a pure function so
+`tests/categories.test.ts` can guard it. Preserve both properties:
+
+- **The status verdict stays outside the disclosure.** "Latest confirmed
+  status" is the product's key answer and is often a "cannot confirm". Folding
+  that away to save height would hide the verdict.
+- Scheduled departure/arrival, gate and terminal are always unpublished. No
+  source we reach publishes them; only the airline can confirm. They appear as
+  gaps so the traveller knows what to ask for, not as data.
+
+## `favicon.ico` is still requested when an SVG icon exists
+
+`src/app/icon.svg` alone leaves `/favicon.ico` 404ing, because browsers request
+that path by default. `scripts/make-favicon.mjs` renders a real 32x32 ICO
+(4x supersampled, PNG payload) from the same geometry; the output is committed
+so the build does not depend on the script running.
+

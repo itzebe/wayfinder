@@ -14,6 +14,12 @@ const WIDTHS = [320, 360, 390, 768, 1024, 1440];
 const PATHS = [
   "/",
   "/support",
+  // The flight flow is a separate screen from /support and has its own
+  // two-column detail step, which is the widest form in the product.
+  "/help",
+  // The empty situation state is a distinct surface: it is what a traveller
+  // sees when they open /situation directly or after their data was cleared.
+  "/situation",
   "/assist?category=metro&location=London%2C%20United%20Kingdom",
   // A place covered only by the official-source directory: it must stay
   // readable at every width even though no live provider answers for it.

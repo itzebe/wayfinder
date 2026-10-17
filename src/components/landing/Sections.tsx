@@ -35,7 +35,7 @@ export function HowItWorks() {
 
   return (
     <section id="how-it-works" className="scroll-mt-24 border-b border-line-soft bg-paper-0">
-      <div className="shell py-16 lg:py-20">
+      <div className="shell py-12 sm:py-16 lg:py-20">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-semibold tracking-[-0.02em] text-ink-900 sm:text-3xl">
             {t("how.title")}
@@ -108,7 +108,7 @@ export function LiveAssistance() {
       id="live-assistance"
       className="scroll-mt-24 border-b border-line-soft bg-paper-50"
     >
-      <div className="shell py-16 lg:py-20">
+      <div className="shell py-12 sm:py-16 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14">
           <div>
             <Badge tone="accent">{t("live.badge")}</Badge>
@@ -221,7 +221,7 @@ export function SupportedSituations() {
 
   return (
     <section id="situations" className="scroll-mt-24 border-b border-line-soft bg-paper-0">
-      <div className="shell py-16 lg:py-20">
+      <div className="shell py-12 sm:py-16 lg:py-20">
         <div className="max-w-2xl">
           <h2 className="text-2xl font-semibold tracking-[-0.02em] text-ink-900 sm:text-3xl">
             {t("situations.title")}
@@ -284,7 +284,7 @@ export function ClosingCta() {
 
   return (
     <section className="bg-paper-50">
-      <div className="shell py-16 lg:py-20">
+      <div className="shell py-12 sm:py-16 lg:py-20">
         <div className="relative overflow-hidden rounded-xl border border-ink-800 bg-ink-900 px-6 py-12 sm:px-10 lg:px-14 lg:py-14">
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.07]"
