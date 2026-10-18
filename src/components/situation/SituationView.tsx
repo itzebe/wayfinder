@@ -280,7 +280,7 @@ function SituationHeader({
       <div className="px-5 py-4 sm:px-6">
         {intel.origin && intel.destination ? (
           <div className="flex items-center gap-3 rounded-lg border border-line-soft bg-paper-50 px-4 py-3.5">
-            <AirportBlock airport={intel.origin} />
+            <AirportBlock airport={intel.origin} nameFallback={t("value.nameNotPublished")} />
             <div className="flex min-w-0 flex-1 flex-col items-center px-2">
               <span className="text-xs text-ink-400">{t("situation.referenceRoute")}</span>
               <span className="my-1.5 flex w-full items-center gap-1" aria-hidden="true">
@@ -292,7 +292,7 @@ function SituationHeader({
               </span>
               <span className="text-xs text-ink-400">{t("situation.notLivePosition")}</span>
             </div>
-            <AirportBlock airport={intel.destination} align="end" />
+            <AirportBlock airport={intel.destination} nameFallback={t("value.nameNotPublished")} align="end" />
           </div>
         ) : (
           <Callout tone="warning" title={t("situation.routeUnresolved")}>
@@ -313,9 +313,11 @@ function SituationHeader({
 
 function AirportBlock({
   airport,
+  nameFallback,
   align = "start",
 }: {
   airport: NonNullable<SituationPage["intel"]["origin"]>;
+  nameFallback: string;
   align?: "start" | "end";
 }) {
   return (
@@ -324,7 +326,7 @@ function AirportBlock({
         {airport.iata ?? airport.icao}
       </p>
       <p className="mt-0.5 truncate text-xs text-ink-500">
-        {airport.name ?? "Airport name not published"}
+        {airport.name ?? nameFallback}
       </p>
     </div>
   );
@@ -841,8 +843,8 @@ function WhatThisMeansForYou({ situation }: { situation: SituationPage }) {
             className="mt-3"
           >
             {situation.connection.tight
-              ? "That is a short connection window. Even a modest delay on the first flight could make it. Ask the airline to confirm the connection and to rebook the whole journey together if it is at risk."
-              : "Whether your connection is protected depends on whether both flights are on one booking and on the rules for your route. Ask the airline to confirm in writing rather than assuming it is protected."}
+              ? t("connection.tight")
+              : t("connection.protectionUnclear")}
           </Callout>
         </div>
       ) : null}
@@ -865,6 +867,21 @@ const PRIORITY_META: Record<
 
 function RecommendedSteps({ situation }: { situation: SituationPage }) {
   const { t } = useLocale();
+  const [showAll, setShowAll] = useState(false);
+  const listId = useId();
+
+  const steps = situation.recommendations;
+  // Every "do this now" step stays on screen. The plan is ordered by importance,
+  // not grouped by priority — `buildRecommendations` interleaves a "soon" step
+  // between "now" steps for a delay with a connection — so the only region that
+  // can be folded without hiding an immediate action is the tail *after* the last
+  // "now". Slicing at the first non-"now" step hid `check-connection` and
+  // `dont-assume-protection` for delayed and options.
+  const lastNowIndex = steps.map((step) => step.priority).lastIndexOf("now");
+  const visibleCount = steps.length === 0 ? 0 : Math.max(lastNowIndex + 1, 1);
+  const collapsible = visibleCount < steps.length;
+  const visible = showAll || !collapsible ? steps : steps.slice(0, visibleCount);
+  const hiddenCount = steps.length - visibleCount;
 
   return (
     <SectionCard
@@ -873,8 +890,8 @@ function RecommendedSteps({ situation }: { situation: SituationPage }) {
       description={t("situation.steps.description")}
       icon={<ListOrdered className="size-5" />}
     >
-      <ol className="space-y-3">
-        {situation.recommendations.map((action) => {
+      <ol className="space-y-3" id={listId}>
+        {visible.map((action) => {
           const meta = PRIORITY_META[action.priority];
           return (
             <li
@@ -926,6 +943,32 @@ function RecommendedSteps({ situation }: { situation: SituationPage }) {
           );
         })}
       </ol>
+
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((value) => !value)}
+          aria-expanded={showAll}
+          aria-controls={listId}
+          className={cn(
+            "mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-md",
+            "border border-line-soft bg-paper-50 px-3.5 py-2.5 text-sm font-medium text-ink-700",
+            "hover:bg-paper-100 hover:text-ink-900",
+            "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-600",
+          )}
+        >
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 transition-transform duration-200",
+              showAll && "rotate-180",
+            )}
+            aria-hidden="true"
+          />
+          {showAll
+            ? t("steps.showFewer", { count: visibleCount })
+            : t("steps.showMore", { count: hiddenCount })}
+        </button>
+      ) : null}
     </SectionCard>
   );
 }
@@ -1036,7 +1079,7 @@ function RightsSection({ situation }: { situation: SituationPage }) {
                 </p>
               </div>
               <Badge tone={note.possiblyApplies ? "accent" : "neutral"}>
-                {note.possiblyApplies ? "May apply to your route" : "General guidance"}
+                {note.possiblyApplies ? t("rights.mayApply") : t("rights.general")}
               </Badge>
             </div>
 

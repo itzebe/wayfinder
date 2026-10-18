@@ -331,3 +331,76 @@ that path by default. `scripts/make-favicon.mjs` renders a real 32x32 ICO
 (4x supersampled, PNG payload) from the same geometry; the output is committed
 so the build does not depend on the script running.
 
+## Generated prose: one fact, one place
+
+The situation page is long enough that repeated sentences are a real usability
+cost, so the same fact should not be stated twice in different sections. Two
+traps that have already bitten:
+
+- **`fallback.summaryLead` must not restate the headline.** `headline.cancelled`
+  and friends already end with "we cannot confirm the status … the airline is
+  the only place that can", and `uncertain.flightStatus` says it again in the
+  summary. The lead exists to say what we *did* check, so keep the
+  per-flight-status disclaimer out of it.
+- **The narrative weather line summarises, it does not transcribe.**
+  `buildGroundedFacts` composes `facts.weatherCompact` for the "what this means"
+  prose. The Current status section already lists wind, visibility and
+  temperature per airport, so re-listing those numbers in the narrative turns it
+  into a copy of the table above. Keep the category, leave the numbers in the
+  status section.
+
+`facts.wind` / `facts.visibility` / `facts.temperature` / `facts.summaryLine` /
+`facts.noSummaryFields` were removed for this reason. If a future section needs
+the raw values, render them from the observation object, not from prose.
+
+### `prose.chance` owns its own punctuation
+
+The forecast sentences (`prose.rainLowCloud`, `prose.gusts`, …) append a final
+`.`, so `prose.chance` supplies the sentence break itself: it opens with `. `
+and carries no trailing period. If the key also ends with a period the two
+collide and the sentence reads `… forecast at LHR There is a 30% chance of this
+in the forecast period..`. Drop the leading `.` and the two sentences run
+together as `… forecast at LHR There is a 30% chance …`.
+
+`tests/prose-punctuation.test.ts` checks every template that embeds `{chance}`
+for a well-formed result in both `en` and `es`, so a future edit to either side
+of the join fails loudly rather than shipping the doubled period.
+
+## Forecast visibility is not one type
+
+The aviation-weather TAF decoder returns `visib` as a **number below 6 SM** and
+the **string `"6+"` at or above it** — a raw `4000` metre group comes back as
+`2.49`, a raw `1200` as `0.75`. `normaliseVisibility` renders both as a display
+string (`"2.49 SM"`, `"6+"`), so anything that needs the number must parse that
+string rather than compare the field directly. Comparing it numerically meant a
+forecast of 0.75 SM raised no hazard at all, which left `prose.lowVisibility`
+unreachable and could keep the "what this means" prose silent when visibility
+was the reason to worry.
+
+`visibilityInStatuteMiles` in `src/lib/situation/derive.ts` is the single place
+that reconciles the two shapes. Treat an absent or unparseable value as
+*unknown*, never as clear: returning `0` would invent a hazard, and returning a
+large number would hide one.
+
+## Folding long action lists
+
+`RecommendedSteps` keeps every `priority === "now"` step on screen and folds
+only the lower-priority tail behind a disclosure. This preserves the brief's
+requirement that prioritised actions lead while cutting roughly 800px of
+mobile scroll.
+
+The rule is "never hide an immediate action", and the fold must be computed
+from the **last** `now` step, not the first non-`now` one. The plan is ordered
+by importance, not grouped by priority: a delay or an options request with a
+connection emits `now, now, soon, now, now`, so slicing at the first `soon`
+dropped `check-connection` and `dont-assume-protection` behind the disclosure.
+`tests/priority-fold.test.ts` checks the ordering over every need, and
+`tests/steps-disclosure.mjs` asserts on the rendered page that the set of
+immediate actions is identical collapsed and expanded.
+
+## Situation-page audits
+
+`tests/audit-situation.mjs` drives the real flow to a real situation page and
+reports each section's height and document position. Run it before and after a
+layout change: it is the quickest way to see whether a section grew because it
+gained content or because it started repeating itself.

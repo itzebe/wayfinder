@@ -60,6 +60,40 @@ function chance(t: Translate, probability: number | undefined): string {
 }
 
 /**
+ * Forecast visibility in statute miles, or undefined when the source stated no
+ * usable value.
+ *
+ * The decoded TAF `visib` field is not typed consistently: a value below 6 SM
+ * arrives as a number (a raw `4000` metres group decodes to 2.49) while "6 SM or
+ * more" arrives as the string `"6+"`. `normaliseVisibility` renders both as a
+ * display string, so the severity check has to parse rather than compare
+ * numerically — comparing the string form was why low visibility raised no
+ * hazard. Fractions are handled because they occur in human-entered bulletins.
+ *
+ * A missing or unparseable value returns undefined, which callers must treat as
+ * "unknown", never as "clear".
+ */
+export function visibilityInStatuteMiles(value: string | number | undefined): number | undefined {
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (!value) return undefined;
+  const text = String(value).trim();
+  if (!text) return undefined;
+  // "6+", and the older "P6SM" prefix form, both mean six or more. Six is above
+  // every hazard threshold, so reading the floor cannot invent a hazard.
+  const atLeast = text.match(/^P?(\d+(?:\.\d+)?)\s*(?:\+|SM)?$/i);
+  if (atLeast) return Number.parseFloat(atLeast[1]);
+  const fraction = text.match(/^(\d+)\s*\/\s*(\d+)/);
+  if (fraction) {
+    const denominator = Number.parseFloat(fraction[2]);
+    return denominator > 0 ? Number.parseFloat(fraction[1]) / denominator : undefined;
+  }
+  const leading = text.match(/^\d+(?:\.\d+)?/);
+  if (!leading) return undefined;
+  const parsed = Number.parseFloat(leading[0]);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/**
  * Gusts, low visibility and convective weather are the operationally hard ones.
  *
  * Each reason names the airport and folds the forecast probability into the same
@@ -117,7 +151,8 @@ function forecastSeverity(
     const hasFog = weather.some((w) => w.includes("FG"));
     const gust = period.windGustKt ?? 0;
     const lowCloud = codes.some((code) => code === "OVC" || code === "BKN");
-    const lowVisibility = typeof period.visibility === "number" && period.visibility < 3;
+    const visibilityMiles = visibilityInStatuteMiles(period.visibility);
+    const lowVisibility = visibilityMiles !== undefined && visibilityMiles < 3;
     // `probability` is absent on a TEMPO/PROB group only when the source did not
     // state one; a plain forecast period has no probability and is not a chance.
     const probability = period.probability;
