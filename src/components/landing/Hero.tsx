@@ -28,7 +28,7 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      <div className="shell relative grid grid-cols-[minmax(0,1fr)] gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14 lg:py-16 xl:py-20">
+      <div className="shell relative grid grid-cols-[minmax(0,1fr)] gap-8 py-8 sm:gap-10 sm:py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14 lg:py-16 xl:py-20">
         <div className="animate-[rise_0.5s_var(--ease-out-soft)_both]">
           <p className="inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-50 px-3 py-1.5 text-xs font-medium text-accent-800">
             <span className="inline-flex size-1.5 rounded-full bg-accent-600" aria-hidden="true" />
@@ -59,32 +59,59 @@ export function Hero() {
             </p>
           </div>
 
-          <CategoryShortcuts className="mt-7" />
-
-          <ul className="mt-7 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-line-soft pt-6 sm:grid-cols-3">
-            <Stat
-              icon={Timer}
-              term={t("hero.stat1.term")}
-              detail={t("hero.stat1.detail")}
-            />
-            <Stat
-              icon={ShieldCheck}
-              term={t("hero.stat2.term")}
-              detail={t("hero.stat2.detail")}
-            />
-            <Stat
-              icon={Languages}
-              term={t("hero.stat3.term", { count: LOCALES.length })}
-              detail={t("hero.stat3.detail")}
-            />
-          </ul>
+          {/*
+            The situation shortcuts and the three claims are valuable, but on a
+            phone they cost about 640px — more than a screen — and pushed the
+            product preview two screens down. At narrow widths they are rendered
+            after the preview instead (below), so the order a phone user meets is
+            headline → action → what the product actually looks like → the rest.
+            Desktop keeps them in this column, unchanged.
+          */}
+          <div className="hidden lg:block">
+            <HeroExtras />
+          </div>
         </div>
 
         <div className="animate-[rise_0.6s_0.1s_var(--ease-out-soft)_both] lg:sticky lg:top-24">
           <ProductPreview />
         </div>
+
+        <div className="lg:hidden">
+          <HeroExtras />
+        </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Situation shortcuts plus the three product claims.
+ *
+ * Rendered twice — once below the preview on narrow screens, once beside it on
+ * desktop — so the phone layout can put the product preview first without
+ * duplicating the markup.
+ */
+function HeroExtras() {
+  const { t } = useLocale();
+
+  return (
+    <>
+      <CategoryShortcuts className="mt-7" />
+
+      <ul className="mt-7 grid grid-cols-1 gap-x-6 gap-y-4 border-t border-line-soft pt-6 sm:grid-cols-3">
+        <Stat icon={Timer} term={t("hero.stat1.term")} detail={t("hero.stat1.detail")} />
+        <Stat
+          icon={ShieldCheck}
+          term={t("hero.stat2.term")}
+          detail={t("hero.stat2.detail")}
+        />
+        <Stat
+          icon={Languages}
+          term={t("hero.stat3.term", { count: LOCALES.length })}
+          detail={t("hero.stat3.detail")}
+        />
+      </ul>
+    </>
   );
 }
 

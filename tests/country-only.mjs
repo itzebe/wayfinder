@@ -241,17 +241,37 @@ try {
     "the POST counter saw nothing even for a country that needs the engine, so the zero-POST guard proves nothing",
   );
 
-  const germany = await evaluate(
-    client,
-    `(() => {
-      const body = document.body.innerText;
-      return {
-        askedForPlace: [...document.querySelectorAll("button")].some(b => /check this place/i.test(b.textContent || "")),
-        hasSources: /official sources/i.test(body),
-        namesGermany: /German/i.test(body),
-      };
-    })()`,
-  );
+  const readGermany = () =>
+    evaluate(
+      client,
+      `(() => {
+        const body = document.body.innerText;
+        return {
+          askedForPlace: [...document.querySelectorAll("button")].some(b => /check this place/i.test(b.textContent || "")),
+          hasSources: /official sources/i.test(body),
+          namesGermany: /German/i.test(body),
+          rateLimited: /too many requests/i.test(body),
+        };
+      })()`,
+    );
+
+  let germany = await readGermany();
+
+  // The rate limiter is per client and 30 requests per 60s. Running the browser
+  // suites back to back spends that budget, and the resulting empty page used to
+  // be reported as "did not render its sources" — a misleading failure that sent
+  // me looking for a rendering bug that did not exist. Wait out the window and
+  // retry once, and fail loudly if the limit is what we actually hit.
+  if (germany.rateLimited) {
+    console.log("Germany was rate limited; waiting 60s for the window to clear and retrying.");
+    await sleep(60000);
+    await client.send("Page.reload", { ignoreCache: true });
+    await waitFor(client, `Boolean(document.querySelector("h1"))`, 25000);
+    await sleep(1500);
+    germany = await readGermany();
+    check(!germany.rateLimited, "Germany is still rate limited after waiting for the window to clear");
+  }
+
   console.log("Germany (nationwide source):", JSON.stringify(germany));
   check(!germany.askedForPlace, "Germany was asked for a place even though a nationwide source answers it");
   check(germany.hasSources, "Germany's real page did not render its sources");

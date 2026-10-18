@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
     "verify:sources": "node scripts/verify-sources.mjs",
-    "test": "node --conditions=react-server --import tsx/esm tests/categories.test.ts",
+    "test": "node --conditions=react-server --import tsx/esm tests/categories.test.ts && node --conditions=react-server --import tsx/esm tests/prose-punctuation.test.ts && node --conditions=react-server --import tsx/esm tests/priority-fold.test.ts",
     "test:live": "node --conditions=react-server --import tsx/esm tests/live.ts",
     "verify": "npm run typecheck && npm run check:i18n && npm test",
     "test:browser": "node tests/mobile-nav.mjs && node tests/assist-flow.mjs && node tests/conditions.mjs && node tests/locales.mjs && node tests/country-only.mjs && node tests/keyboard-place-prompt.mjs",

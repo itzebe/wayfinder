@@ -167,7 +167,7 @@ export function ProductPreview() {
               aria-pressed={selected}
               onClick={() => setScenario(entry.id)}
               className={cn(
-                "min-h-9 rounded-md px-3 text-xs font-medium transition-colors duration-150",
+                "min-h-11 rounded-md px-3 text-xs font-medium transition-colors duration-150",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
                 selected
                   ? "bg-paper-0 text-ink-900 shadow-sm"
@@ -314,11 +314,17 @@ export function ProductPreview() {
               className="space-y-3.5"
             >
               <div className="rounded-md border border-warn-200 bg-warn-50 px-3.5 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-warn-700">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-warn-700">
+                  <ShieldAlert className="size-3.5 shrink-0" aria-hidden="true" />
                   {t("preview.couldNotConfirm")}
                 </p>
                 <p className="mt-1.5 text-sm text-ink-700">
                   {scenario === "transit" ? transit.couldNotConfirmBody : t("preview.couldNotConfirmBody")}
+                </p>
+                {/* What the page does about the gap, so the preview shows the
+                    product's answer to uncertainty and not only the gap. */}
+                <p className="mt-2 border-t border-warn-200 pt-2 text-xs text-ink-600">
+                  {t("preview.couldNotConfirmNext")}
                 </p>
               </div>
 

@@ -558,10 +558,7 @@ export function AssistanceFlow() {
 
             <p className="mt-4 flex items-start gap-2 text-xs text-ink-500">
               <Lock className="mt-0.5 size-3.5 shrink-0 text-success-600" aria-hidden="true" />
-              <span>
-                We never ask for passport numbers, payment details or passwords. Your details
-                stay in this browser unless you build a situation page.
-              </span>
+              <span>{t("details.privacyNote")}</span>
             </p>
           </form>
         ) : null}

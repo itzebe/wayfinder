@@ -128,7 +128,10 @@ function SourceItem({
             target="_blank"
             rel="noreferrer noopener"
             className={cn(
-              "inline-flex min-h-9 items-center gap-1.5 text-xs font-medium text-accent-700",
+              // min-h-11: opening the original source is the product's core
+              // trust affordance, so it must clear the 44px touch minimum
+              // rather than sit at 36px.
+              "inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-accent-700",
               "underline decoration-accent-300 underline-offset-2 hover:decoration-accent-600",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
             )}
@@ -145,7 +148,7 @@ function SourceItem({
               aria-expanded={open}
               aria-controls={panelId}
               className={cn(
-                "inline-flex min-h-9 items-center gap-1.5 px-2 text-xs font-medium text-ink-600",
+                "inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-medium text-ink-600",
                 "rounded-sm hover:bg-paper-100 hover:text-ink-800",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600",
               )}

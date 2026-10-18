@@ -240,3 +240,167 @@ asserting on markup:
   covers this place" — that is the same misleading collapse that the
   `hasDirectory` distinction in `buildGaps`/`buildHeadline`/`fallbackExplanation`
   exists to prevent.
+
+## Launch film (`/.agent_tmp/video/`, not committed)
+
+Two deliverables, both 3840x2160 H.264 + AAC, `+faststart`:
+`wayfinder-launch-22s-4k-scored.mp4` (22s cut) and
+`wayfinder-launch-4k-scored.mp4` (full film). Silent versions sit beside them.
+`README.md` in that folder documents the pipeline; `src/` holds one script per
+concern (score, mux, cuts, audioverify, audiocheck, serve, verify).
+
+Things that were expensive to learn, so they do not need learning twice:
+
+- **Verify the delivered file, not the intent.** Every real bug in the score was
+  found by decoding audio back out of the muxed MP4. Three of them:
+  `airTick` computed `input - lowpass` *after* updating the lowpass state, so the
+  high band was always zero and the tick was silent; the mix had 97% of its
+  energy below 2kHz (a sine-partial pad has no presence content — fix with an
+  octave-up voicing plus a quiet swept-noise air bed, not with EQ); and
+  single-pass `loudnorm` overshot to **+2.16 dBTP**, which is inter-sample
+  clipping. `mux.mjs` now measures an intermediate and normalises in linear
+  mode, which scales by one factor and cannot overshoot.
+- **A constant noise floor compresses measured dB rises.** Adding a quiet air
+  bed to the mix made the beat-alignment check report strong ticks as weak,
+  because a floor F added to both sides shrinks the ratio toward 1. The tick was
+  unchanged; only the metric moved. Check timing, and treat the magnitude as
+  indicative.
+- **RMS windows must exceed one cycle of the lowest note.** 10ms windows are
+  shorter than one cycle of a 73Hz sub, so RMS swings with phase and invents
+  onsets. 30ms on a 5ms hop is the working setting.
+- **Adjacent chords must share few notes.** F#m and D share three of four, so a
+  cut landing on that pair barely moves however loud the transient.
+- **One-pole filters cannot isolate a band.** 2-3.9kHz needs a real FFT; the
+  one-pole version reported ticks as missing when they were present.
+- **`serve.mjs` must not cache HTML.** It advertised `max-age=3600` on
+  `index.html`, so a page update stayed invisible for an hour. HTML is now
+  `no-cache` with an ETag that is actually honoured (304), while media is
+  `immutable`. Any Range request must take precedence over `If-None-Match`.
+- **H.264 level is a compatibility decision, not a quality one.** The 4K masters
+  are High@5.2, and a phone or older laptop that cannot decode 4K declines the
+  file outright rather than degrading — so a 4K-only delivery is unplayable for
+  a large share of devices. `compat.mjs` derives 1080p Level 4.0 and 720p
+  Level 3.1 versions, capping bitrate with `-maxrate`/`-bufsize` so a stream
+  stays inside the envelope its level promises, and **stream-copies the audio**
+  so the mastered −14 LUFS mix survives bit-exact. The watch page offers
+  compatible sources first and keeps the 4K master available but not first.
+- **A missing analysis dependency must not read as a content defect.** With
+  Pillow absent, the blank-frame check's Python one-liner failed for all ten
+  samples and the gate printed "10 blank" — indistinguishable from a corrupt
+  render, and it sent me hunting a video bug that did not exist. `verify.mjs`
+  now counts unmeasurable frames separately (`frame check ran`) and takes
+  `--res` so one gate serves both tiers.
+
+## Suspect a stale dev server before suspecting the markup
+
+A long-lived `next dev` process had been started before recent edits. `/`
+returned 200, but `/_next/static/css/app/layout.css` was a 9-byte "Not Found",
+so the page rendered with **no Tailwind at all** and every `hidden`,
+`lg:hidden` and grid class silently did nothing. That produced a phantom
+duplicate: `HeroExtras` appeared twice at 1440px because `lg:hidden` was not
+applying, which looked exactly like a real responsive bug in `Hero.tsx`.
+Production was correct all along.
+
+- When a measurement contradicts the source, check the server first. The tell
+  is one request: fetch the stylesheet and look at its byte length. A layout
+  that ignores every utility class is a CSS-delivery failure.
+- If dev and `next start` disagree about layout, production is telling the
+  truth — it is the artefact that ships.
+- `npm run start` hardcodes `-p 3000` and collides with dev. Use
+  `npx next start -p <port>` to run a build alongside it.
+- Restart dev after a long edit session rather than trusting the process.
+
+## Status fields: absence must be shown, never invented
+
+`src/lib/situation/statusFields.ts` splits current-status fields into what a
+reachable source published and what it did not; `CurrentStatus` folds the
+unpublished ones into one disclosure. The rule is a pure function so
+`tests/categories.test.ts` can guard it. Preserve both properties:
+
+- **The status verdict stays outside the disclosure.** "Latest confirmed
+  status" is the product's key answer and is often a "cannot confirm". Folding
+  that away to save height would hide the verdict.
+- Scheduled departure/arrival, gate and terminal are always unpublished. No
+  source we reach publishes them; only the airline can confirm. They appear as
+  gaps so the traveller knows what to ask for, not as data.
+
+## `favicon.ico` is still requested when an SVG icon exists
+
+`src/app/icon.svg` alone leaves `/favicon.ico` 404ing, because browsers request
+that path by default. `scripts/make-favicon.mjs` renders a real 32x32 ICO
+(4x supersampled, PNG payload) from the same geometry; the output is committed
+so the build does not depend on the script running.
+
+## Generated prose: one fact, one place
+
+The situation page is long enough that repeated sentences are a real usability
+cost, so the same fact should not be stated twice in different sections. Two
+traps that have already bitten:
+
+- **`fallback.summaryLead` must not restate the headline.** `headline.cancelled`
+  and friends already end with "we cannot confirm the status … the airline is
+  the only place that can", and `uncertain.flightStatus` says it again in the
+  summary. The lead exists to say what we *did* check, so keep the
+  per-flight-status disclaimer out of it.
+- **The narrative weather line summarises, it does not transcribe.**
+  `buildGroundedFacts` composes `facts.weatherCompact` for the "what this means"
+  prose. The Current status section already lists wind, visibility and
+  temperature per airport, so re-listing those numbers in the narrative turns it
+  into a copy of the table above. Keep the category, leave the numbers in the
+  status section.
+
+`facts.wind` / `facts.visibility` / `facts.temperature` / `facts.summaryLine` /
+`facts.noSummaryFields` were removed for this reason. If a future section needs
+the raw values, render them from the observation object, not from prose.
+
+### `prose.chance` owns its own punctuation
+
+The forecast sentences (`prose.rainLowCloud`, `prose.gusts`, …) append a final
+`.`, so `prose.chance` supplies the sentence break itself: it opens with `. `
+and carries no trailing period. If the key also ends with a period the two
+collide and the sentence reads `… forecast at LHR There is a 30% chance of this
+in the forecast period..`. Drop the leading `.` and the two sentences run
+together as `… forecast at LHR There is a 30% chance …`.
+
+`tests/prose-punctuation.test.ts` checks every template that embeds `{chance}`
+for a well-formed result in both `en` and `es`, so a future edit to either side
+of the join fails loudly rather than shipping the doubled period.
+
+## Forecast visibility is not one type
+
+The aviation-weather TAF decoder returns `visib` as a **number below 6 SM** and
+the **string `"6+"` at or above it** — a raw `4000` metre group comes back as
+`2.49`, a raw `1200` as `0.75`. `normaliseVisibility` renders both as a display
+string (`"2.49 SM"`, `"6+"`), so anything that needs the number must parse that
+string rather than compare the field directly. Comparing it numerically meant a
+forecast of 0.75 SM raised no hazard at all, which left `prose.lowVisibility`
+unreachable and could keep the "what this means" prose silent when visibility
+was the reason to worry.
+
+`visibilityInStatuteMiles` in `src/lib/situation/derive.ts` is the single place
+that reconciles the two shapes. Treat an absent or unparseable value as
+*unknown*, never as clear: returning `0` would invent a hazard, and returning a
+large number would hide one.
+
+## Folding long action lists
+
+`RecommendedSteps` keeps every `priority === "now"` step on screen and folds
+only the lower-priority tail behind a disclosure. This preserves the brief's
+requirement that prioritised actions lead while cutting roughly 800px of
+mobile scroll.
+
+The rule is "never hide an immediate action", and the fold must be computed
+from the **last** `now` step, not the first non-`now` one. The plan is ordered
+by importance, not grouped by priority: a delay or an options request with a
+connection emits `now, now, soon, now, now`, so slicing at the first `soon`
+dropped `check-connection` and `dont-assume-protection` behind the disclosure.
+`tests/priority-fold.test.ts` checks the ordering over every need, and
+`tests/steps-disclosure.mjs` asserts on the rendered page that the set of
+immediate actions is identical collapsed and expanded.
+
+## Situation-page audits
+
+`tests/audit-situation.mjs` drives the real flow to a real situation page and
+reports each section's height and document position. Run it before and after a
+layout change: it is the quickest way to see whether a section grew because it
+gained content or because it started repeating itself.

@@ -40,48 +40,37 @@ export function buildGroundedFacts(
   reportedProblem: string,
   t: Translate,
 ): GroundedFacts {
+  /**
+   * Narrative weather line.
+   *
+   * The Current status section already lists the observed wind, visibility and
+   * temperature for each airport. Repeating those values here turned the "what
+   * this means" prose into a transcription of the table above it, so this line
+   * carries only the operational category and leaves the numbers where they are.
+   */
   const describeWeather = (observation: FlightIntel["originWeather"], label: string) => {
     if (!observation) return undefined;
-    const parts: string[] = [];
     const place = observation.icao ?? label;
-    if (observation.flightCategory) {
-      const meaning =
-        observation.flightCategory === "VFR"
-          ? t("facts.visualConditions")
-          : observation.flightCategory === "MVFR"
-            ? t("facts.marginalVisualConditions")
-            : observation.flightCategory === "IFR"
-              ? t("facts.instrumentConditions")
-              : observation.flightCategory === "LIFR"
-                ? t("facts.lowInstrumentConditions")
-                : undefined;
-      parts.push(
-        meaning
-          ? t("facts.categoryWithMeaning", {
-              category: observation.flightCategory,
-              meaning,
-            })
-          : t("facts.categoryOnly", { category: observation.flightCategory }),
-      );
+    if (!observation.flightCategory) {
+      return t("facts.weatherReported", { label, place });
     }
-    if (observation.windSpeedKt !== undefined) {
-      parts.push(
-        t("facts.wind", {
-          direction: observation.windDirectionDeg ?? t("facts.variable"),
-          speed: observation.windSpeedKt,
-        }),
-      );
-    }
-    if (observation.visibility) {
-      parts.push(t("facts.visibility", { value: observation.visibility }));
-    }
-    if (observation.temperatureC !== undefined) {
-      parts.push(t("facts.temperature", { value: observation.temperatureC }));
-    }
-    if (parts.length === 0) {
-      return t("facts.noSummaryFields", { label, place });
-    }
-    return t("facts.summaryLine", { label, place, parts: parts.join(", ") });
+    const meaning =
+      observation.flightCategory === "VFR"
+        ? t("facts.visualConditions")
+        : observation.flightCategory === "MVFR"
+          ? t("facts.marginalVisualConditions")
+          : observation.flightCategory === "IFR"
+            ? t("facts.instrumentConditions")
+            : observation.flightCategory === "LIFR"
+              ? t("facts.lowInstrumentConditions")
+              : undefined;
+    return t("facts.weatherCompact", {
+      label,
+      place,
+      category: meaning
+        ? t("facts.categoryWithMeaning", { category: observation.flightCategory, meaning })
+        : t("facts.categoryOnly", { category: observation.flightCategory }),
+    });
   };
 
   const constraints = [...intel.originConstraints, ...intel.destinationConstraints];

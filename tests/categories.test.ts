@@ -17,6 +17,7 @@ import { resolveLocation } from "@/lib/assist/location";
 import { looksOfficial, normaliseFindings, GOOGLE_PROVIDER_ID } from "@/lib/assist/providers/discovery";
 import { openMeteoProvider } from "@/lib/assist/providers/openMeteo";
 import { assistRequestSchema } from "@/lib/assist/schema";
+import { splitStatusFields } from "@/lib/situation/statusFields";
 import { sseFeed } from "./fixtures/gtfs";
 import {
   CALTRANS_CMS,
@@ -2067,6 +2068,64 @@ test("hint: without the coverage nothing is preempted", () => {
   // country wait one tick for the catalogue while a city proceeds immediately.
   assert(bareCountryOf({ category: "weather", location: "Iceland" }) !== undefined, "bare country detected");
   assertEqual(bareCountryOf({ category: "weather", location: "Reykjavik, Iceland" }), undefined, "city is not bare");
+});
+
+test("status: only fields a source published are presented as known", () => {
+  // The situation page folds unpublished fields into one disclosure. A field
+  // must move into "known" only when a source really supplied a value —
+  // presenting an absent value as a fact would be as dishonest as inventing it.
+  const bare = splitStatusFields({
+    flightNumber: "BA123",
+    routeState: "unavailable",
+    routeConfidence: "unknown",
+    liveTrackState: "unavailable",
+    originConstraints: [],
+    destinationConstraints: [],
+    weatherState: "unavailable",
+    airportStatusState: "unavailable",
+    sources: [],
+    warnings: [],
+    retrievedAt: "2026-10-15T12:00:00.000Z",
+  });
+
+  assertEqual(bare.known.join(","), "flightNumber", "only the typed flight number is known");
+  assert(
+    bare.unpublished.includes("origin") && bare.unpublished.includes("airline"),
+    "an unresolved route must not be reported as known",
+  );
+  assert(
+    bare.unpublished.includes("scheduledDeparture") && bare.unpublished.includes("gate"),
+    "airline-only fields are always unpublished from public sources",
+  );
+
+  const resolved = splitStatusFields({
+    flightNumber: "BA123",
+    callsignIcao: "BAW123",
+    airline: { iata: "BA", icao: "BAW", name: "British Airways" },
+    origin: { iata: "LHR", icao: "EGLL", name: "London Heathrow Airport" },
+    destination: { iata: "JFK", icao: "KJFK", name: "John F. Kennedy International Airport" },
+    routeState: "live",
+    routeConfidence: "verified",
+    liveTrackState: "unavailable",
+    originConstraints: [],
+    destinationConstraints: [],
+    weatherState: "unavailable",
+    airportStatusState: "unavailable",
+    sources: [],
+    warnings: [],
+    retrievedAt: "2026-10-15T12:00:00.000Z",
+  });
+
+  assertEqual(
+    resolved.known.join(","),
+    "flightNumber,callsign,airline,origin,destination",
+    "resolved route fields are known",
+  );
+  assertEqual(
+    resolved.unpublished.join(","),
+    "scheduledDeparture,scheduledArrival,gate,terminal",
+    "airline-only fields stay unpublished even when the route resolves",
+  );
 });
 
 run()

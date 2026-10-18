@@ -30,10 +30,10 @@ export default function HelpPage() {
       <main id="main" className="shell py-10 lg:py-14">
         <div className="mb-8 max-w-2xl">
           <h1 className="text-2xl font-semibold tracking-[-0.02em] text-ink-900 sm:text-3xl">
-            {t("help.title")}
+            {t("help.flight.title")}
           </h1>
           <p className="mt-2 text-base leading-relaxed text-ink-600">
-            {t("help.subtitle")}
+            {t("help.flight.subtitle")}
           </p>
         </div>
 

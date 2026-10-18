@@ -69,7 +69,7 @@ export function SiteFooter() {
                   href={source.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
+                  className="inline-flex min-h-11 items-center text-sm text-ink-700 underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
                 >
                   {source.label}
                 </a>
@@ -110,7 +110,7 @@ export function SiteFooter() {
             <li>
               <Link
                 href="/accessibility"
-                className="underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
+                className="inline-flex min-h-11 items-center underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
               >
                 {t("footer.accessibility")}
               </Link>
@@ -118,7 +118,7 @@ export function SiteFooter() {
             <li>
               <Link
                 href="/limitations"
-                className="underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
+                className="inline-flex min-h-11 items-center underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
               >
                 {t("footer.limitations")}
               </Link>
@@ -126,7 +126,7 @@ export function SiteFooter() {
             <li>
               <Link
                 href="/api/health"
-                className="underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
+                className="inline-flex min-h-11 items-center underline decoration-line-strong underline-offset-2 hover:decoration-accent-500"
               >
                 {t("footer.systemStatus")}
               </Link>
